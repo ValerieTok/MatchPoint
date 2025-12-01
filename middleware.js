@@ -1,0 +1,27 @@
+// Centralized middleware helpers for auth and view locals
+const attachUser = (req, res, next) => {
+  res.locals.user = req.session && req.session.user;
+  res.locals.messages = {
+    success: req.flash('success'),
+    error: req.flash('error')
+  };
+  next();
+};
+
+const checkAuthenticated = (req, res, next) => {
+  if (req.session && req.session.user) return next();
+  req.flash('error', 'Please log in');
+  return res.redirect('/login');
+};
+
+const checkAdmin = (req, res, next) => {
+  if (req.session && req.session.user && req.session.user.role === 'admin') return next();
+  req.flash('error', 'Access denied');
+  return res.redirect('/shopping');
+};
+
+module.exports = {
+  attachUser,
+  checkAuthenticated,
+  checkAdmin
+};

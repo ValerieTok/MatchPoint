@@ -1,67 +1,109 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Your Cart</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body>
-    <!-- Navbar -->
-  <nav class="navbar navbar-expand-sm bg-dark navbar-dark">
-    <div class="container-fluid">
-      <a class="navbar-brand" href="/">Supermarket App</a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#collapsibleNavbar">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="collapsibleNavbar">
-        <ul class="navbar-nav">
-          <li class="nav-item">
-            <a class="nav-link" href="/shopping">Shop</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="/cart">View Cart</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="/logout">Logout</a>
-          </li> 
-        </ul>
+<%- include('partials/head', { title: 'Cart', bodyClass: 'bg-light' }) %>
+<%- include('partials/navbar', { user, activePage: 'cart' }) %>
+
+<div class="container mb-5">
+  <div class="bg-white rounded-4 shadow-sm p-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <div>
+        <p class="mb-1 text-muted">Shopping cart</p>
+        <h4 class="mb-0"><%= cart && cart.length ? cart.length : 0 %> item(s)</h4>
       </div>
     </div>
-  </nav>
-  <!-- Cart Content -->
-  <div class="container">
-    <h2 class="mt-4">Shopping Cart</h2>
-    <% if (cart.length === 0) { %>
-      <p>Your cart is empty.</p>
-    <% } else { %>
-      <table class="table table-bordered">
-        <thead>
-          <tr>
-            <th>Product</th>
-            <th>Price</th>
-            <th>Quantity</th>
-            <th>Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          <% let total = 0; %>
-          <% for (let i = 0; i < cart.length; i++) { %>
-            <tr>
-                <td><%= cart[i].productName %></td>
-                <td><img src="/images/<%= cart[i].image %>" width="80" class="img-thumbnail"></td>
-                <td><%= cart[i].quantity %></td>
-                <td>$<%= (cart[i].price * cart[i].quantity).toFixed(2) %></td>
-            </tr>
-            <% total += cart[i].price * cart[i].quantity; %>
-          <% }; %>
-        </tbody>
-      </table>
-      <h4>Total: $<%= total.toFixed(2) %></h4>
 
-      <div class="mt-4">
-        <a href="/shopping" class="btn btn-secondary">Back to Shopping</a>
+    <% if (messages && messages.error && messages.error.length) { %>
+      <div class="alert alert-danger"><%= messages.error[0] %></div>
+    <% } %>
+    <% if (messages && messages.success && messages.success.length) { %>
+      <div class="alert alert-success"><%= messages.success[0] %></div>
+    <% } %>
+
+    <% if (!cart || cart.length === 0) { %>
+      <div class="alert alert-info mb-0">Cart is empty.</div>
+    <% } else { %>
+      <% let total = 0; %>
+      <% let totalSavings = 0; %>
+      <div class="d-flex flex-column gap-3">
+        <% cart.forEach(item => { 
+          const priceNum = Number(item.price || 0);
+          const original = Number(item.originalPrice || item.price || 0);
+          const sub = priceNum * item.quantity;
+          total += sub;
+          if (item.hasDiscount) { totalSavings += (original - priceNum) * item.quantity; }
+          const stockAvailable = Number.isFinite(Number(item.availableStock)) ? Number(item.availableStock) : null;
+        %>
+          <div class="d-flex gap-3 align-items-center border rounded-3 p-3 bg-white shadow-sm">
+            <div style="width: 90px; height: 90px;" class="d-flex align-items-center justify-content-center bg-light rounded">
+              <% if (item.image) { %>
+                <img src="/images/<%= item.image %>" alt="<%= item.productName %>" class="img-fluid" style="max-height: 80px; object-fit: contain;">
+              <% } else { %>
+                <span class="text-muted small">No image</span>
+              <% } %>
+            </div>
+            <div class="flex-grow-1">
+              <div class="fw-semibold"><%= item.productName %></div>
+              <% if (item.hasDiscount) { %>
+                <div class="text-muted small text-decoration-line-through mb-0">Price: $<%= original.toFixed(2) %></div>
+                <div class="text-success small fw-semibold mb-1">$<%= priceNum.toFixed(2) %> (<%= Number(item.discountPercentage || 0).toFixed(0) %>% off)</div>
+              <% } else { %>
+                <div class="text-muted small mb-1">Price: $<%= priceNum.toFixed(2) %></div>
+              <% } %>
+              <div class="text-muted small mb-1">Stock: <%= stockAvailable !== null ? stockAvailable : '—' %></div>
+              <% if (item.offerMessage) { %>
+                <div class="alert alert-info py-2 px-3 mb-2">
+                  <span class="fw-semibold small text-uppercase d-block mb-1">Offer</span>
+                  <div class="small mb-0"><%= item.offerMessage %></div>
+                </div>
+              <% } %>
+              <form class="d-flex align-items-center gap-2" action="/cart/update/<%= item.productId %>" method="POST">
+                <label class="small text-muted mb-0" for="cart-qty-<%= item.productId %>">Quantity</label>
+                <input
+                  type="number"
+                  class="form-control form-control-sm"
+                  style="max-width: 90px;"
+                  id="cart-qty-<%= item.productId %>"
+                  name="quantity"
+                  min="1"
+                  max="<%= Math.max(stockAvailable || 0, Number(item.quantity) || 1) %>"
+                  value="<%= item.quantity %>"
+                  <%= stockAvailable !== null && stockAvailable <= 0 ? 'disabled' : '' %>
+                  required>
+                <button type="submit" class="btn btn-sm btn-outline-primary" <%= stockAvailable !== null && stockAvailable <= 0 ? 'disabled' : '' %>>Update</button>
+              </form>
+            </div>
+            <div class="text-end">
+              <div class="text-muted small">Subtotal</div>
+              <div class="fw-semibold">$<%= sub.toFixed(2) %></div>
+              <form class="mt-2" action="/cart/remove/<%= item.productId %>" method="POST">
+                <button class="btn btn-sm btn-outline-danger" type="submit">Remove</button>
+              </form>
+            </div>
+          </div>
+        <% }) %>
       </div>
+      <div class="d-flex justify-content-between align-items-center mt-4">
+        <div>
+          <h5 class="mb-1">Total: $<%= total.toFixed(2) %></h5>
+          <% if (totalSavings > 0) { %>
+            <div class="text-success small">You save $<%= totalSavings.toFixed(2) %> on this order.</div>
+          <% } %>
+        </div>
+      </div>
+      <form action="/checkout" method="post" class="mt-3">
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Delivery location</label>
+          <textarea
+            class="form-control"
+            name="deliveryAddress"
+            rows="2"
+            placeholder="Enter delivery address"
+            required><%= deliveryAddress || '' %></textarea>
+        </div>
+        <div class="d-flex flex-wrap gap-2 justify-content-end">
+          <a class="btn btn-outline-secondary" href="/shopping">Continue shopping</a>
+          <button class="btn btn-success" type="submit">Confirm purchase</button>
+        </div>
+      </form>
     <% } %>
   </div>
-</body>
-</html>
+</div>
+<%- include('partials/footer') %>

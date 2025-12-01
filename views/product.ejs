@@ -1,60 +1,68 @@
-<!-- product.ejs -->
-
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <title>Supermarket App</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <title><%= product.productName %></title>
 </head>
 <body>
-    <nav class="navbar navbar-expand-sm bg-dark navbar-dark">
-        <div class="container-fluid">
-          <a class="navbar-brand" href="/">Supermarket App</a>
-          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#collapsibleNavbar">
-            <span class="navbar-toggler-icon"></span>
-          </button>
-          <div class="collapse navbar-collapse" id="collapsibleNavbar">
-            <ul class="navbar-nav">
-              <% if (user.role === "admin") { %>
-                <li class="nav-item">
-                  <a class="nav-link" href="/inventory">Inventory</a>
-                </li> 
-                <li class="nav-item">
-                  <a class="nav-link" href="/addProduct">Add new product</a>
-                </li> 
-              <% } %>
-              <li class="nav-item">
-                <a class="nav-link" href="/logout">Logout</a>
-              </li> 
-            </ul>
+  <%- include('partials/navbar', { user, activePage: user && user.role === 'admin' ? 'inventory' : 'shopping' }) %>
+
+  <div class="container" style="max-width: 720px;">
+    <div class="card">
+      <div class="row g-0">
+        <div class="col-md-4 text-center p-3">
+          <img class="img-fluid" src="/images/<%= product.image || 'placeholder.png' %>" alt="<%= product.productName %>">
+        </div>
+        <div class="col-md-8">
+    <div class="card-body">
+      <h3 class="card-title"><%= product.productName %></h3>
+      <% const priceNum = Number(product.price || 0); %>
+      <% const discountPercentage = Math.min(100, Math.max(0, Number(product.discountPercentage) || 0)); %>
+      <% const hasDiscount = discountPercentage > 0; %>
+      <% const discountedPrice = hasDiscount
+        ? Number((priceNum * (1 - discountPercentage / 100)).toFixed(2))
+        : priceNum;
+      %>
+      <p class="card-text mb-1">
+        <% if (hasDiscount) { %>
+          <span class="text-decoration-line-through text-muted me-2">$<%= priceNum.toFixed(2) %></span>
+          <span class="fw-semibold text-success">$<%= discountedPrice.toFixed(2) %></span>
+        <% } else { %>
+          Price: $<%= priceNum.toFixed(2) %>
+        <% } %>
+      </p>
+      <% if (hasDiscount) { %>
+        <p class="card-text mb-2">
+          <small class="text-danger">-<%= discountPercentage.toFixed(0) %>% off</small>
+        </p>
+      <% } %>
+      <% if (product.offerMessage) { %>
+        <div class="card-text mb-2">
+          <small class="text-info"><strong>Offer:</strong> <%= product.offerMessage %></small>
+        </div>
+      <% } %>
+      <p class="card-text mb-3">Stock: <%= product.quantity %></p>
+            <% if (user && user.role === 'admin') { %>
+              <p class="mt-3"><a href="/inventory">Back to inventory</a></p>
+            <% } else { %>
+              <form class="row g-2 align-items-end" action="/add-to-cart/<%= product.id %>" method="post">
+                <div class="col-auto">
+                  <label class="form-label mb-0">Qty</label>
+                  <input class="form-control" type="number" name="quantity" value="1" min="1" max="<%= product.quantity %>">
+                </div>
+                <div class="col-auto">
+                  <button class="btn btn-primary" type="submit">Add to cart</button>
+                </div>
+              </form>
+              <p class="mt-3"><a href="/shopping">Back to shopping</a></p>
+            <% } %>
           </div>
         </div>
-    </nav>
-
-    <div class="container">
-        <p>Welcome, <%= user.username %> (<%= user.role %>)</p>
-        <br>
-        <div class="text-center"><h2>Product Details</h2></div>
-        <br>
-        <% if (product) { %> <!-- Check if product data exists -->
-            <div>
-                <p><b>Product Name:</b><br> <%= product.productName %></p>
-                <p><b>Product Image:</b><br> <img src = "../images/<%= product.image %>" width="20%"></p>
-                <p><b>Product Quantity:</b><br> <%= product.quantity %></p>
-                <p><b>Price:</b><br> $<%= product.price.toFixed(2) %></p> 
-            </div>
-        <% } else { %>
-            <p>No product found.</p>
-        <% } %>
-        <% if (user.role === "admin") { %>
-          <a href ="/inventory">Back</a>
-        <% } else { %>
-          <a href ="/shopping">Back</a>
-        <% } %>
+      </div>
     </div>
-    
+  </div>
 </body>
 </html>

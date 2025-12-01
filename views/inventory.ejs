@@ -1,63 +1,110 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <title>Supermarket App</title>
+  <title>Inventory | Admin</title>
+  <style>
+    body { background: #f7f7f9; }
+    .welcome-card {
+      background: linear-gradient(135deg, #f9fafb, #eef2ff);
+      border: 1px solid #e5e7eb;
+      border-radius: 18px;
+    }
+    .product-card {
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+    }
+    .product-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    }
+    .product-img {
+      height: 180px;
+      object-fit: contain;
+      padding: 12px;
+    }
+  </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-sm bg-dark navbar-dark">
-      <div class="container-fluid">
-        <a class="navbar-brand" href="/">Supermarket App</a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#collapsibleNavbar">
-          <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="collapsibleNavbar">
-          <ul class="navbar-nav">
-            <li class="nav-item">
-              <a class="nav-link" href="/addProduct">Add Product</a>
-            </li> 
-            <li class="nav-item">
-              <a class="nav-link" href="/logout">Logout</a>
-            </li> 
-          </ul>
+  <%- include('partials/navbar', { user, activePage: 'inventory' }) %>
+
+  <div class="container py-4">
+    <div class="welcome-card p-4 mb-4">
+      <div class="d-flex flex-wrap justify-content-between align-items-center">
+        <div>
+          <p class="mb-1 text-muted">Admin dashboard</p>
+          <h3 class="mb-1">Hi, <%= user.username %>!</h3>
+          <small class="text-muted">Manage products and users just like your shoppers see them.</small>
+        </div>
+        <div class="d-flex flex-wrap gap-2 mt-3 mt-sm-0">
+          <span class="badge bg-secondary align-self-center">Total products: <%= products ? products.length : 0 %></span>
         </div>
       </div>
-    </nav>
+    </div>
 
-  <div class="container">
-    <p>Welcome, <%= user.username %> (<%= user.role %>)</p>
-    <br>
-    <div class="text-center"><h2>Products from Supermarket App Database</h2></div>
-    <br>
-    <table class="table table-hover small text-center">
-      <thead>
-          <tr>
-            <th width="100">Product Name</th>
-            <th width="100">Product Image</th>
-            <th width="50">Quantity</th>
-            <th width="50">Price</th>
-            <th width="50">Edit</th>
-            <th width="50">Delete</th>
-          </tr>
-      </thead>
-      <tbody>
-        <% for(let i=0; i < products.length; i++) { %>
-          <tr>
-            <td><a href="/product/<%= products[i].productId %>" ><%= products[i].productName %></a></td>
-            <td><img src = "images/<%= products[i].image %>" width="20%"></td>
-            <td><%= products[i].quantity %></td>
-            <td>$<%= products[i].price.toFixed(2) %></td>
-            <!-- Edit Link -->
-            <td><a href="/updateProduct/<%= products[i].productId %>">Edit</a></td>
-            <!-- Delete Link -->
-            <td><a href="/deleteProduct/<%= products[i].productId %>" onclick="return confirm('Are you sure you want to delete this product?')">Delete</a></td>
-          </tr>
-        <% } %>
-      </tbody>
-    </table>
+    <% if (messages && messages.error && messages.error.length) { %>
+      <div class="alert alert-danger"><%= messages.error[0] %></div>
+    <% } %>
+    <% if (messages && messages.success && messages.success.length) { %>
+      <div class="alert alert-success"><%= messages.success[0] %></div>
+    <% } %>
+
+    <% if (!products || !products.length) { %>
+      <div class="alert alert-info">No products found. Add your first product.</div>
+    <% } else { %>
+      <div class="row g-3">
+        <% products.forEach(p => {
+          const priceNum = Number(p.price || 0);
+          const discountPercentage = Math.min(100, Math.max(0, Number(p.discountPercentage) || 0));
+          const hasDiscount = discountPercentage > 0;
+          const discountedPrice = hasDiscount
+            ? Number((priceNum * (1 - discountPercentage / 100)).toFixed(2))
+            : priceNum;
+          const outOfStock = p.quantity <= 0;
+        %>
+          <div class="col-12 col-sm-6 col-md-4">
+            <div class="product-card h-100 d-flex flex-column bg-white">
+              <img src="/images/<%= p.image %>" class="card-img-top product-img" alt="<%= p.productName %>">
+              <div class="card-body d-flex flex-column">
+                <h6 class="fw-semibold mb-1"><%= p.productName %></h6>
+                <p class="<%= outOfStock ? 'text-danger' : 'text-muted' %> mb-1">
+                  <%= outOfStock ? 'Out of stock' : 'Stock: ' + p.quantity %>
+                </p>
+                <p class="mb-2">
+                  <% if (hasDiscount) { %>
+                    <span class="text-decoration-line-through text-muted me-2">$<%= priceNum.toFixed(2) %></span>
+                    <span class="fw-semibold text-success">$<%= discountedPrice.toFixed(2) %></span>
+                  <% } else { %>
+                    <span class="text-muted">Price:</span> $<%= priceNum.toFixed(2) %>
+                  <% } %>
+                </p>
+                <% if (hasDiscount) { %>
+                  <div class="mb-2">
+                    <span class="badge bg-danger">-<%= discountPercentage.toFixed(0) %>%</span>
+                    <small class="text-muted ms-2">discounted offer</small>
+                  </div>
+                <% } %>
+                <% if (p.offerMessage) { %>
+                  <div class="alert alert-info py-2 px-3 mb-2">
+                    <div class="small fw-semibold text-uppercase mb-1">Offer</div>
+                    <div class="small mb-0"><%= p.offerMessage %></div>
+                  </div>
+                <% } %>
+                <div class="mt-auto d-flex gap-2">
+                  <a class="btn btn-success btn-sm" href="/updateProduct/<%= p.id %>">Edit</a>
+                  <a class="btn btn-danger btn-sm" href="/deleteProduct/<%= p.id %>" onclick="return confirm('Delete this product?')">Delete</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        <% }) %>
+      </div>
+    <% } %>
   </div>
 </body>
 </html>
