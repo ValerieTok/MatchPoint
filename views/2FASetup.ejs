@@ -1,0 +1,50 @@
+<%- include('partials/head', { title: 'Two-Factor Authentication', bodyClass: 'bg-light' }) %>
+<%- include('partials/navbar', { user: user, activePage: '' }) %>
+  <div class="container py-5">
+    <div class="row justify-content-center">
+      <div class="col-lg-6 col-md-8">
+        <div class="card shadow-sm border-0">
+          <div class="card-body p-4 p-md-5">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+              <h3 class="mb-0">Two-Factor Authentication</h3>
+              <% if (alreadyEnabled) { %>
+                <span class="badge bg-success">Enabled</span>
+              <% } else { %>
+                <span class="badge bg-secondary">Optional</span>
+              <% } %>
+            </div>
+            <%- include('partials/flashMessages', { messages }) %>
+            <% if (!alreadyEnabled) { %>
+              <p class="text-muted">Secure your account with a time-based one-time password (TOTP). Scan the QR code using Google Authenticator or any TOTP app, then enter the 6-digit code to enable 2FA.</p>
+              <div class="text-center mb-4">
+                <img src="<%= qrCodeDataURL %>" alt="2FA QR Code" class="img-fluid" style="max-width: 260px;">
+                <div class="mt-3">
+                  <small class="text-muted d-block">Or enter this code manually:</small>
+                  <code class="fs-6"><%= manualKey %></code>
+                </div>
+              </div>
+              <form action="/2fa/verify-setup" method="post" class="d-grid gap-3">
+                <div>
+                  <label class="form-label">6-digit code</label>
+                  <input type="text" name="token" class="form-control" placeholder="123456" pattern="\d{6}" maxlength="6" required>
+                </div>
+                <button type="submit" class="btn btn-primary w-100 py-2">Enable 2FA</button>
+                <div class="text-center text-muted">
+                  <small>2FA is optional. You can come back later if you change your mind.</small>
+                </div>
+              </form>
+            <% } else { %>
+              <p class="text-muted">Two-factor authentication is already enabled. Disable it if you need to reconfigure or want to turn it off.</p>
+              <form action="/2fa/disable" method="post" class="d-grid gap-3">
+                <button type="submit" class="btn btn-outline-danger w-100 py-2">Disable 2FA</button>
+                <div class="text-center text-muted">
+                  <small>Disabling 2FA will remove the requirement to enter a code on login.</small>
+                </div>
+              </form>
+            <% } %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+<%- include('partials/footer') %>

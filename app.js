@@ -6,6 +6,7 @@ const flash = require('connect-flash');
 const multer = require('multer');
 
 const UserController = require('./controllers/UserController');
+const ForgotPasswordController = require('./controllers/ForgotPasswordController');
 const ProductController = require('./controllers/ProductController');
 const CartController = require('./controllers/CartController');
 const OrderController = require('./controllers/OrderController');
@@ -59,11 +60,20 @@ app.get('/register', UserController.registerPage);
 app.post('/register', UserController.registerUser);
 app.get('/login', UserController.loginPage);
 app.post('/login', UserController.loginUser);
+app.get('/login/2fa', UserController.showTwoFactorLogin);
+app.post('/login/2fa', UserController.verifyTwoFactorLogin);
+app.get('/forgot-password', ForgotPasswordController.forgotPasswordPage);
+app.post('/forgot-password', ForgotPasswordController.requestPasswordReset);
 app.get('/logout', UserController.logoutUser);
+app.get('/2fa/setup', checkAuthenticated, UserController.showTwoFactorSetup);
+app.post('/2fa/verify-setup', checkAuthenticated, UserController.verifyTwoFactorSetup);
+app.post('/2fa/disable', checkAuthenticated, UserController.disableOwnTwoFactor);
+app.get('/2fa/disable', checkAuthenticated, (req, res) => res.redirect('/2fa/setup'));
 // Admin user management
 app.get('/users', checkAuthenticated, checkAdmin, UserController.listAllUsers);
 app.post('/users', checkAuthenticated, checkAdmin, UserController.addUser);
 app.post('/users/:id', checkAuthenticated, checkAdmin, UserController.updateUser);
+app.post('/users/:id/disable-2fa', checkAuthenticated, checkAdmin, UserController.disableTwoFactor);
 app.get('/users/delete/:id', checkAuthenticated, checkAdmin, UserController.deleteUser);
 app.get('/orders', checkAuthenticated, checkAdmin, OrderController.listAllOrders);
 app.get('/my-orders', checkAuthenticated, OrderController.userOrders);

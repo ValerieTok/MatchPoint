@@ -1,0 +1,21 @@
+<%- include('partials/head', { title: 'Two-Factor Verification', bodyClass: 'bg-light' }) %>
+<%- include('partials/navbar', { user, activePage: '' }) %>
+  <div class="container d-flex justify-content-center align-items-center" style="min-height: calc(100vh - 68px);">
+    <div class="col-lg-4 col-md-6">
+      <div class="bg-white rounded-4 shadow-sm p-4 p-md-5">
+        <h2 class="mb-4 text-center">Enter 2FA Code</h2>
+        <%- include('partials/flashMessages', { messages }) %>
+        <form action="/login/2fa" method="post" class="d-grid gap-3">
+          <div>
+            <label class="form-label">6-digit code</label>
+            <input class="form-control" type="text" name="token" placeholder="123456" pattern="\d{6}" maxlength="6" required>
+          </div>
+          <button class="btn btn-primary w-100 py-2" type="submit">Verify and Log in</button>
+          <div class="text-center">
+            <small class="text-muted">Lost access? <a href="/login">Log in again</a></small>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+<%- include('partials/footer') %>

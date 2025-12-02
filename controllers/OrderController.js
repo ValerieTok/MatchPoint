@@ -1,5 +1,4 @@
 const Order = require('../models/Order');
-const userModel = require('../models/User');
 
 const buildOrderDetails = (order) =>
   new Promise((resolve) => {
@@ -22,7 +21,8 @@ const getOrderByIdAsync = (id) =>
 
 module.exports = {
   listAllOrders(req, res) {
-    Order.getAllOrders((err, orders) => {
+    const searchTerm = req.query && req.query.search ? String(req.query.search) : '';
+    Order.getAllOrders(searchTerm, (err, orders) => {
       if (err) {
         console.error('Failed to load orders', err);
         req.flash('error', 'Unable to load orders right now.');
@@ -32,7 +32,8 @@ module.exports = {
       withItems.then((ordersWithItems) =>
         res.render('orders', {
           user: req.session && req.session.user,
-          orders: ordersWithItems
+          orders: ordersWithItems,
+          searchTerm: searchTerm
         })
       );
     });
@@ -48,7 +49,7 @@ module.exports = {
       }
       const withItems = Promise.all(orders.map((o) => buildOrderDetails(o)));
       withItems.then((ordersWithItems) =>
-        res.render('orders_user', {
+        res.render('orderUser', {
           user: req.session && req.session.user,
           orders: ordersWithItems
         })

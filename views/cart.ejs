@@ -10,12 +10,7 @@
       </div>
     </div>
 
-    <% if (messages && messages.error && messages.error.length) { %>
-      <div class="alert alert-danger"><%= messages.error[0] %></div>
-    <% } %>
-    <% if (messages && messages.success && messages.success.length) { %>
-      <div class="alert alert-success"><%= messages.success[0] %></div>
-    <% } %>
+    <%- include('partials/flashMessages', { messages }) %>
 
     <% if (!cart || cart.length === 0) { %>
       <div class="alert alert-info mb-0">Cart is empty.</div>
@@ -47,7 +42,7 @@
               <% } else { %>
                 <div class="text-muted small mb-1">Price: $<%= priceNum.toFixed(2) %></div>
               <% } %>
-              <div class="text-muted small mb-1">Stock: <%= stockAvailable !== null ? stockAvailable : '—' %></div>
+              <div class="text-muted small mb-1">Stock: <%= stockAvailable !== null ? stockAvailable : 'N/A' %></div>
               <% if (item.offerMessage) { %>
                 <div class="alert alert-info py-2 px-3 mb-2">
                   <span class="fw-semibold small text-uppercase d-block mb-1">Offer</span>

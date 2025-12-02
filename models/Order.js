@@ -61,14 +61,19 @@ const Order = {
     db.query(sql, [userId], (err, rows) => callback(err, rows || []));
   },
 
-  getAllOrders(callback) {
-    const sql = `
+  getAllOrders(searchTerm, callback) {
+    let sql = `
       SELECT o.id, o.total, o.address, o.created_at, o.delivered_at, u.username
       FROM orders o
       JOIN users u ON u.id = o.user_id
-      ORDER BY o.created_at DESC, o.id DESC
     `;
-    db.query(sql, (err, rows) => callback(err, rows || []));
+    const params = [];
+    if (searchTerm && searchTerm.trim()) {
+      sql += ' WHERE u.username LIKE ?';
+      params.push(`%${searchTerm.trim()}%`);
+    }
+    sql += ' ORDER BY o.created_at DESC, o.id DESC';
+    db.query(sql, params, (err, rows) => callback(err, rows || []));
   },
 
   getOrderItems(orderId, callback) {

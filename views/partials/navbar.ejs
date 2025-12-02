@@ -8,11 +8,13 @@
           <a class="btn btn-outline-primary btn-sm <%= activePage === 'addProduct' ? 'active' : '' %>" href="/addProduct">Add Product</a>
           <a class="btn btn-outline-primary btn-sm <%= activePage === 'users' ? 'active' : '' %>" href="/users">Manage Users</a>
           <a class="btn btn-outline-primary btn-sm <%= activePage === 'orders' ? 'active' : '' %>" href="/orders">Manage Orders</a>
+          <a class="btn btn-outline-secondary btn-sm" href="/2fa/setup">Security / 2FA</a>
           <a class="btn btn-outline-secondary btn-sm" href="/logout">Logout</a>
         <% } else { %>
           <a class="btn btn-outline-primary btn-sm <%= activePage === 'shopping' ? 'active' : '' %>" href="/shopping">Shop</a>
           <a class="btn btn-outline-primary btn-sm <%= activePage === 'cart' ? 'active' : '' %>" href="/cart">Cart</a>
-          <a class="btn btn-outline-primary btn-sm <%= activePage === 'orders_user' ? 'active' : '' %>" href="/my-orders">Orders</a>
+          <a class="btn btn-outline-primary btn-sm <%= activePage === 'orderUser' ? 'active' : '' %>" href="/my-orders">Orders</a>
+          <a class="btn btn-outline-secondary btn-sm" href="/2fa/setup">Security / 2FA</a>
           <a class="btn btn-outline-secondary btn-sm" href="/logout">Logout</a>
         <% } %>
       <% } else { %>

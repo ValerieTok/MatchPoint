@@ -1,11 +1,6 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <style>
+<%- include('partials/head', {
+  title: 'Supermarket App',
+  extraHead: `<style>
     body { background: #f7f7f9; }
     .welcome-card {
       background: linear-gradient(135deg, #f9fafb, #eef2ff);
@@ -37,11 +32,9 @@
       text-align: center;
       font-weight: 600;
     }
-  </style>
-  <title>Supermarket App</title>
-</head>
-<body>
-    <%- include('partials/navbar', { user, activePage: 'shopping' }) %>
+  </style>`
+}) %>
+<%- include('partials/navbar', { user, activePage: 'shopping' }) %>
 
   <div class="container py-4">
     <div class="welcome-card p-4 mb-4">
@@ -54,12 +47,7 @@
       </div>
     </div>
 
-    <% if (messages && messages.error && messages.error.length) { %>
-      <div class="alert alert-danger"><%= messages.error[0] %></div>
-    <% } %>
-    <% if (messages && messages.success && messages.success.length) { %>
-      <div class="alert alert-success"><%= messages.success[0] %></div>
-    <% } %>
+    <%- include('partials/flashMessages', { messages }) %>
 
     <form class="row g-2 align-items-center mb-3" method="GET" action="/shopping">
       <div class="col-12 col-sm-8 col-md-6">
@@ -120,10 +108,10 @@
                 <form class="d-flex align-items-center gap-2" action="/add-to-cart/<%= p.id %>" method="POST">
                   <div class="d-flex align-items-center gap-2">
                     <button type="button" class="btn btn-outline-primary qty-btn quantity-btn" data-dir="down" <%= outOfStock ? 'disabled' : '' %>>-</button>
-                    <div class="qty-display">1</div>
+                    <div class="qty-display">0</div>
                     <button type="button" class="btn btn-primary qty-btn quantity-btn" data-dir="up" <%= outOfStock ? 'disabled' : '' %>>+</button>
                   </div>
-                  <input type="hidden" name="quantity" value="1" class="quantity-input">
+                  <input type="hidden" name="quantity" value="0" class="quantity-input">
                   <button type="submit" class="btn btn-primary flex-grow-1" <%= outOfStock ? 'disabled' : '' %>>Add to cart</button>
                 </form>
               </div>
@@ -134,22 +122,19 @@
     </div>
     <% } %>
   </div>
-
-  <script>
-    // simple quantity increment/decrement per product card
+<%- include('partials/footer', { extraScripts: `<script>
     document.querySelectorAll('.product-card').forEach(card => {
       const input = card.querySelector('.quantity-input');
       const display = card.querySelector('.qty-display');
       card.querySelectorAll('.quantity-btn').forEach(btn => {
         btn.addEventListener('click', () => {
           const dir = btn.dataset.dir;
-          let current = parseInt(input.value, 10) || 1;
-          current = dir === 'up' ? current + 1 : Math.max(1, current - 1);
+          let current = parseInt(input.value, 10);
+          if (!Number.isFinite(current)) current = 0;
+          current = dir === 'up' ? current + 1 : Math.max(0, current - 1);
           input.value = current;
           display.textContent = current;
         });
       });
     });
-  </script>
-</body>
-</html>
+  </script>` }) %>

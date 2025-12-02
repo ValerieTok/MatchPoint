@@ -1,5 +1,7 @@
 const userModel = require('../models/User');
 const crypto = require('crypto');
+const speakeasy = require('speakeasy');
+const QRCode = require('qrcode');
 
 const getAdminCount = () =>
   new Promise((resolve, reject) => {
@@ -10,6 +12,19 @@ const getUserByIdAsync = (id) =>
   new Promise((resolve, reject) => {
     userModel.getUserById(id, (err, u) => (err ? reject(err) : resolve(u)));
   });
+
+function buildSafeUser(user) {
+  return {
+    id: user.id,
+    username: user.username,
+    email: user.email,
+    address: user.address,
+    contact: user.contact,
+    role: user.role,
+    free_delivery: user.free_delivery ? 1 : 0,
+    is_2fa_enabled: user.is_2fa_enabled ? 1 : 0
+  };
+}
 
 const UserController = {
   registerPage(req, res) {
@@ -81,24 +96,30 @@ const UserController = {
         req.flash('error', 'Invalid credentials');
         return res.redirect('/login');
       }
-      const safeUser = {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        address: user.address,
-        contact: user.contact,
-        role: user.role,
-        free_delivery: user.free_delivery ? 1 : 0
-      };
-      await new Promise((resolve, reject) => {
-        req.session.regenerate((err) => (err ? reject(err) : resolve()));
+      const safeUser = buildSafeUser(user);
+      if (safeUser.is_2fa_enabled) {
+        await new Promise(function (resolve, reject) {
+          req.session.regenerate(function (err) {
+            return err ? reject(err) : resolve();
+          });
+        });
+        req.session.pending2FAUserId = safeUser.id;
+        req.flash('success', 'Enter your authentication code to finish logging in.');
+        return req.session.save(function () {
+          return res.redirect('/login/2fa');
+        });
+      }
+      await new Promise(function (resolve, reject) {
+        req.session.regenerate(function (err) {
+          return err ? reject(err) : resolve();
+        });
       });
       req.session.user = safeUser;
       req.session.cart = [];
       req.flash('success', 'Login successful');
-      return req.session.save(() =>
-        res.redirect(safeUser.role === 'admin' ? '/inventory' : '/shopping')
-      );
+      return req.session.save(function () {
+        return res.redirect(safeUser.role === 'admin' ? '/inventory' : '/shopping');
+      });
     } catch (err) {
       console.error(err);
       req.flash('error', 'Authentication failed');
@@ -129,24 +150,6 @@ const UserController = {
       console.error(err);
       req.flash('error', 'Failed to load users');
       return res.redirect('/');
-    }
-  },
-
-  async getUserById(req, res) {
-    const id = req.params.id;
-    try {
-      const user = await new Promise((resolve, reject) => {
-        userModel.getUserById(id, (err, u) => (err ? reject(err) : resolve(u)));
-      });
-      if (!user) {
-        req.flash('error', 'User not found');
-        return res.redirect('/users');
-      }
-      return res.render('user', { user, currentUser: req.session && req.session.user });
-    } catch (err) {
-      console.error(err);
-      req.flash('error', 'User not found');
-      return res.redirect('/users');
     }
   },
 
@@ -236,6 +239,188 @@ const UserController = {
       req.flash('error', 'Failed to delete user');
     }
     return res.redirect('/users');
+  },
+
+  async disableTwoFactor(req, res) {
+    const id = req.params.id;
+    try {
+      await new Promise(function (resolve, reject) {
+        userModel.disableTwoFactor(id, function (err) {
+          return err ? reject(err) : resolve();
+        });
+      });
+      if (req.session && req.session.user && String(req.session.user.id) === String(id)) {
+        req.session.user.is_2fa_enabled = 0;
+      }
+      req.flash('success', 'Two-factor authentication disabled for user #' + id);
+    } catch (err) {
+      console.error(err);
+      req.flash('error', 'Could not disable two-factor authentication for this user.');
+    }
+    return res.redirect('/users');
+  },
+
+  async disableOwnTwoFactor(req, res) {
+    if (!req.session || !req.session.user) {
+      req.flash('error', 'Please log in');
+      return res.redirect('/login');
+    }
+    const id = req.session.user.id;
+    try {
+      await new Promise(function (resolve, reject) {
+        userModel.disableTwoFactor(id, function (err) {
+          return err ? reject(err) : resolve();
+        });
+      });
+      req.session.user.is_2fa_enabled = 0;
+      delete req.session.temp2FASecret;
+      req.flash('success', 'Two-factor authentication disabled.');
+      await new Promise(function (resolve, reject) {
+        req.session.save(function (err) {
+          return err ? reject(err) : resolve();
+        });
+      });
+      return res.redirect('/2fa/setup');
+    } catch (err) {
+      console.error(err);
+      req.flash('error', 'Could not disable two-factor authentication.');
+      return res.redirect('/2fa/setup');
+    }
+  },
+
+  showTwoFactorSetup: async function (req, res) {
+    if (!req.session || !req.session.user) {
+      req.flash('error', 'Please log in');
+      return res.redirect('/login');
+    }
+    const currentUser = req.session.user;
+    if (currentUser.is_2fa_enabled) {
+      delete req.session.temp2FASecret;
+      return res.render('2FASetup', {
+        user: req.session.user,
+        messages: res.locals.messages,
+        qrCodeDataURL: null,
+        manualKey: null,
+        alreadyEnabled: 1
+      });
+    }
+    let secret;
+    try {
+      secret = speakeasy.generateSecret({ name: 'Supermarket App (' + (currentUser.email || currentUser.username || '') + ')' });
+    } catch (err) {
+      console.error(err);
+      req.flash('error', 'Could not start two-factor setup.');
+      return res.redirect('/');
+    }
+    req.session.temp2FASecret = secret.base32;
+    QRCode.toDataURL(secret.otpauth_url, function (err, dataUrl) {
+      if (err) {
+        console.error(err);
+        req.flash('error', 'Could not generate QR code.');
+        return res.redirect('/');
+      }
+      return res.render('2FASetup', {
+        user: req.session.user,
+        messages: res.locals.messages,
+        qrCodeDataURL: dataUrl,
+        manualKey: secret.base32,
+        alreadyEnabled: currentUser.is_2fa_enabled ? 1 : 0
+      });
+    });
+  },
+
+  verifyTwoFactorSetup: async function (req, res) {
+    if (!req.session || !req.session.user) {
+      req.flash('error', 'Please log in');
+      return res.redirect('/login');
+    }
+    const token = req.body && req.body.token ? String(req.body.token).trim() : '';
+    const tempSecret = req.session.temp2FASecret;
+    if (!tempSecret) {
+      req.flash('error', 'Setup session expired. Start again.');
+      return res.redirect('/2fa/setup');
+    }
+    const verified = speakeasy.totp.verify({
+      secret: tempSecret,
+      encoding: 'base32',
+      token: token,
+      window: 1
+    });
+    if (!verified) {
+      req.flash('error', 'Invalid authentication code.');
+      return res.redirect('/2fa/setup');
+    }
+    try {
+      await new Promise(function (resolve, reject) {
+        userModel.saveTwoFactorSecret(req.session.user.id, tempSecret, function (err) {
+          return err ? reject(err) : resolve();
+        });
+      });
+      req.session.user.is_2fa_enabled = 1;
+      delete req.session.temp2FASecret;
+      req.flash('success', 'Two-factor authentication enabled.');
+      return req.session.save(function () {
+        return res.redirect('/');
+      });
+    } catch (err) {
+      console.error(err);
+      req.flash('error', 'Could not enable two-factor authentication.');
+      return res.redirect('/2fa/setup');
+    }
+  },
+
+  showTwoFactorLogin: function (req, res) {
+    if (!req.session || !req.session.pending2FAUserId) {
+      req.flash('error', 'No pending login.');
+      return res.redirect('/login');
+    }
+    return res.render('login2FA', { user: null, messages: res.locals.messages });
+  },
+
+  verifyTwoFactorLogin: async function (req, res) {
+    const pendingId = req.session && req.session.pending2FAUserId;
+    if (!pendingId) {
+      req.flash('error', 'No pending login.');
+      return res.redirect('/login');
+    }
+    const token = req.body && req.body.token ? String(req.body.token).trim() : '';
+    if (!token) {
+      req.flash('error', 'Enter the 6-digit code.');
+      return res.redirect('/login/2fa');
+    }
+    let user;
+    try {
+      user = await getUserByIdAsync(pendingId);
+    } catch (err) {
+      console.error(err);
+    }
+    if (!user || !user.twofactor_secret) {
+      req.flash('error', 'Login session expired.');
+      return res.redirect('/login');
+    }
+    const verified = speakeasy.totp.verify({
+      secret: user.twofactor_secret,
+      encoding: 'base32',
+      token: token,
+      window: 1
+    });
+    if (!verified) {
+      req.flash('error', 'Invalid authentication code.');
+      return res.redirect('/login/2fa');
+    }
+    const safeUser = buildSafeUser(user);
+    req.session.pending2FAUserId = null;
+    await new Promise(function (resolve, reject) {
+      req.session.regenerate(function (err) {
+        return err ? reject(err) : resolve();
+      });
+    });
+    req.session.user = safeUser;
+    req.session.cart = [];
+    req.flash('success', 'Login successful');
+    return req.session.save(function () {
+      return res.redirect(safeUser.role === 'admin' ? '/inventory' : '/shopping');
+    });
   }
 };
 
