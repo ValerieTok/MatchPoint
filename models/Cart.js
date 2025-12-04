@@ -121,10 +121,48 @@ const clearCart = (userId, callback) => {
   db.query(sql, [userId], callback);
 };
 
+const getCartItems = (userId, callback) => {
+  const sql = `
+        SELECT c.product_id AS productId,
+               c.quantity,
+               p.productName,
+               p.price,
+               p.image
+        FROM user_cart_items c
+        JOIN products p ON p.id = c.product_id
+        WHERE c.user_id = ?
+    `;
+  db.query(sql, [userId], (err, rows) => callback(err, rows || []));
+};
+
+const getItem = (userId, productId, callback) => {
+  const sql = 'SELECT quantity FROM user_cart_items WHERE user_id = ? AND product_id = ? LIMIT 1';
+  db.query(sql, [userId, productId], (err, rows) => callback(err, rows && rows[0] ? rows[0] : null));
+};
+
+const setQuantity = (userId, productId, quantity, callback) => {
+  const rawQty = Number(quantity);
+  const qty = Number.isFinite(rawQty) ? rawQty : 0;
+  const sql = `
+        INSERT INTO user_cart_items (user_id, product_id, quantity)
+        VALUES (?, ?, ?)
+        ON DUPLICATE KEY UPDATE quantity = VALUES(quantity)
+    `;
+  db.query(sql, [userId, productId, qty], (err, result) => callback(err, result));
+};
+
+const deleteItem = (userId, productId, callback) => {
+  removeItem(userId, productId, callback);
+};
+
 module.exports = {
   addOrIncrement,
   getCart,
+  getCartItems,
+  getItem,
   updateQuantity,
+  setQuantity,
   removeItem,
+  deleteItem,
   clearCart
 };

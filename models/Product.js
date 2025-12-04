@@ -39,8 +39,36 @@ module.exports = {
   },
 
   deleteProduct: function (id, callback) {
-    const sql = 'DELETE FROM products WHERE id = ?';
-    db.query(sql, [id], (err, result) => callback(err, result));
+    db.beginTransaction((txErr) => {
+      if (txErr) return callback(txErr);
+
+      const cleanupSteps = [
+        { sql: 'DELETE FROM order_items WHERE product_id = ?', params: [id] },
+        { sql: 'DELETE FROM user_cart_items WHERE product_id = ?', params: [id] },
+        { sql: 'DELETE FROM products WHERE id = ?', params: [id] }
+      ];
+
+      const runStep = (index) => {
+        if (index >= cleanupSteps.length) {
+          return db.commit((commitErr) => {
+            if (commitErr) {
+              return db.rollback(() => callback(commitErr));
+            }
+            return callback(null);
+          });
+        }
+
+        const step = cleanupSteps[index];
+        db.query(step.sql, step.params, (err) => {
+          if (err) {
+            return db.rollback(() => callback(err));
+          }
+          runStep(index + 1);
+        });
+      };
+
+      runStep(0);
+    });
   },
 
   searchProducts: function (term, callback) {

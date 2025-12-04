@@ -163,6 +163,14 @@ const UserController = {
       role: req.body.role || 'user'
     };
     try {
+      const existing = await new Promise((resolve, reject) => {
+        userModel.getUserByEmail(payload.email, (err, user) => (err ? reject(err) : resolve(user)));
+      });
+      if (existing) {
+        req.flash('error', 'Email already registered');
+        return res.redirect('/users');
+      }
+
       await new Promise((resolve, reject) => {
         userModel.addUser(payload, (err) => (err ? reject(err) : resolve()));
       });
