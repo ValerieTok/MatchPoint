@@ -1,6 +1,6 @@
 const db = require('../db');
 
-const ForgotPasswordModel = {
+const PasswordResetModel = {
   getUserByEmail(email, callback) {
     const sql = `
       SELECT id, username, email, password, address, contact, role
@@ -17,4 +17,4 @@ const ForgotPasswordModel = {
   }
 };
 
-module.exports = ForgotPasswordModel;
+module.exports = PasswordResetModel;

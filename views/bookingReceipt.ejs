@@ -1,5 +1,5 @@
 <%- include('partials/head', {
-  title: 'Invoice',
+  title: 'Booking Receipt',
   extraHead: `<style>
     body {
       background: linear-gradient(180deg, #ffffff 0%, #eef2ff 70%);
@@ -38,15 +38,15 @@
   <div class="container py-5">
     <div class="invoice-card text-center">
       <div class="invoice-badge mx-auto mb-2">
-        <span class="text-primary">Invoice</span>
+        <span class="text-primary">Booking receipt</span>
       </div>
-      <h1 class="fw-bold mb-1">Purchase confirmed</h1>
-      <p class="text-muted mb-1">Thank you for your order.</p>
+      <h1 class="fw-bold mb-1">Booking confirmed</h1>
+      <p class="text-muted mb-1">Thank you for booking a coaching session.</p>
       <p class="text-muted small">
-        Delivery location: <strong><%= deliveryAddress %></strong>
+        Session location: <strong><%= deliveryAddress %></strong>
       </p>
       <% if (orderId) { %>
-        <span class="badge bg-success text-white px-3 py-2">Order #<%= orderId %></span>
+        <span class="badge bg-success text-white px-3 py-2">Booking #<%= orderId %></span>
       <% } %>
     </div>
 
@@ -57,8 +57,8 @@
             <tr class="text-uppercase small text-muted">
               <th>Item</th>
               <th class="text-center">Image</th>
-              <th class="text-end">Qty</th>
-              <th class="text-end">Price</th>
+              <th class="text-end">Slots</th>
+              <th class="text-end">Rate</th>
               <th class="text-end">Subtotal</th>
             </tr>
           </thead>
@@ -76,6 +76,7 @@
               <tr>
                 <td>
                   <div class="fw-semibold text-dark"><%= it.productName %></div>
+                  <small class="text-muted d-block"><%= it.coachName %><% if (it.sport) { %> • <%= it.sport %><% } %></small>
                   <% if (it.offerMessage) { %>
                     <small class="text-info"><%= it.offerMessage %></small>
                   <% } %>
@@ -121,8 +122,8 @@
         <h2 class="fw-bold">$<%= Number(total || 0).toFixed(2) %></h2>
       </div>
       <div class="d-flex gap-2">
-        <a class="btn btn-outline-secondary" href="/shopping">Continue shopping</a>
-        <button class="btn btn-success" type="button" onclick="window.print()">Print invoice</button>
+        <a class="btn btn-outline-secondary" href="/shopping">Browse listings</a>
+        <button class="btn btn-success" type="button" onclick="window.print()">Print receipt</button>
       </div>
     </div>
   </div>

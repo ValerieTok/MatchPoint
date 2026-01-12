@@ -1,21 +1,21 @@
-<%- include('partials/head', { title: 'Review Order', bodyClass: 'bg-light' }) %>
+<%- include('partials/head', { title: 'Review Booking', bodyClass: 'bg-light' }) %>
 <%- include('partials/navbar', { user, activePage: 'orderUser' }) %>
 
   <div class="container py-4">
     <div class="bg-white rounded-4 shadow-sm p-4 mb-3">
-      <h3 class="mb-1">Leave a review for Order #<%= order.id %></h3>
-      <p class="text-muted mb-0">Delivered at <%= new Date(order.delivered_at).toLocaleString() %></p>
+      <h3 class="mb-1">Leave a review for Booking #<%= order.id %></h3>
+      <p class="text-muted mb-0">Session completed at <%= new Date(order.delivered_at).toLocaleString() %></p>
     </div>
     <div class="bg-white rounded-4 shadow-sm p-4 mb-4">
-      <h5 class="mb-3">Order summary</h5>
+      <h5 class="mb-3">Booking summary</h5>
       <div class="table-responsive">
         <table class="table align-middle mb-0">
           <thead class="text-muted small">
             <tr>
-              <th>Product</th>
+              <th>Listing</th>
               <th class="text-center">Image</th>
-              <th class="text-end">Qty</th>
-              <th class="text-end">Price</th>
+              <th class="text-end">Slots</th>
+              <th class="text-end">Rate</th>
               <th class="text-end">Subtotal</th>
             </tr>
           </thead>
@@ -30,6 +30,7 @@
               <tr>
                 <td>
                   <div class="fw-semibold text-dark"><%= it.productName %></div>
+                  <div class="text-muted small"><%= it.coachName %><% if (it.sport) { %> • <%= it.sport %><% } %></div>
                   <% if (it.offerMessage) { %>
                     <div class="text-info small"><%= it.offerMessage %></div>
                   <% } %>
@@ -72,7 +73,7 @@
           <textarea class="form-control" name="comment" rows="4" placeholder="Share your experience"></textarea>
         </div>
         <div class="d-flex gap-2">
-          <a class="btn btn-outline-secondary" href="/my-orders">Back to orders</a>
+          <a class="btn btn-outline-secondary" href="/my-orders">Back to bookings</a>
           <button class="btn btn-success" type="submit">Submit review</button>
         </div>
       </form>

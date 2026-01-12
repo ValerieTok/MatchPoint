@@ -1,9 +1,9 @@
-const Order = require('../models/Order');
+const Booking = require('../models/Booking');
 
-const buildOrderDetails = (order) =>
+const buildOrderDetails = (order, coachId) =>
   new Promise((resolve) => {
-    Order.getOrderItems(order.id, (itemsErr, items) => {
-      Order.getReviewByOrderId(order.id, (reviewErr, review) => {
+    Booking.getOrderItems(order.id, coachId, (itemsErr, items) => {
+      Booking.getReviewByOrderId(order.id, (reviewErr, review) => {
         resolve(
           Object.assign({}, order, {
             items: itemsErr ? [] : items,
@@ -16,21 +16,26 @@ const buildOrderDetails = (order) =>
 
 const getOrderByIdAsync = (id) =>
   new Promise((resolve, reject) => {
-    Order.getOrderById(id, (err, order) => (err ? reject(err) : resolve(order)));
+    Booking.getOrderById(id, (err, order) => (err ? reject(err) : resolve(order)));
   });
 
 module.exports = {
   listAllOrders(req, res) {
     const searchTerm = req.query && req.query.search ? String(req.query.search) : '';
-    Order.getAllOrders(searchTerm, (err, orders) => {
+    const user = req.session && req.session.user;
+    const isCoach = user && user.role === 'coach';
+    const loader = isCoach
+      ? (cb) => Booking.getBookingsByCoach(user.id, searchTerm, cb)
+      : (cb) => Booking.getAllOrders(searchTerm, cb);
+    loader((err, orders) => {
       if (err) {
-        console.error('Failed to load orders', err);
-        req.flash('error', 'Unable to load orders right now.');
+        console.error('Failed to load bookings', err);
+        req.flash('error', 'Unable to load bookings right now.');
         return res.redirect('/inventory');
       }
-      const withItems = Promise.all(orders.map((o) => buildOrderDetails(o)));
+      const withItems = Promise.all(orders.map((o) => buildOrderDetails(o, isCoach ? user.id : null)));
       withItems.then((ordersWithItems) =>
-        res.render('orders', {
+        res.render('bookingsManage', {
           user: req.session && req.session.user,
           orders: ordersWithItems,
           searchTerm: searchTerm
@@ -40,16 +45,21 @@ module.exports = {
   },
 
   userOrders(req, res) {
-    const userId = req.session.user.id;
-    Order.getOrdersByUser(userId, (err, orders) => {
+    const sessionUser = req.session && req.session.user;
+    if (!sessionUser || sessionUser.role !== 'user') {
+      req.flash('error', 'Access denied');
+      return res.redirect('/inventory');
+    }
+    const userId = sessionUser.id;
+    Booking.getOrdersByUser(userId, (err, orders) => {
       if (err) {
-        console.error('Failed to load order history', err);
-        req.flash('error', 'Unable to load your orders right now.');
+        console.error('Failed to load booking history', err);
+        req.flash('error', 'Unable to load your bookings right now.');
         return res.redirect('/shopping');
       }
-      const withItems = Promise.all(orders.map((o) => buildOrderDetails(o)));
+      const withItems = Promise.all(orders.map((o) => buildOrderDetails(o, null)));
       withItems.then((ordersWithItems) =>
-        res.render('orderUser', {
+        res.render('bookingsUser', {
           user: req.session && req.session.user,
           orders: ordersWithItems
         })
@@ -63,20 +73,24 @@ module.exports = {
       req.flash('error', 'Please log in');
       return res.redirect('/login');
     }
+    if (req.session.user.role !== 'user') {
+      req.flash('error', 'Access denied');
+      return res.redirect('/inventory');
+    }
     const orderId = parseInt(req.params.id, 10);
     if (Number.isNaN(orderId)) {
-      req.flash('error', 'Invalid order');
+      req.flash('error', 'Invalid booking');
       return res.redirect('/my-orders');
     }
     try {
       const order = await getOrderByIdAsync(orderId);
-      if (!order || order.userId !== userId) {
-        req.flash('error', 'Order not found');
-        return res.redirect('/my-orders');
-      }
-      if (!order.delivered_at) {
-        await new Promise((resolve, reject) => {
-          Order.markOrderDelivered(orderId, (err) => (err ? reject(err) : resolve()));
+    if (!order || order.userId !== userId) {
+      req.flash('error', 'Booking not found');
+      return res.redirect('/my-orders');
+    }
+    if (!order.delivered_at) {
+      await new Promise((resolve, reject) => {
+          Booking.markOrderDelivered(orderId, (err) => (err ? reject(err) : resolve()));
         });
       }
       return res.redirect(`/orders/${orderId}/review`);
@@ -93,27 +107,31 @@ module.exports = {
       req.flash('error', 'Please log in');
       return res.redirect('/login');
     }
+    if (req.session.user.role !== 'user') {
+      req.flash('error', 'Access denied');
+      return res.redirect('/inventory');
+    }
     const orderId = parseInt(req.params.id, 10);
     if (Number.isNaN(orderId)) {
-      req.flash('error', 'Invalid order');
+      req.flash('error', 'Invalid booking');
       return res.redirect('/my-orders');
     }
     try {
       const order = await getOrderByIdAsync(orderId);
-      if (!order || order.userId !== userId) {
-        req.flash('error', 'Order not found');
+    if (!order || order.userId !== userId) {
+      req.flash('error', 'Booking not found');
+      return res.redirect('/my-orders');
+    }
+    if (!order.delivered_at) {
+      req.flash('error', 'Confirm session first');
         return res.redirect('/my-orders');
       }
-      if (!order.delivered_at) {
-        req.flash('error', 'Confirm delivery first');
-        return res.redirect('/my-orders');
-      }
-      const detailed = await buildOrderDetails(order);
+      const detailed = await buildOrderDetails(order, null);
       if (detailed.review) {
         req.flash('info', 'Review already submitted');
         return res.redirect('/my-orders');
       }
-      return res.render('reviewOrder', {
+      return res.render('reviewBooking', {
         user: req.session && req.session.user,
         order: detailed
       });
@@ -130,9 +148,13 @@ module.exports = {
       req.flash('error', 'Please log in');
       return res.redirect('/login');
     }
+    if (req.session.user.role !== 'user') {
+      req.flash('error', 'Access denied');
+      return res.redirect('/inventory');
+    }
     const orderId = parseInt(req.params.id, 10);
     if (Number.isNaN(orderId)) {
-      req.flash('error', 'Invalid order');
+      req.flash('error', 'Invalid booking');
       return res.redirect('/my-orders');
     }
     const rating = Math.min(5, Math.max(1, Math.round(Number(req.body.rating) || 0)));
@@ -144,22 +166,22 @@ module.exports = {
     try {
       const order = await getOrderByIdAsync(orderId);
       if (!order || order.userId !== userId) {
-        req.flash('error', 'Order not found');
+      req.flash('error', 'Booking not found');
         return res.redirect('/my-orders');
       }
       if (!order.delivered_at) {
-        req.flash('error', 'Confirm delivery first');
+      req.flash('error', 'Confirm session first');
         return res.redirect('/my-orders');
       }
       const existing = await new Promise((resolve, reject) => {
-        Order.getReviewByOrderId(orderId, (err, review) => (err ? reject(err) : resolve(review)));
+        Booking.getReviewByOrderId(orderId, (err, review) => (err ? reject(err) : resolve(review)));
       });
       if (existing) {
         req.flash('info', 'Review already submitted');
         return res.redirect('/my-orders');
       }
       await new Promise((resolve, reject) => {
-        Order.createReview(
+        Booking.createReview(
           {
             order_id: orderId,
             user_id: userId,
@@ -186,12 +208,12 @@ module.exports = {
     }
     const orderId = parseInt(req.params.id, 10);
     if (Number.isNaN(orderId)) {
-      req.flash('error', 'Invalid order');
+      req.flash('error', 'Invalid booking');
       return res.redirect('/orders');
     }
     try {
       await new Promise((resolve, reject) => {
-        Order.deleteReviewByOrder(orderId, (err) => (err ? reject(err) : resolve()));
+        Booking.deleteReviewByOrder(orderId, (err) => (err ? reject(err) : resolve()));
       });
       req.flash('success', 'Review deleted');
       return res.redirect('/orders');

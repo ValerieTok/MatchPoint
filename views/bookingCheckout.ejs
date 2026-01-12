@@ -1,5 +1,5 @@
 <%- include('partials/head', {
-  title: 'Checkout',
+  title: 'Booking Checkout',
   bodyClass: 'bg-light',
   extraHead: `<style>
     body {
@@ -38,15 +38,15 @@
   <div class="container py-5">
     <div class="checkout-hero text-center shadow-sm">
       <p class="mb-1">Review &amp; confirm</p>
-      <h1 class="fw-bold mb-2">Checkout summary</h1>
-      <small>Ensure your delivery location and items are correct before completing the purchase.</small>
+      <h1 class="fw-bold mb-2">Booking summary</h1>
+      <small>Confirm your session location and listings before completing the booking.</small>
     </div>
 
     <div class="row g-4">
       <div class="col-lg-8">
         <div class="item-card mb-3">
-          <h5 class="fw-semibold mb-3 text-dark">Delivery location</h5>
-          <p class="text-muted mb-0"><strong class="text-dark">Address:</strong> <%= deliveryAddress %></p>
+          <h5 class="fw-semibold mb-3 text-dark">Session location</h5>
+          <p class="text-muted mb-0"><strong class="text-dark">Location:</strong> <%= deliveryAddress %></p>
         </div>
 
         <% const totalSavings = cart.reduce((sum, item) => {
@@ -62,8 +62,8 @@
                 <tr class="text-muted">
                   <th>Item</th>
                   <th class="text-center">Image</th>
-                  <th class="text-end">Qty</th>
-                  <th class="text-end">Price</th>
+                  <th class="text-end">Slots</th>
+                  <th class="text-end">Rate</th>
                 </tr>
               </thead>
               <tbody>
@@ -78,6 +78,7 @@
                   <tr>
                     <td>
                       <div class="fw-semibold text-dark"><%= it.productName %></div>
+                      <small class="text-muted d-block"><%= it.coachName %><% if (it.sport) { %> • <%= it.sport %><% } %></small>
                       <% if (it.offerMessage) { %>
                         <small class="text-info"><%= it.offerMessage %></small>
                       <% } %>
@@ -95,7 +96,7 @@
                       <% if (original > price) { %>
                         <div class="text-decoration-line-through text-muted small">$<%= original.toFixed(2) %></div>
                       <% } else { %>
-                        <div class="text-muted small">Unit</div>
+                        <div class="text-muted small">Per slot</div>
                       <% } %>
                       <div class="fw-semibold">$<%= price.toFixed(2) %></div>
                       <% if (original > price) { %>
@@ -114,7 +115,7 @@
 
       <div class="col-lg-4">
         <div class="summary-card">
-          <p class="text-uppercase small mb-1">Order summary</p>
+          <p class="text-uppercase small mb-1">Booking summary</p>
           <h3 class="fw-semibold mb-2">$<%= Number(total || 0).toFixed(2) %></h3>
           <% if (totalSavings > 0) { %>
             <p class="text-success small mb-3">You save $<%= totalSavings.toFixed(2) %> today</p>
@@ -123,7 +124,7 @@
           <% } %>
           <form action="/checkout/confirm" method="post">
             <input type="hidden" name="deliveryAddress" value="<%= deliveryAddress %>">
-            <button class="btn btn-success w-100 fw-semibold" type="submit">Confirm purchase</button>
+            <button class="btn btn-success w-100 fw-semibold" type="submit">Confirm booking</button>
           </form>
         </div>
         <div class="item-card mt-3">

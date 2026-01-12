@@ -1,11 +1,11 @@
-<%- include('partials/head', { title: 'Supermarket App', bodyClass: 'bg-light' }) %>
+<%- include('partials/head', { title: 'MatchPoint Coaching', bodyClass: 'bg-light' }) %>
 <%- include('partials/navbar', { user, activePage: '' }) %>
     <div class="container py-5">
       <div class="row align-items-center bg-white rounded-4 shadow-sm p-4">
         <div class="col-lg-6">
-          <p class="text-uppercase text-muted mb-2 small fw-semibold">Groceries made easy</p>
-          <h1 class="display-5 mb-3">Welcome to Supermarket App</h1>
-          <p class="lead text-muted">Fresh groceries, quick checkout, and simple inventory management.</p>
+          <p class="text-uppercase text-muted mb-2 small fw-semibold">Train smarter</p>
+          <h1 class="display-5 mb-3">Welcome to MatchPoint Coaching</h1>
+          <p class="lead text-muted">Book certified coaches, manage listings, and track your sessions in one place.</p>
           <% if (!user) { %>
             <div class="d-flex gap-2 flex-wrap mt-3">
               <a class="btn btn-danger btn-lg px-4" href="/register">Create account</a>
@@ -14,16 +14,22 @@
           <% } else { %>
             <% if (user.role === 'admin') { %>
               <div class="d-flex flex-wrap gap-2 mt-3">
-                <a class="btn btn-primary btn-lg px-4" href="/inventory">Manage Products</a>
+                <a class="btn btn-primary btn-lg px-4" href="/inventory">Manage Listings</a>
                 <a class="btn btn-outline-primary btn-lg px-4" href="/users">Manage Users</a>
+                <a class="btn btn-outline-primary btn-lg px-4" href="/orders">Manage Bookings</a>
+              </div>
+            <% } else if (user.role === 'coach') { %>
+              <div class="d-flex flex-wrap gap-2 mt-3">
+                <a class="btn btn-primary btn-lg px-4" href="/inventory">Manage My Listings</a>
+                <a class="btn btn-outline-primary btn-lg px-4" href="/orders">View My Bookings</a>
               </div>
             <% } else { %>
-              <a class="btn btn-primary btn-lg px-4 mt-3" href="/shopping">Start Shopping</a>
+              <a class="btn btn-primary btn-lg px-4 mt-3" href="/shopping">Find a Coach</a>
             <% } %>
           <% } %>
         </div>
         <div class="col-lg-6 text-center mt-4 mt-lg-0">
-          <img src="https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1000&q=80" class="img-fluid rounded-4 shadow" alt="Supermarket shelves with groceries">
+          <img src="https://images.unsplash.com/photo-1502904550040-7534597429ae?auto=format&fit=crop&w=1000&q=80" class="img-fluid rounded-4 shadow" alt="Coach training an athlete">
         </div>
       </div>
     </div>

@@ -1,19 +1,25 @@
 <nav class="navbar navbar-expand-sm bg-white border-bottom mb-3">
   <div class="container">
-    <a class="navbar-brand fw-semibold" href="/">Supermarket App</a>
+    <a class="navbar-brand fw-semibold" href="/">MatchPoint Coaching</a>
     <div class="ms-auto d-flex align-items-center gap-2">
       <% if (user) { %>
         <% if (user.role === 'admin') { %>
-          <a class="btn btn-outline-primary btn-sm <%= activePage === 'inventory' ? 'active' : '' %>" href="/inventory">View Inventory</a>
-          <a class="btn btn-outline-primary btn-sm <%= activePage === 'addProduct' ? 'active' : '' %>" href="/addProduct">Add Product</a>
+          <a class="btn btn-outline-primary btn-sm <%= activePage === 'inventory' ? 'active' : '' %>" href="/inventory">All Listings</a>
+          <a class="btn btn-outline-primary btn-sm <%= activePage === 'addProduct' ? 'active' : '' %>" href="/addProduct">Add Listing</a>
           <a class="btn btn-outline-primary btn-sm <%= activePage === 'users' ? 'active' : '' %>" href="/users">Manage Users</a>
-          <a class="btn btn-outline-primary btn-sm <%= activePage === 'orders' ? 'active' : '' %>" href="/orders">Manage Orders</a>
+          <a class="btn btn-outline-primary btn-sm <%= activePage === 'orders' ? 'active' : '' %>" href="/orders">Manage Bookings</a>
+          <a class="btn btn-outline-secondary btn-sm" href="/2fa/setup">Security / 2FA</a>
+          <a class="btn btn-outline-secondary btn-sm" href="/logout">Logout</a>
+        <% } else if (user.role === 'coach') { %>
+          <a class="btn btn-outline-primary btn-sm <%= activePage === 'inventory' ? 'active' : '' %>" href="/inventory">My Listings</a>
+          <a class="btn btn-outline-primary btn-sm <%= activePage === 'addProduct' ? 'active' : '' %>" href="/addProduct">Add Listing</a>
+          <a class="btn btn-outline-primary btn-sm <%= activePage === 'orders' ? 'active' : '' %>" href="/orders">My Bookings</a>
           <a class="btn btn-outline-secondary btn-sm" href="/2fa/setup">Security / 2FA</a>
           <a class="btn btn-outline-secondary btn-sm" href="/logout">Logout</a>
         <% } else { %>
-          <a class="btn btn-outline-primary btn-sm <%= activePage === 'shopping' ? 'active' : '' %>" href="/shopping">Shop</a>
-          <a class="btn btn-outline-primary btn-sm <%= activePage === 'cart' ? 'active' : '' %>" href="/cart">Cart</a>
-          <a class="btn btn-outline-primary btn-sm <%= activePage === 'orderUser' ? 'active' : '' %>" href="/my-orders">Orders</a>
+          <a class="btn btn-outline-primary btn-sm <%= activePage === 'shopping' ? 'active' : '' %>" href="/shopping">Find Coaches</a>
+          <a class="btn btn-outline-primary btn-sm <%= activePage === 'cart' ? 'active' : '' %>" href="/cart">Booking Cart</a>
+          <a class="btn btn-outline-primary btn-sm <%= activePage === 'orderUser' ? 'active' : '' %>" href="/my-orders">My Bookings</a>
           <a class="btn btn-outline-secondary btn-sm" href="/2fa/setup">Security / 2FA</a>
           <a class="btn btn-outline-secondary btn-sm" href="/logout">Logout</a>
         <% } %>

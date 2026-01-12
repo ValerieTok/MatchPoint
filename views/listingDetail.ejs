@@ -1,5 +1,5 @@
 <%- include('partials/head', { title: product.productName, bodyClass: 'bg-light' }) %>
-<%- include('partials/navbar', { user, activePage: user && user.role === 'admin' ? 'inventory' : 'shopping' }) %>
+<%- include('partials/navbar', { user, activePage: user && (user.role === 'admin' || user.role === 'coach') ? 'inventory' : 'shopping' }) %>
 
   <div class="container" style="max-width: 720px;">
     <div class="card">
@@ -10,6 +10,10 @@
         <div class="col-md-8">
     <div class="card-body">
       <h3 class="card-title"><%= product.productName %></h3>
+      <div class="text-muted mb-2"><%= product.coachName %><% if (product.sport) { %> • <%= product.sport %><% } %></div>
+      <% if (product.description) { %>
+        <p class="card-text mb-2"><%= product.description %></p>
+      <% } %>
       <% const priceNum = Number(product.price || 0); %>
       <% const discountPercentage = Math.min(100, Math.max(0, Number(product.discountPercentage) || 0)); %>
       <% const hasDiscount = discountPercentage > 0; %>
@@ -22,7 +26,7 @@
           <span class="text-decoration-line-through text-muted me-2">$<%= priceNum.toFixed(2) %></span>
           <span class="fw-semibold text-success">$<%= discountedPrice.toFixed(2) %></span>
         <% } else { %>
-          Price: $<%= priceNum.toFixed(2) %>
+          Rate: $<%= priceNum.toFixed(2) %>
         <% } %>
       </p>
       <% if (hasDiscount) { %>
@@ -32,23 +36,26 @@
       <% } %>
       <% if (product.offerMessage) { %>
         <div class="card-text mb-2">
-          <small class="text-info"><strong>Offer:</strong> <%= product.offerMessage %></small>
+          <small class="text-info"><strong>Promo:</strong> <%= product.offerMessage %></small>
         </div>
       <% } %>
-      <p class="card-text mb-3">Stock: <%= product.quantity %></p>
-            <% if (user && user.role === 'admin') { %>
-              <p class="mt-3"><a href="/inventory">Back to inventory</a></p>
+      <p class="card-text mb-2">Slots: <%= product.quantity %><% if (product.durationMinutes) { %> • <%= product.durationMinutes %> mins<% } %></p>
+      <% if (typeof product.isActive !== 'undefined' && !product.isActive) { %>
+        <p class="text-muted mb-3">This listing is currently hidden.</p>
+      <% } %>
+            <% if (user && (user.role === 'admin' || user.role === 'coach')) { %>
+              <p class="mt-3"><a href="/inventory">Back to listings</a></p>
             <% } else { %>
               <form class="row g-2 align-items-end" action="/add-to-cart/<%= product.id %>" method="post">
                 <div class="col-auto">
-                  <label class="form-label mb-0">Qty</label>
+                  <label class="form-label mb-0">Slots</label>
                   <input class="form-control" type="number" name="quantity" value="1" min="1" max="<%= product.quantity %>">
                 </div>
                 <div class="col-auto">
-                  <button class="btn btn-primary" type="submit">Add to cart</button>
+                  <button class="btn btn-primary" type="submit" <%= product.isActive ? '' : 'disabled' %>>Add to booking cart</button>
                 </div>
               </form>
-              <p class="mt-3"><a href="/shopping">Back to shopping</a></p>
+              <p class="mt-3"><a href="/shopping">Back to listings</a></p>
             <% } %>
           </div>
         </div>

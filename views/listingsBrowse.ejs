@@ -1,5 +1,5 @@
 <%- include('partials/head', {
-  title: 'Supermarket App',
+  title: 'Find a Coach',
   extraHead: `<style>
     body { background: #f7f7f9; }
     .welcome-card {
@@ -42,7 +42,7 @@
         <div>
           <p class="mb-1 text-muted">Welcome back</p>
           <h3 class="mb-1">Hi, <%= user.username %>!</h3>
-          <small class="text-muted">Browse groceries and add them to your cart.</small>
+          <small class="text-muted">Browse coaches and book training sessions.</small>
         </div>
       </div>
     </div>
@@ -55,7 +55,7 @@
           type="text"
           name="search"
           class="form-control"
-          placeholder="Search products"
+          placeholder="Search listings, coaches, or sports"
           value="<%= search || '' %>">
       </div>
       <div class="col-12 col-sm-4 col-md-3 d-flex gap-2">
@@ -65,7 +65,7 @@
     </form>
 
     <% if (!products || !products.length) { %>
-      <div class="alert alert-info">No products found<%= search ? ' for "' + search + '"' : '' %>.</div>
+      <div class="alert alert-info">No listings found<%= search ? ' for "' + search + '"' : '' %>.</div>
     <% } else { %>
     <div class="row g-3">
       <% products.forEach(p => {
@@ -82,6 +82,7 @@
             <img src="/images/<%= p.image %>" class="card-img-top product-img" alt="<%= p.productName %>">
             <div class="card-body d-flex flex-column">
               <h6 class="fw-semibold mb-1"><a href="/products/<%= p.id %>" class="text-decoration-none text-dark"><%= p.productName %></a></h6>
+              <div class="small text-muted mb-2"><%= p.coachName %><% if (p.sport) { %> • <%= p.sport %><% } %></div>
               <p class="mb-2">
                 <% if (hasDiscount) { %>
                   <span class="text-decoration-line-through text-muted me-2">$<%= priceNum.toFixed(2) %></span>
@@ -93,16 +94,19 @@
               <% if (hasDiscount) { %>
                 <div class="d-flex gap-2 align-items-center mb-2">
                   <span class="badge bg-danger">-<%= discountPercentage.toFixed(0) %>%</span>
-                  <small class="text-muted">New amount $<%= discountedPrice.toFixed(2) %></small>
+                  <small class="text-muted">Now $<%= discountedPrice.toFixed(2) %></small>
                 </div>
               <% } %>
               <% if (p.offerMessage) { %>
                 <div class="text-info small mb-2">
-                  <strong>Offer:</strong> <%= p.offerMessage %>
+                  <strong>Promo:</strong> <%= p.offerMessage %>
                 </div>
               <% } %>
               <p class="<%= outOfStock ? 'text-danger' : 'text-muted' %> mb-2">
-                <%= outOfStock ? 'Out of stock' : 'Stock: ' + p.quantity %>
+                <%= outOfStock ? 'No slots available' : 'Slots: ' + p.quantity %>
+                <% if (p.durationMinutes) { %>
+                  <span class="text-muted"> • <%= p.durationMinutes %> mins</span>
+                <% } %>
               </p>
               <div class="mt-auto">
                 <form class="d-flex align-items-center gap-2" action="/add-to-cart/<%= p.id %>" method="POST">
@@ -112,7 +116,7 @@
                     <button type="button" class="btn btn-primary qty-btn quantity-btn" data-dir="up" <%= outOfStock ? 'disabled' : '' %>>+</button>
                   </div>
                   <input type="hidden" name="quantity" value="0" class="quantity-input">
-                  <button type="submit" class="btn btn-primary flex-grow-1" <%= outOfStock ? 'disabled' : '' %>>Add to cart</button>
+                  <button type="submit" class="btn btn-primary flex-grow-1" <%= outOfStock ? 'disabled' : '' %>>Add to booking cart</button>
                 </form>
               </div>
             </div>

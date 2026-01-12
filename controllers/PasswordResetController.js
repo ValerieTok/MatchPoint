@@ -1,7 +1,7 @@
 const crypto = require('crypto');
-const ForgotPasswordModel = require('../models/ForgotPassword');
+const PasswordResetModel = require('../models/PasswordReset');
 
-const ForgotPasswordController = {
+const PasswordResetController = {
   forgotPasswordPage(req, res) {
     return res.render('forgotPassword', {
       messages: res.locals.messages,
@@ -27,7 +27,7 @@ const ForgotPasswordController = {
     }
     try {
       const user = await new Promise((resolve, reject) => {
-        ForgotPasswordModel.getUserByEmail(email, (err, row) => (err ? reject(err) : resolve(row)));
+        PasswordResetModel.getUserByEmail(email, (err, row) => (err ? reject(err) : resolve(row)));
       });
       if (!user) {
         req.flash('error', 'Account not found for that email.');
@@ -39,7 +39,7 @@ const ForgotPasswordController = {
         return res.redirect('/forgot-password');
       }
       await new Promise((resolve, reject) => {
-        ForgotPasswordModel.updatePassword(user.id, password, (err) => (err ? reject(err) : resolve()));
+        PasswordResetModel.updatePassword(user.id, password, (err) => (err ? reject(err) : resolve()));
       });
       console.info(`[Password Reset] Updated password for user #${user.id} (${user.email})`);
       req.flash('success', 'Password updated. Please log in with the new credentials.');
@@ -52,4 +52,4 @@ const ForgotPasswordController = {
   }
 };
 
-module.exports = ForgotPasswordController;
+module.exports = PasswordResetController;

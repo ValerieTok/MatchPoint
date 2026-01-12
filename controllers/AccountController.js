@@ -1,4 +1,4 @@
-const userModel = require('../models/User');
+const userModel = require('../models/Account');
 const crypto = require('crypto');
 const speakeasy = require('speakeasy');
 const QRCode = require('qrcode');
@@ -13,6 +13,15 @@ const getUserByIdAsync = (id) =>
     userModel.getUserById(id, (err, u) => (err ? reject(err) : resolve(u)));
   });
 
+const ensureAdminOnly = (req, res) => {
+  if (req.session && req.session.user && req.session.user.role === 'admin') {
+    return true;
+  }
+  req.flash('error', 'Access denied');
+  res.redirect('/inventory');
+  return false;
+};
+
 function buildSafeUser(user) {
   return {
     id: user.id,
@@ -21,12 +30,11 @@ function buildSafeUser(user) {
     address: user.address,
     contact: user.contact,
     role: user.role,
-    free_delivery: user.free_delivery ? 1 : 0,
     is_2fa_enabled: user.is_2fa_enabled ? 1 : 0
   };
 }
 
-const UserController = {
+const AccountController = {
   registerPage(req, res) {
     const formData = req.flash('formData')[0] || {};
     return res.render('register', { messages: res.locals.messages, formData, user: req.session && req.session.user });
@@ -118,7 +126,7 @@ const UserController = {
       req.session.cart = [];
       req.flash('success', 'Login successful');
       return req.session.save(function () {
-        return res.redirect(safeUser.role === 'admin' ? '/inventory' : '/shopping');
+        return res.redirect(safeUser.role === 'admin' || safeUser.role === 'coach' ? '/inventory' : '/shopping');
       });
     } catch (err) {
       console.error(err);
@@ -141,11 +149,12 @@ const UserController = {
 
   // admin helpers
   async listAllUsers(req, res) {
+    if (!ensureAdminOnly(req, res)) return;
     try {
       const users = await new Promise((resolve, reject) => {
         userModel.getAllUsers((err, rows) => (err ? reject(err) : resolve(rows)));
       });
-      return res.render('users', { users, user: req.session && req.session.user });
+      return res.render('accounts', { users, user: req.session && req.session.user });
     } catch (err) {
       console.error(err);
       req.flash('error', 'Failed to load users');
@@ -154,6 +163,7 @@ const UserController = {
   },
 
   async addUser(req, res) {
+    if (!ensureAdminOnly(req, res)) return;
     const payload = {
       username: req.body.username,
       email: req.body.email,
@@ -183,6 +193,7 @@ const UserController = {
   },
 
   async updateUser(req, res) {
+    if (!ensureAdminOnly(req, res)) return;
     const id = req.params.id;
     let existingUser;
     try {
@@ -224,6 +235,7 @@ const UserController = {
   },
 
   async deleteUser(req, res) {
+    if (!ensureAdminOnly(req, res)) return;
     const id = req.params.id;
     try {
       const userToDelete = await getUserByIdAsync(id);
@@ -250,6 +262,7 @@ const UserController = {
   },
 
   async disableTwoFactor(req, res) {
+    if (!ensureAdminOnly(req, res)) return;
     const id = req.params.id;
     try {
       await new Promise(function (resolve, reject) {
@@ -314,7 +327,7 @@ const UserController = {
     }
     let secret;
     try {
-      secret = speakeasy.generateSecret({ name: 'Supermarket App (' + (currentUser.email || currentUser.username || '') + ')' });
+      secret = speakeasy.generateSecret({ name: 'MatchPoint Coaching (' + (currentUser.email || currentUser.username || '') + ')' });
     } catch (err) {
       console.error(err);
       req.flash('error', 'Could not start two-factor setup.');
@@ -427,9 +440,9 @@ const UserController = {
     req.session.cart = [];
     req.flash('success', 'Login successful');
     return req.session.save(function () {
-      return res.redirect(safeUser.role === 'admin' ? '/inventory' : '/shopping');
+      return res.redirect(safeUser.role === 'admin' || safeUser.role === 'coach' ? '/inventory' : '/shopping');
     });
   }
 };
 
-module.exports = UserController;
+module.exports = AccountController;

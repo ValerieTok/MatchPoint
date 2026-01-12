@@ -1,9 +1,9 @@
-<%- include('partials/head', { title: 'Manage Users', bodyClass: 'bg-light' }) %>
+<%- include('partials/head', { title: 'Manage Accounts', bodyClass: 'bg-light' }) %>
 <%- include('partials/navbar', { user, activePage: 'users' }) %>
 
   <div class="container mb-5">
     <div class="bg-white rounded-4 shadow-sm p-4 mb-4">
-      <h4 class="mb-3">Add user</h4>
+      <h4 class="mb-3">Add account</h4>
       <%- include('partials/flashMessages', {
         messages,
         errorClass: 'alert alert-danger py-2',
@@ -23,8 +23,8 @@
           <input required type="password" name="password" class="form-control" placeholder="Min 6 chars">
         </div>
         <div class="col-md-4">
-          <label class="form-label">Address</label>
-          <input name="address" class="form-control" placeholder="Address">
+          <label class="form-label">Location</label>
+          <input name="address" class="form-control" placeholder="Location">
         </div>
         <div class="col-md-4">
           <label class="form-label">Contact</label>
@@ -33,20 +33,21 @@
         <div class="col-md-4">
           <label class="form-label">Role</label>
           <select name="role" class="form-select">
-            <option value="user">User</option>
+            <option value="user">Athlete</option>
+            <option value="coach">Coach</option>
             <option value="admin">Admin</option>
           </select>
         </div>
         <div class="col-12 text-end">
-          <button class="btn btn-primary" type="submit">Add user</button>
+          <button class="btn btn-primary" type="submit">Add account</button>
         </div>
       </form>
     </div>
 
     <div class="bg-white rounded-4 shadow-sm p-4">
-      <h4 class="mb-3">Existing users</h4>
+      <h4 class="mb-3">Existing accounts</h4>
       <% if (!users || !users.length) { %>
-        <div class="alert alert-info mb-0">No users found.</div>
+        <div class="alert alert-info mb-0">No accounts found.</div>
       <% } else { %>
         <div class="table-responsive">
           <table class="table align-middle">
@@ -55,7 +56,7 @@
                 <th>ID</th>
                 <th>Name</th>
                 <th>Email</th>
-                <th>Address</th>
+                <th>Location</th>
                 <th>Contact</th>
                 <th>Role</th>
                 <th>2FA</th>
@@ -73,7 +74,8 @@
                     <td><input name="contact" class="form-control form-control-sm" value="<%= u.contact || '' %>"></td>
                   <td>
                     <select name="role" class="form-select form-select-sm">
-                      <option value="user" <%= u.role === 'user' ? 'selected' : '' %>>User</option>
+                      <option value="user" <%= u.role === 'user' ? 'selected' : '' %>>Athlete</option>
+                      <option value="coach" <%= u.role === 'coach' ? 'selected' : '' %>>Coach</option>
                       <option value="admin" <%= u.role === 'admin' ? 'selected' : '' %>>Admin</option>
                     </select>
                   </td>

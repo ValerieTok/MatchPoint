@@ -1,6 +1,6 @@
 const db = require('../db');
 
-const Order = {
+const Booking = {
   createOrder(userId, items, address, callback) {
     if (!Array.isArray(items) || !items.length) {
       return callback(new Error('No items to order'));
@@ -12,7 +12,7 @@ const Order = {
       return sum + price * qty;
     }, 0);
 
-    const orderSql = 'INSERT INTO orders (user_id, address, total) VALUES (?, ?, ?)';
+    const orderSql = 'INSERT INTO bookings (user_id, session_location, total) VALUES (?, ?, ?)';
     db.beginTransaction((txErr) => {
       if (txErr) return callback(txErr);
       db.query(orderSql, [userId, address || null, total], (orderErr, result) => {
@@ -21,18 +21,21 @@ const Order = {
         }
         const orderId = result.insertId;
         const itemSql = `
-          INSERT INTO order_items (order_id, product_id, productName, price, listPrice, discountPercentage, offerMessage, image, quantity)
+          INSERT INTO booking_items (booking_id, listing_id, coach_id, listing_title, sport, price, listPrice, discountPercentage, offerMessage, image, duration_minutes, quantity)
           VALUES ?
         `;
         const values = items.map((item) => [
           orderId,
           item.productId,
+          item.coachId,
           item.productName,
+          item.sport || null,
           Number(item.price || 0),
           Number(item.originalPrice || item.price || 0),
           Number(item.discountPercentage || 0),
           item.offerMessage || null,
           item.image || null,
+          Number(item.durationMinutes || 0),
           Number(item.quantity || 0)
         ]);
         db.query(itemSql, [values], (itemsErr) => {
@@ -52,51 +55,79 @@ const Order = {
 
   getOrdersByUser(userId, callback) {
     const sql = `
-      SELECT o.id, o.total, o.address, o.created_at, o.delivered_at, u.username
-      FROM orders o
-      JOIN users u ON u.id = o.user_id
-      WHERE o.user_id = ?
-      ORDER BY o.created_at DESC, o.id DESC
+      SELECT b.id, b.total, b.session_location AS address, b.created_at, b.completed_at AS delivered_at, u.username
+      FROM bookings b
+      JOIN users u ON u.id = b.user_id
+      WHERE b.user_id = ?
+      ORDER BY b.created_at DESC, b.id DESC
     `;
     db.query(sql, [userId], (err, rows) => callback(err, rows || []));
   },
 
   getAllOrders(searchTerm, callback) {
     let sql = `
-      SELECT o.id, o.total, o.address, o.created_at, o.delivered_at, u.username
-      FROM orders o
-      JOIN users u ON u.id = o.user_id
+      SELECT b.id, b.total, b.session_location AS address, b.created_at, b.completed_at AS delivered_at, u.username
+      FROM bookings b
+      JOIN users u ON u.id = b.user_id
     `;
     const params = [];
     if (searchTerm && searchTerm.trim()) {
       sql += ' WHERE u.username LIKE ?';
       params.push(`%${searchTerm.trim()}%`);
     }
-    sql += ' ORDER BY o.created_at DESC, o.id DESC';
+    sql += ' ORDER BY b.created_at DESC, b.id DESC';
     db.query(sql, params, (err, rows) => callback(err, rows || []));
   },
 
-  getOrderItems(orderId, callback) {
-      const sql = `
+  getBookingsByCoach(coachId, searchTerm, callback) {
+    let sql = `
+      SELECT DISTINCT b.id, b.total, b.session_location AS address, b.created_at, b.completed_at AS delivered_at, u.username
+      FROM bookings b
+      JOIN booking_items bi ON bi.booking_id = b.id
+      JOIN users u ON u.id = b.user_id
+      WHERE bi.coach_id = ?
+    `;
+    const params = [coachId];
+    if (searchTerm && searchTerm.trim()) {
+      sql += ' AND u.username LIKE ?';
+      params.push(`%${searchTerm.trim()}%`);
+    }
+    sql += ' ORDER BY b.created_at DESC, b.id DESC';
+    db.query(sql, params, (err, rows) => callback(err, rows || []));
+  },
+
+  getOrderItems(orderId, coachId, callback) {
+    const sql = `
         SELECT
-          product_id AS productId,
-          productName,
-          price,
-          quantity,
-          COALESCE(listPrice, price) AS listPrice,
-          COALESCE(discountPercentage, 0) AS discountPercentage,
-          offerMessage,
-          image
-        FROM order_items
-        WHERE order_id = ?
+          bi.listing_id AS productId,
+          bi.listing_title AS productName,
+          bi.price,
+          bi.quantity,
+          COALESCE(bi.listPrice, bi.price) AS listPrice,
+          COALESCE(bi.discountPercentage, 0) AS discountPercentage,
+          bi.offerMessage,
+          bi.image,
+          bi.duration_minutes AS durationMinutes,
+          bi.coach_id AS coachId,
+          u.username AS coachName,
+          bi.sport
+        FROM booking_items bi
+        JOIN users u ON u.id = bi.coach_id
+        WHERE bi.booking_id = ?
       `;
-    db.query(sql, [orderId], (err, rows) => callback(err, rows || []));
+    const params = [orderId];
+    let filteredSql = sql;
+    if (coachId) {
+      filteredSql += ' AND bi.coach_id = ?';
+      params.push(coachId);
+    }
+    db.query(filteredSql, params, (err, rows) => callback(err, rows || []));
   },
 
   getOrderById(orderId, callback) {
     const sql = `
-      SELECT id, user_id AS userId, total, address, created_at, delivered_at
-      FROM orders
+      SELECT id, user_id AS userId, total, session_location AS address, created_at, completed_at AS delivered_at
+      FROM bookings
       WHERE id = ?
       LIMIT 1
     `;
@@ -104,13 +135,13 @@ const Order = {
   },
 
   markOrderDelivered(orderId, callback) {
-    const sql = 'UPDATE orders SET delivered_at = CURRENT_TIMESTAMP WHERE id = ?';
+    const sql = 'UPDATE bookings SET completed_at = CURRENT_TIMESTAMP WHERE id = ?';
     db.query(sql, [orderId], (err, result) => callback(err, result));
   },
 
   createReview(reviewData, callback) {
     const sql = `
-      INSERT INTO order_reviews (order_id, user_id, rating, comment)
+      INSERT INTO coach_reviews (booking_id, user_id, rating, comment)
       VALUES (?, ?, ?, ?)
     `;
     const params = [
@@ -124,18 +155,18 @@ const Order = {
 
   getReviewByOrderId(orderId, callback) {
     const sql = `
-      SELECT id, order_id, user_id, rating, comment, created_at
-      FROM order_reviews
-      WHERE order_id = ?
+      SELECT id, booking_id AS order_id, user_id, rating, comment, created_at
+      FROM coach_reviews
+      WHERE booking_id = ?
       LIMIT 1
     `;
     db.query(sql, [orderId], (err, rows) => callback(err, rows && rows[0] ? rows[0] : null));
   }
 ,
   deleteReviewByOrder(orderId, callback) {
-    const sql = 'DELETE FROM order_reviews WHERE order_id = ?';
+    const sql = 'DELETE FROM coach_reviews WHERE booking_id = ?';
     db.query(sql, [orderId], (err, result) => callback(err, result));
   }
 };
 
-module.exports = Order;
+module.exports = Booking;

@@ -5,11 +5,11 @@ const session = require('express-session');
 const flash = require('connect-flash');
 const multer = require('multer');
 
-const UserController = require('./controllers/UserController');
-const ForgotPasswordController = require('./controllers/ForgotPasswordController');
-const ProductController = require('./controllers/ProductController');
-const CartController = require('./controllers/CartController');
-const OrderController = require('./controllers/OrderController');
+const AccountController = require('./controllers/AccountController');
+const PasswordResetController = require('./controllers/PasswordResetController');
+const ListingController = require('./controllers/ListingController');
+const BookingCartController = require('./controllers/BookingCartController');
+const BookingController = require('./controllers/BookingController');
 const { attachUser, checkAuthenticated, checkAdmin } = require('./middleware');
 
 const app = express();
@@ -56,58 +56,58 @@ app.get('/', (req, res) => {
 });
 
 // User routes
-app.get('/register', UserController.registerPage);
-app.post('/register', UserController.registerUser);
-app.get('/login', UserController.loginPage);
-app.post('/login', UserController.loginUser);
-app.get('/login/2fa', UserController.showTwoFactorLogin);
-app.post('/login/2fa', UserController.verifyTwoFactorLogin);
-app.get('/forgot-password', ForgotPasswordController.forgotPasswordPage);
-app.post('/forgot-password', ForgotPasswordController.requestPasswordReset);
-app.get('/logout', UserController.logoutUser);
-app.get('/2fa/setup', checkAuthenticated, UserController.showTwoFactorSetup);
-app.post('/2fa/verify-setup', checkAuthenticated, UserController.verifyTwoFactorSetup);
-app.post('/2fa/disable', checkAuthenticated, UserController.disableOwnTwoFactor);
+app.get('/register', AccountController.registerPage);
+app.post('/register', AccountController.registerUser);
+app.get('/login', AccountController.loginPage);
+app.post('/login', AccountController.loginUser);
+app.get('/login/2fa', AccountController.showTwoFactorLogin);
+app.post('/login/2fa', AccountController.verifyTwoFactorLogin);
+app.get('/forgot-password', PasswordResetController.forgotPasswordPage);
+app.post('/forgot-password', PasswordResetController.requestPasswordReset);
+app.get('/logout', AccountController.logoutUser);
+app.get('/2fa/setup', checkAuthenticated, AccountController.showTwoFactorSetup);
+app.post('/2fa/verify-setup', checkAuthenticated, AccountController.verifyTwoFactorSetup);
+app.post('/2fa/disable', checkAuthenticated, AccountController.disableOwnTwoFactor);
 app.get('/2fa/disable', checkAuthenticated, (req, res) => res.redirect('/2fa/setup'));
 // Admin user management
-app.get('/users', checkAuthenticated, checkAdmin, UserController.listAllUsers);
-app.post('/users', checkAuthenticated, checkAdmin, UserController.addUser);
-app.post('/users/:id', checkAuthenticated, checkAdmin, UserController.updateUser);
-app.post('/users/:id/disable-2fa', checkAuthenticated, checkAdmin, UserController.disableTwoFactor);
-app.get('/users/delete/:id', checkAuthenticated, checkAdmin, UserController.deleteUser);
-app.get('/orders', checkAuthenticated, checkAdmin, OrderController.listAllOrders);
-app.get('/my-orders', checkAuthenticated, OrderController.userOrders);
+app.get('/users', checkAuthenticated, checkAdmin, AccountController.listAllUsers);
+app.post('/users', checkAuthenticated, checkAdmin, AccountController.addUser);
+app.post('/users/:id', checkAuthenticated, checkAdmin, AccountController.updateUser);
+app.post('/users/:id/disable-2fa', checkAuthenticated, checkAdmin, AccountController.disableTwoFactor);
+app.get('/users/delete/:id', checkAuthenticated, checkAdmin, AccountController.deleteUser);
+app.get('/orders', checkAuthenticated, checkAdmin, BookingController.listAllOrders);
+app.get('/my-orders', checkAuthenticated, BookingController.userOrders);
 
-// Product routes
-app.get('/products', checkAuthenticated, ProductController.listAllProducts);
-app.get('/products/:id', checkAuthenticated, ProductController.getProductById);
-app.get('/shopping', checkAuthenticated, ProductController.listAllProducts);
+// Listing routes
+app.get('/products', checkAuthenticated, ListingController.listAllProducts);
+app.get('/products/:id', checkAuthenticated, ListingController.getProductById);
+app.get('/shopping', checkAuthenticated, ListingController.listAllProducts);
 
-// Admin product pages
-app.get('/inventory', checkAuthenticated, checkAdmin, ProductController.listAllProducts);
-app.get('/addProduct', checkAuthenticated, checkAdmin, ProductController.showAddProductPage);
-app.post('/addProduct', checkAuthenticated, checkAdmin, upload.single('image'), (req, res) => ProductController.addProduct(req, res, req.file));
-app.get('/updateProduct/:id', checkAuthenticated, checkAdmin, ProductController.showUpdateProductPage);
-app.post('/updateProduct/:id', checkAuthenticated, checkAdmin, upload.single('image'), (req, res) => ProductController.updateProduct(req, res, req.file));
-app.get('/deleteProduct/:id', checkAuthenticated, checkAdmin, ProductController.deleteProduct);
+// Admin/coach listing pages
+app.get('/inventory', checkAuthenticated, checkAdmin, ListingController.listAllProducts);
+app.get('/addProduct', checkAuthenticated, checkAdmin, ListingController.showAddProductPage);
+app.post('/addProduct', checkAuthenticated, checkAdmin, upload.single('image'), (req, res) => ListingController.addProduct(req, res, req.file));
+app.get('/updateProduct/:id', checkAuthenticated, checkAdmin, ListingController.showUpdateProductPage);
+app.post('/updateProduct/:id', checkAuthenticated, checkAdmin, upload.single('image'), (req, res) => ListingController.updateProduct(req, res, req.file));
+app.get('/deleteProduct/:id', checkAuthenticated, checkAdmin, ListingController.deleteProduct);
 
-// Shopping & cart
-app.post('/add-to-cart/:id', checkAuthenticated, CartController.addToCart);
-app.get('/cart', checkAuthenticated, CartController.showCart);
-app.get('/cart/remove/:id', checkAuthenticated, CartController.removeFromCart);
-app.post('/cart/update/:id', checkAuthenticated, CartController.updateCartItem);
-app.post('/cart/remove/:id', checkAuthenticated, CartController.removeFromCart);
+// Booking cart
+app.post('/add-to-cart/:id', checkAuthenticated, BookingCartController.addToCart);
+app.get('/cart', checkAuthenticated, BookingCartController.showCart);
+app.get('/cart/remove/:id', checkAuthenticated, BookingCartController.removeFromCart);
+app.post('/cart/update/:id', checkAuthenticated, BookingCartController.updateCartItem);
+app.post('/cart/remove/:id', checkAuthenticated, BookingCartController.removeFromCart);
 app.get('/checkout', checkAuthenticated, (req, res) => res.redirect('/cart'));
-app.post('/checkout', checkAuthenticated, CartController.showCheckoutSummary);
-app.post('/checkout/confirm', checkAuthenticated, CartController.confirmCheckout);
+app.post('/checkout', checkAuthenticated, BookingCartController.showCheckoutSummary);
+app.post('/checkout/confirm', checkAuthenticated, BookingCartController.confirmCheckout);
 app.route('/orders/:id/confirm-delivery')
-  .get(checkAuthenticated, OrderController.confirmDelivery)
-  .post(checkAuthenticated, OrderController.confirmDelivery);
-app.get('/orders/:id/review', checkAuthenticated, OrderController.reviewOrderPage);
-app.post('/orders/:id/review', checkAuthenticated, OrderController.submitReview);
+  .get(checkAuthenticated, BookingController.confirmDelivery)
+  .post(checkAuthenticated, BookingController.confirmDelivery);
+app.get('/orders/:id/review', checkAuthenticated, BookingController.reviewOrderPage);
+app.post('/orders/:id/review', checkAuthenticated, BookingController.submitReview);
 app.route('/orders/:id/review/delete')
-  .get(checkAuthenticated, checkAdmin, OrderController.deleteReview)
-  .post(checkAuthenticated, checkAdmin, OrderController.deleteReview);
+  .get(checkAuthenticated, checkAdmin, BookingController.deleteReview)
+  .post(checkAuthenticated, checkAdmin, BookingController.deleteReview);
 
 // 404 fallback without template
 app.use((req, res) => res.status(404).type('text').send('Page not found'));

@@ -1,5 +1,5 @@
 <%- include('partials/head', {
-  title: 'Inventory | Admin',
+  title: 'Listings | Dashboard',
   extraHead: `<style>
     body { background: #f7f7f9; }
     .welcome-card {
@@ -30,12 +30,12 @@
     <div class="welcome-card p-4 mb-4">
       <div class="d-flex flex-wrap justify-content-between align-items-center">
         <div>
-          <p class="mb-1 text-muted">Admin dashboard</p>
+          <p class="mb-1 text-muted"><%= user.role === 'coach' ? 'Coach dashboard' : 'Admin dashboard' %></p>
           <h3 class="mb-1">Hi, <%= user.username %>!</h3>
-          <small class="text-muted">Manage products and users just like your shoppers see them.</small>
+          <small class="text-muted"><%= user.role === 'coach' ? 'Manage your coaching listings and sessions.' : 'Manage listings, users, and bookings across the platform.' %></small>
         </div>
         <div class="d-flex flex-wrap gap-2 mt-3 mt-sm-0">
-          <span class="badge bg-secondary align-self-center">Total products: <%= products ? products.length : 0 %></span>
+          <span class="badge bg-secondary align-self-center">Total listings: <%= products ? products.length : 0 %></span>
         </div>
       </div>
     </div>
@@ -43,7 +43,7 @@
     <%- include('partials/flashMessages', { messages }) %>
 
     <% if (!products || !products.length) { %>
-      <div class="alert alert-info">No products found. Add your first product.</div>
+      <div class="alert alert-info">No listings found. Add your first listing.</div>
     <% } else { %>
       <div class="row g-3">
         <% products.forEach(p => {
@@ -60,32 +60,41 @@
               <img src="/images/<%= p.image %>" class="card-img-top product-img" alt="<%= p.productName %>">
               <div class="card-body d-flex flex-column">
                 <h6 class="fw-semibold mb-1"><%= p.productName %></h6>
+                <div class="small text-muted mb-1"><%= p.coachName %><% if (p.sport) { %> • <%= p.sport %><% } %></div>
                 <p class="<%= outOfStock ? 'text-danger' : 'text-muted' %> mb-1">
-                  <%= outOfStock ? 'Out of stock' : 'Stock: ' + p.quantity %>
+                  <%= outOfStock ? 'No slots available' : 'Slots: ' + p.quantity %>
+                  <% if (p.durationMinutes) { %>
+                    <span class="text-muted"> • <%= p.durationMinutes %> mins</span>
+                  <% } %>
                 </p>
                 <p class="mb-2">
                   <% if (hasDiscount) { %>
                     <span class="text-decoration-line-through text-muted me-2">$<%= priceNum.toFixed(2) %></span>
                     <span class="fw-semibold text-success">$<%= discountedPrice.toFixed(2) %></span>
                   <% } else { %>
-                    <span class="text-muted">Price:</span> $<%= priceNum.toFixed(2) %>
+                    <span class="text-muted">Rate:</span> $<%= priceNum.toFixed(2) %>
                   <% } %>
                 </p>
                 <% if (hasDiscount) { %>
                   <div class="mb-2">
                     <span class="badge bg-danger">-<%= discountPercentage.toFixed(0) %>%</span>
-                    <small class="text-muted ms-2">discounted offer</small>
+                    <small class="text-muted ms-2">promo rate</small>
                   </div>
                 <% } %>
                 <% if (p.offerMessage) { %>
                   <div class="alert alert-info py-2 px-3 mb-2">
-                    <div class="small fw-semibold text-uppercase mb-1">Offer</div>
+                    <div class="small fw-semibold text-uppercase mb-1">Promo</div>
                     <div class="small mb-0"><%= p.offerMessage %></div>
+                  </div>
+                <% } %>
+                <% if (typeof p.isActive !== 'undefined') { %>
+                  <div class="small <%= p.isActive ? 'text-success' : 'text-muted' %> mb-2">
+                    <%= p.isActive ? 'Active listing' : 'Hidden listing' %>
                   </div>
                 <% } %>
                 <div class="mt-auto d-flex gap-2">
                   <a class="btn btn-success btn-sm" href="/updateProduct/<%= p.id %>">Edit</a>
-                  <a class="btn btn-danger btn-sm" href="/deleteProduct/<%= p.id %>" onclick="return confirm('Delete this product?')">Delete</a>
+                  <a class="btn btn-danger btn-sm" href="/deleteProduct/<%= p.id %>" onclick="return confirm('Delete this listing?')">Delete</a>
                 </div>
               </div>
             </div>
