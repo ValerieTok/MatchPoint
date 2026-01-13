@@ -37,7 +37,9 @@ const getCart = (userId, callback) => {
             l.coach_id,
             u.username,
             l.duration_minutes,
-            l.sport
+            l.sport,
+            l.skill_level,
+            l.session_location
         FROM booking_cart_items c
         JOIN coach_listings l ON l.id = c.listing_id
         JOIN users u ON u.id = l.coach_id
@@ -61,7 +63,9 @@ const getCart = (userId, callback) => {
       coach_id: row.coach_id,
       username: row.username,
       duration_minutes: row.duration_minutes,
-      sport: row.sport
+      sport: row.sport,
+      skill_level: row.skill_level,
+      session_location: row.session_location
     }));
     return callback(null, items);
   });

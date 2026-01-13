@@ -7,44 +7,39 @@
     <form action="/addListing" method="POST" enctype="multipart/form-data" class="mx-auto" style="max-width: 500px;">
 
       <div class="mb-3">
-        <label for="listing_title" class="form-label">Listing Title</label>
-        <input type="text" class="form-control" id="listing_title" name="listing_title" required>
-      </div>
-
-      <div class="mb-3">
-        <label for="sport" class="form-label">Sport</label>
-        <input type="text" class="form-control" id="sport" name="sport" placeholder="e.g. Tennis, Football">
+        <label for="listing_title" class="form-label">Sport Type</label>
+        <input type="text" class="form-control" id="listing_title" name="listing_title" placeholder="e.g. Tennis, Football" required>
       </div>
 
       <div class="mb-3">
         <label for="description" class="form-label">Description</label>
-        <textarea class="form-control" id="description" name="description" rows="3" placeholder="Describe the session focus and coaching style"></textarea>
+        <textarea class="form-control" id="description" name="description" rows="3" placeholder="Describe the coaching focus and goals" required></textarea>
+      </div>
+
+      <div class="mb-3">
+        <label for="skill_level" class="form-label">Skill Level</label>
+        <select class="form-select" id="skill_level" name="skill_level" required>
+          <option value="" disabled selected>Select level</option>
+          <option value="beginner">Beginner</option>
+          <option value="intermediate">Intermediate</option>
+          <option value="advanced">Advanced</option>
+          <option value="expert">Expert</option>
+        </select>
       </div>
 
       <div class="mb-3">
         <label for="duration_minutes" class="form-label">Session Duration (minutes)</label>
-        <input type="number" class="form-control" id="duration_minutes" name="duration_minutes" min="15" step="5" placeholder="e.g. 60">
+        <input type="number" class="form-control" id="duration_minutes" name="duration_minutes" min="15" step="5" placeholder="e.g. 60" required>
       </div>
 
       <div class="mb-3">
-        <label for="available_slots" class="form-label">Available Slots</label>
-        <input type="number" class="form-control" id="available_slots" name="available_slots" min="0" step="1" required>
+        <label for="session_location" class="form-label">Location</label>
+        <input type="text" class="form-control" id="session_location" name="session_location" placeholder="e.g. RP Sports Hall / Zoom" required>
       </div>
 
-      <div class="mb-3">
-        <label for="price" class="form-label">Session Rate ($)</label>
-        <input type="number" class="form-control" id="price" name="price" min="0" step="0.01" required>
-      </div>
-
-      <div class="mb-3">
-        <label for="discount_percentage" class="form-label">Discount (%)</label>
-        <input type="number" class="form-control" id="discount_percentage" name="discount_percentage" min="0" max="100" step="1" value="0" required>
-        <div class="form-text">Enter whole percentage values (e.g., 25, not 25.5)</div>
-      </div>
-
-      <div class="mb-3">
-        <label for="offer_message" class="form-label">Promo message</label>
-        <input type="text" class="form-control" id="offer_message" name="offer_message" placeholder="e.g. First session 20% off">
+      <div class="mb-4">
+        <label for="image" class="form-label">Listing Image</label>
+        <input class="form-control" type="file" id="image" name="image" accept="image/*">
       </div>
 
       <% if (user && user.role === 'admin') { %>
@@ -54,19 +49,6 @@
       </div>
       <% } %>
 
-      <div class="mb-3">
-        <label for="is_active" class="form-label">Listing Status</label>
-        <select class="form-select" id="is_active" name="is_active">
-          <option value="1" selected>Active</option>
-          <option value="0">Hidden</option>
-        </select>
-      </div>
-
-      <div class="mb-4">
-        <label for="image" class="form-label">Listing Image</label>
-        <input class="form-control" type="file" id="image" name="image" accept="image/*">
-      </div>
-
       <div class="d-grid">
         <button type="submit" class="btn btn-primary">Add Listing</button>
       </div>
@@ -74,4 +56,3 @@
     </form>
   </div>
 <%- include('partials/footer') %>
-

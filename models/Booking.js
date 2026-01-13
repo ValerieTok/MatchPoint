@@ -21,7 +21,7 @@ const Booking = {
         }
         const orderId = result.insertId;
         const itemSql = `
-          INSERT INTO booking_items (booking_id, listing_id, coach_id, listing_title, sport, price, listPrice, discountPercentage, offerMessage, image, duration_minutes, quantity)
+          INSERT INTO booking_items (booking_id, listing_id, coach_id, listing_title, sport, price, listPrice, discountPercentage, offerMessage, image, duration_minutes, skill_level, session_location, quantity)
           VALUES ?
         `;
     const values = items.map((item) => [
@@ -36,6 +36,8 @@ const Booking = {
       item.offerMessage || null,
       item.image || null,
       Number(item.duration_minutes || 0),
+      item.skill_level || null,
+      item.session_location || null,
       Number(item.quantity || 0)
     ]);
         db.query(itemSql, [values], (itemsErr) => {
@@ -108,6 +110,8 @@ const Booking = {
           bi.offerMessage,
           bi.image,
           bi.duration_minutes,
+          bi.skill_level,
+          bi.session_location,
           bi.coach_id,
           u.username,
           bi.sport

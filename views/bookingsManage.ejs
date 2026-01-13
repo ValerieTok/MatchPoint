@@ -57,6 +57,11 @@
                   <button class="btn btn-sm btn-outline-secondary" type="button" onclick="printOrder('order-admin-<%= o.id %>', 'Booking #<%= o.id %>')">Print this booking</button>
                 </div>
                 <div id="order-admin-<%= o.id %>">
+                <div class="mb-3">
+                  <div><strong>Booked by:</strong> <%= o.username %></div>
+                  <div><strong>Booked on:</strong> <%= new Date(o.created_at).toLocaleString() %></div>
+                  <div><strong>Session location:</strong> <%= o.session_location || 'No location' %></div>
+                </div>
                 <% if (!o.items || !o.items.length) { %>
                   <div class="alert alert-light mb-0">No listings recorded.</div>
                 <% } else { %>
@@ -64,57 +69,34 @@
                     <table class="table align-middle">
                       <thead>
                         <tr>
-                          <th>Item</th>
+                          <th>Sport Type</th>
                           <th class="text-center">Image</th>
+                          <th>Level</th>
+                          <th>Duration</th>
+                          <th>Location</th>
                           <th class="text-end">Slots</th>
-                          <th class="text-end">Rate</th>
-                          <th class="text-end">Subtotal</th>
                         </tr>
                       </thead>
                       <tbody>
                         <% o.items.forEach(it => {
-                          const price = Number(it.price || 0);
                           const qty = Number(it.quantity || 0);
-                          const listPrice = Number(it.listPrice || price);
-                          const discountPercentage = Number(it.discountPercentage || 0);
-                          const hasDiscount = discountPercentage > 0 && listPrice > price;
-                          const subtotal = price * qty;
-                          const imageSrc = it.image ? '/images/' + it.image : null;
+                          const imageSrc = it.image ? '/images/' + it.image : '/images/placeholder.png';
+                          const durationLabel = it.duration_minutes ? (it.duration_minutes + ' mins') : '-';
+                          const levelLabel = it.skill_level ? it.skill_level.toUpperCase() : '-';
+                          const locationLabel = it.session_location || o.session_location || 'No location';
                         %>
                           <tr>
                             <td>
                               <div class="fw-semibold"><%= it.listing_title %></div>
-                              <div class="text-muted small"><%= it.username %><% if (it.sport) { %> • <%= it.sport %><% } %></div>
-                              <% if (it.offerMessage) { %>
-                                <div class="text-info small"><%= it.offerMessage %></div>
-                              <% } %>
+                              <div class="text-muted small">Coach: <%= it.username %></div>
                             </td>
                             <td class="text-center">
-                              <% if (imageSrc) { %>
-                                <img src="<%= imageSrc %>" alt="<%= it.listing_title %>" class="d-block mx-auto" style="max-height:70px;">
-                              <% } else { %>
-                                <span class="text-muted small">No image</span>
-                              <% } %>
+                              <img src="<%= imageSrc %>" alt="<%= it.listing_title %>" class="d-block mx-auto" style="max-height:70px;">
                             </td>
+                            <td><%= levelLabel %></td>
+                            <td><%= durationLabel %></td>
+                            <td><%= locationLabel %></td>
                             <td class="text-end"><%= qty %></td>
-                            <td class="text-end">
-                              <div class="text-muted small">Per slot</div>
-                              <% if (hasDiscount) { %>
-                                <div class="text-decoration-line-through text-muted small">$<%= listPrice.toFixed(2) %></div>
-                              <% } %>
-                              <div class="fw-semibold">$<%= price.toFixed(2) %></div>
-                              <% if (discountPercentage > 0) { %>
-                                <div class="text-success small">-<%= discountPercentage.toFixed(0) %>% off (new rate)</div>
-                              <% } else { %>
-                                <div class="text-muted small">Current rate</div>
-                              <% } %>
-                            </td>
-                            <td class="text-end">
-                              <div class="fw-semibold">$<%= subtotal.toFixed(2) %></div>
-                              <% if (hasDiscount) { %>
-                                <div class="text-success small">Discount applied</div>
-                              <% } %>
-                            </td>
                           </tr>
                         <% }) %>
                       </tbody>
@@ -139,12 +121,14 @@
                       <% for (let i = o.review.rating; i < 5; i++) { %>&#9734;<% } %>
                     </div>
                     <p class="mb-0 text-muted"><%= o.review.comment || 'No comment provided.' %></p>
-                    <form class="mt-2" action="/bookingsManage/<%= o.id %>/review/delete" method="post">
-                      <button class="btn btn-outline-danger btn-sm" type="submit">Delete review</button>
-                    </form>
+                    <% if (user && user.role === 'admin') { %>
+                      <form class="mt-2" action="/bookingsManage/<%= o.id %>/review/delete" method="post">
+                        <button class="btn btn-outline-danger btn-sm" type="submit">Delete review</button>
+                      </form>
+                    <% } %>
                   </div>
                 <% } else { %>
-                  <div class="text-muted small mt-2">No review submitted yet.</div>
+                  <div class="text-muted small mt-2"><%= o.completed_at ? 'Awaiting athlete review.' : 'Review available after session completion.' %></div>
                   <% } %>
                 </div>
               </div>

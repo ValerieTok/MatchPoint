@@ -14,6 +14,8 @@ const baseSelect = `
     l.sport,
     l.description,
     l.duration_minutes,
+    l.skill_level,
+    l.session_location,
     l.is_active
   FROM coach_listings l
   JOIN users u ON u.id = l.coach_id
@@ -43,8 +45,8 @@ module.exports = {
   addProduct: function (productData, callback) {
     const sql = `
       INSERT INTO coach_listings
-      (coach_id, listing_title, sport, description, available_slots, price, image, discount_percentage, offer_message, duration_minutes, is_active)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (coach_id, listing_title, sport, description, available_slots, price, image, discount_percentage, offer_message, duration_minutes, skill_level, session_location, is_active)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const params = [
       productData.coach_id,
@@ -57,6 +59,8 @@ module.exports = {
       typeof productData.discount_percentage === 'number' ? productData.discount_percentage : 0,
       productData.offer_message || null,
       typeof productData.duration_minutes !== 'undefined' ? productData.duration_minutes : null,
+      productData.skill_level || 'beginner',
+      productData.session_location || null,
       typeof productData.is_active !== 'undefined' ? productData.is_active : 1
     ];
     db.query(sql, params, (err, result) => callback(err, result));
@@ -74,6 +78,8 @@ module.exports = {
           discount_percentage = ?,
           offer_message = ?,
           duration_minutes = ?,
+          skill_level = ?,
+          session_location = ?,
           is_active = ?
       WHERE id = ?
     `;
@@ -87,6 +93,8 @@ module.exports = {
       typeof updatedData.discount_percentage !== 'undefined' ? updatedData.discount_percentage : 0,
       typeof updatedData.offer_message !== 'undefined' ? updatedData.offer_message : null,
       typeof updatedData.duration_minutes !== 'undefined' ? updatedData.duration_minutes : null,
+      typeof updatedData.skill_level !== 'undefined' ? updatedData.skill_level : 'beginner',
+      typeof updatedData.session_location !== 'undefined' ? updatedData.session_location : null,
       typeof updatedData.is_active !== 'undefined' ? updatedData.is_active : 1,
       id
     ];
@@ -134,8 +142,8 @@ module.exports = {
     const resolvedOptions = typeof options === 'function' ? {} : (options || {});
     const resolvedCallback = typeof options === 'function' ? options : callback;
     const like = `%${term}%`;
-    let sql = `${baseSelect} WHERE (l.listing_title LIKE ? OR l.sport LIKE ?)`;
-    const params = [like, like];
+    let sql = `${baseSelect} WHERE (l.listing_title LIKE ? OR l.sport LIKE ? OR l.description LIKE ? OR l.skill_level LIKE ? OR l.session_location LIKE ?)`;
+    const params = [like, like, like, like, like];
     if (resolvedOptions.activeOnly) {
       sql += ' AND l.is_active = 1';
     }

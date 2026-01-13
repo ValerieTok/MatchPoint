@@ -47,45 +47,26 @@
     <% } else { %>
       <div class="row g-3">
         <% products.forEach(p => {
-          const priceNum = Number(p.price || 0);
-          const discountPercentage = Math.min(100, Math.max(0, Number(p.discount_percentage) || 0));
-          const hasDiscount = discountPercentage > 0;
-          const discountedPrice = hasDiscount
-            ? Number((priceNum * (1 - discountPercentage / 100)).toFixed(2))
-            : priceNum;
-          const outOfStock = p.available_slots <= 0;
         %>
           <div class="col-12 col-sm-6 col-md-4">
             <div class="product-card h-100 d-flex flex-column bg-white">
-              <img src="/images/<%= p.image %>" class="card-img-top product-img" alt="<%= p.listing_title %>">
+              <img src="/images/<%= p.image || 'placeholder.png' %>" class="card-img-top product-img" alt="<%= p.listing_title %>">
               <div class="card-body d-flex flex-column">
                 <h6 class="fw-semibold mb-1"><%= p.listing_title %></h6>
-                <div class="small text-muted mb-1"><%= p.username %><% if (p.sport) { %> • <%= p.sport %><% } %></div>
-                <p class="<%= outOfStock ? 'text-danger' : 'text-muted' %> mb-1">
-                  <%= outOfStock ? 'No slots available' : 'Slots: ' + p.available_slots %>
-                  <% if (p.duration_minutes) { %>
-                    <span class="text-muted"> • <%= p.duration_minutes %> mins</span>
-                  <% } %>
-                </p>
-                <p class="mb-2">
-                  <% if (hasDiscount) { %>
-                    <span class="text-decoration-line-through text-muted me-2">$<%= priceNum.toFixed(2) %></span>
-                    <span class="fw-semibold text-success">$<%= discountedPrice.toFixed(2) %></span>
-                  <% } else { %>
-                    <span class="text-muted">Rate:</span> $<%= priceNum.toFixed(2) %>
-                  <% } %>
-                </p>
-                <% if (hasDiscount) { %>
-                  <div class="mb-2">
-                    <span class="badge bg-danger">-<%= discountPercentage.toFixed(0) %>%</span>
-                    <small class="text-muted ms-2">promo rate</small>
-                  </div>
+                <div class="small text-muted mb-1"><%= p.username %></div>
+                <% if (p.description) { %>
+                  <p class="small text-muted mb-2"><%= p.description %></p>
                 <% } %>
-                <% if (p.offer_message) { %>
-                  <div class="alert alert-info py-2 px-3 mb-2">
-                    <div class="small fw-semibold text-uppercase mb-1">Promo</div>
-                    <div class="small mb-0"><%= p.offer_message %></div>
-                  </div>
+                <p class="small mb-2">
+                  <% if (p.skill_level) { %>
+                    <span class="badge bg-secondary text-uppercase"><%= p.skill_level %></span>
+                  <% } %>
+                  <% if (p.duration_minutes) { %>
+                    <span class="text-muted"> - <%= p.duration_minutes %> mins</span>
+                  <% } %>
+                </p>
+                <% if (p.session_location) { %>
+                  <div class="small text-muted mb-2">Location: <%= p.session_location %></div>
                 <% } %>
                 <% if (typeof p.is_active !== 'undefined') { %>
                   <div class="small <%= p.is_active ? 'text-success' : 'text-muted' %> mb-2">

@@ -9,58 +9,41 @@
       <form action="/updateListing/<%= product.id %>" method="POST" enctype="multipart/form-data" class="mx-auto" style="max-width: 500px;">
         
         <div class="mb-3">
-          <label for="listing_title" class="form-label">Listing Title</label>
+          <label for="listing_title" class="form-label">Sport Type</label>
           <input type="text" class="form-control" id="listing_title" name="listing_title" value="<%= product.listing_title %>" required>
         </div>
 
         <div class="mb-3">
-          <label for="sport" class="form-label">Sport</label>
-          <input type="text" class="form-control" id="sport" name="sport" value="<%= product.sport || '' %>">
-        </div>
-
-        <div class="mb-3">
           <label for="description" class="form-label">Description</label>
-          <textarea class="form-control" id="description" name="description" rows="3"><%= product.description || '' %></textarea>
+          <textarea class="form-control" id="description" name="description" rows="3" required><%= product.description || '' %></textarea>
         </div>
 
         <div class="mb-3">
-          <label for="duration_minutes" class="form-label">Session Duration (minutes)</label>
-          <input type="number" class="form-control" id="duration_minutes" name="duration_minutes" min="15" step="5" value="<%= product.duration_minutes || '' %>">
-        </div>
-
-        <div class="mb-3">
-          <label for="available_slots" class="form-label">Available Slots</label>
-          <input type="number" class="form-control" id="available_slots" name="available_slots" min="0" step="1" value="<%= product.available_slots %>" required>
-        </div>
-
-        <div class="mb-3">
-          <label for="price" class="form-label">Session Rate ($)</label>
-          <input type="number" class="form-control" id="price" name="price" min="0" step="0.01" value="<%= product.price %>" required>
-        </div>
-
-        <div class="mb-3">
-          <label for="discount_percentage" class="form-label">Discount (%)</label>
-          <input type="number" class="form-control" id="discount_percentage" name="discount_percentage" min="0" max="100" step="1" value="<%= product.discount_percentage || 0 %>">
-          <div class="form-text">Use whole numbers only (0-100).</div>
-        </div>
-
-        <div class="mb-3">
-          <label for="offer_message" class="form-label">Promo message</label>
-          <input type="text" class="form-control" id="offer_message" name="offer_message" value="<%= product.offer_message || '' %>" placeholder="e.g. First session 20% off">
-        </div>
-
-        <div class="mb-3">
-          <label for="is_active" class="form-label">Listing Status</label>
-          <select class="form-select" id="is_active" name="is_active">
-            <option value="1" <%= product.is_active ? 'selected' : '' %>>Active</option>
-            <option value="0" <%= product.is_active ? '' : 'selected' %>>Hidden</option>
+          <label for="skill_level" class="form-label">Skill Level</label>
+          <select class="form-select" id="skill_level" name="skill_level" required>
+            <option value="beginner" <%= (product.skill_level || 'beginner') === 'beginner' ? 'selected' : '' %>>Beginner</option>
+            <option value="intermediate" <%= (product.skill_level || 'beginner') === 'intermediate' ? 'selected' : '' %>>Intermediate</option>
+            <option value="advanced" <%= (product.skill_level || 'beginner') === 'advanced' ? 'selected' : '' %>>Advanced</option>
+            <option value="expert" <%= (product.skill_level || 'beginner') === 'expert' ? 'selected' : '' %>>Expert</option>
           </select>
         </div>
 
         <div class="mb-3">
+          <label for="duration_minutes" class="form-label">Session Duration (minutes)</label>
+          <input type="number" class="form-control" id="duration_minutes" name="duration_minutes" min="15" step="5" value="<%= product.duration_minutes || '' %>" required>
+        </div>
+
+        <div class="mb-3">
+          <label for="session_location" class="form-label">Location</label>
+          <input type="text" class="form-control" id="session_location" name="session_location" value="<%= product.session_location || '' %>" required>
+        </div>
+
+        <div class="mb-3">
           <label class="form-label">Current Image</label>
-          <input type="text" class="form-control" name="current_image" value="<%= product.image %>" readonly>
-          <img src="/images/<%= product.image %>" class="img-thumbnail mt-2" style="width: 150px;">
+          <input type="text" class="form-control" name="current_image" value="<%= product.image || '' %>" readonly>
+          <% if (product.image) { %>
+            <img src="/images/<%= product.image %>" class="img-thumbnail mt-2" style="width: 150px;">
+          <% } %>
         </div>
 
         <div class="mb-4">
@@ -78,4 +61,3 @@
     <% } %>
   </div>
 <%- include('partials/footer') %>
-

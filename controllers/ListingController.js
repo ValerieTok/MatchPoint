@@ -1,14 +1,15 @@
 const Listing = require('../models/Listing');
 
-const parseDiscountPercentage = (rawValue) => {
-  if (rawValue === undefined || rawValue === null || rawValue === '') {
-    return 0;
+const allowedSkillLevels = new Set(['beginner', 'intermediate', 'advanced', 'expert']);
+const normalizeSkillLevel = (value, fallback) => {
+  if (value === undefined || value === null || value === '') {
+    return fallback;
   }
-  const numeric = Number(rawValue);
-  if (!Number.isFinite(numeric) || !Number.isInteger(numeric) || numeric < 0 || numeric > 100) {
+  const normalized = String(value).trim().toLowerCase();
+  if (!allowedSkillLevels.has(normalized)) {
     return null;
   }
-  return numeric;
+  return normalized;
 };
 
 const ListingController = {
@@ -78,25 +79,47 @@ const ListingController = {
   },
 
   async addProduct(req, res, file) {
-    const discountPercentage = parseDiscountPercentage(req.body.discount_percentage);
-    if (discountPercentage === null) {
-      req.flash('error', 'Discount must be an integer between 0 and 100');
+    const skillLevel = normalizeSkillLevel(req.body.skill_level);
+    if (!skillLevel) {
+      req.flash('error', 'Select a valid skill level');
+      return res.redirect('/addListing');
+    }
+    const listingTitle = req.body.listing_title ? String(req.body.listing_title).trim() : '';
+    const description = req.body.description ? String(req.body.description).trim() : '';
+    const durationMinutes = req.body.duration_minutes ? Number(req.body.duration_minutes) : null;
+    if (!description) {
+      req.flash('error', 'Description is required');
+      return res.redirect('/addListing');
+    }
+    if (!durationMinutes) {
+      req.flash('error', 'Session duration is required');
+      return res.redirect('/addListing');
+    }
+    if (!Number.isFinite(durationMinutes) || durationMinutes <= 0) {
+      req.flash('error', 'Session duration must be a positive number');
       return res.redirect('/addListing');
     }
     const sessionUser = req.session && req.session.user;
+    const sessionLocation = req.body.session_location ? String(req.body.session_location).trim() : '';
+    if (!sessionLocation) {
+      req.flash('error', 'Location is required');
+      return res.redirect('/addListing');
+    }
     const coachId = req.body.coach_id || (sessionUser && sessionUser.id);
     const product = {
       coach_id: coachId,
-      listing_title: req.body.listing_title,
-      available_slots: Number(req.body.available_slots) || 0,
-      price: Number(req.body.price) || 0,
+      listing_title: listingTitle,
+      description: description || null,
+      skill_level: skillLevel,
+      session_location: sessionLocation || null,
+      duration_minutes: durationMinutes,
+      available_slots: 1,
+      price: 0,
       image: (file && file.filename) || req.body.image || null,
-      discount_percentage: discountPercentage,
-      offer_message: req.body.offer_message || null,
-      sport: req.body.sport || null,
-      description: req.body.description || null,
-      duration_minutes: Number(req.body.duration_minutes) || null,
-      is_active: typeof req.body.is_active !== 'undefined' ? Number(req.body.is_active) : 1
+      discount_percentage: 0,
+      offer_message: null,
+      sport: null,
+      is_active: 1
     };
     if (!product.listing_title) {
       req.flash('error', 'Listing title required');
@@ -143,11 +166,6 @@ const ListingController = {
 
   async updateProduct(req, res, file) {
     const id = req.params.id;
-    const discountPercentage = parseDiscountPercentage(req.body.discount_percentage);
-    if (discountPercentage === null) {
-      req.flash('error', 'Discount must be an integer between 0 and 100');
-      return res.redirect(`/updateListing/${id}`);
-    }
     const current = await new Promise((resolve) => {
       Listing.getProductById(id, (err, row) => resolve(row || null));
     });
@@ -160,18 +178,53 @@ const ListingController = {
       req.flash('error', 'Access denied');
       return res.redirect('/listingsManage');
     }
+    const skillLevel = normalizeSkillLevel(req.body.skill_level, current.skill_level || 'beginner');
+    if (!skillLevel) {
+      req.flash('error', 'Select a valid skill level');
+      return res.redirect(`/updateListing/${id}`);
+    }
+    const listingTitle = req.body.listing_title ? String(req.body.listing_title).trim() : '';
+    const description = req.body.description ? String(req.body.description).trim() : '';
+    const durationMinutes = req.body.duration_minutes ? Number(req.body.duration_minutes) : null;
+    if (!description) {
+      req.flash('error', 'Description is required');
+      return res.redirect(`/updateListing/${id}`);
+    }
+    if (!durationMinutes) {
+      req.flash('error', 'Session duration is required');
+      return res.redirect(`/updateListing/${id}`);
+    }
+    if (!Number.isFinite(durationMinutes) || durationMinutes <= 0) {
+      req.flash('error', 'Session duration must be a positive number');
+      return res.redirect(`/updateListing/${id}`);
+    }
+    const updatedSessionLocation = typeof req.body.session_location !== 'undefined'
+      ? String(req.body.session_location).trim()
+      : null;
+    if (updatedSessionLocation !== null && !updatedSessionLocation) {
+      req.flash('error', 'Location is required');
+      return res.redirect(`/updateListing/${id}`);
+    }
     const updated = {
-      listing_title: req.body.listing_title,
-      available_slots: typeof req.body.available_slots !== 'undefined' ? Number(req.body.available_slots) : undefined,
-      price: typeof req.body.price !== 'undefined' ? Number(req.body.price) : undefined,
-      image: (file && file.filename) || req.body.current_image || req.body.image,
-      discount_percentage: discountPercentage,
-      offer_message: typeof req.body.offer_message !== 'undefined' ? req.body.offer_message : null,
-      sport: typeof req.body.sport !== 'undefined' ? req.body.sport : undefined,
-      description: typeof req.body.description !== 'undefined' ? req.body.description : undefined,
-      duration_minutes: typeof req.body.duration_minutes !== 'undefined' ? Number(req.body.duration_minutes) : undefined,
-      is_active: typeof req.body.is_active !== 'undefined' ? Number(req.body.is_active) : undefined
+      listing_title: listingTitle,
+      description: description || current.description,
+      skill_level: skillLevel,
+      session_location: updatedSessionLocation !== null
+        ? (updatedSessionLocation || null)
+        : current.session_location,
+      duration_minutes: durationMinutes,
+      available_slots: current.available_slots,
+      price: current.price,
+      image: current.image,
+      discount_percentage: current.discount_percentage,
+      offer_message: current.offer_message,
+      sport: current.sport,
+      is_active: current.is_active
     };
+    if (!updated.listing_title) {
+      req.flash('error', 'Listing title required');
+      return res.redirect(`/updateListing/${id}`);
+    }
     try {
       await new Promise((resolve, reject) => {
         Listing.updateProduct(id, updated, (err) => (err ? reject(err) : resolve()));
