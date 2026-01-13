@@ -24,20 +24,20 @@ const Booking = {
           INSERT INTO booking_items (booking_id, listing_id, coach_id, listing_title, sport, price, listPrice, discountPercentage, offerMessage, image, duration_minutes, quantity)
           VALUES ?
         `;
-        const values = items.map((item) => [
-          orderId,
-          item.productId,
-          item.coachId,
-          item.productName,
-          item.sport || null,
-          Number(item.price || 0),
-          Number(item.originalPrice || item.price || 0),
-          Number(item.discountPercentage || 0),
-          item.offerMessage || null,
-          item.image || null,
-          Number(item.durationMinutes || 0),
-          Number(item.quantity || 0)
-        ]);
+    const values = items.map((item) => [
+      orderId,
+      item.listing_id,
+      item.coach_id,
+      item.listing_title,
+      item.sport || null,
+      Number(item.price || 0),
+      Number(item.listPrice || item.price || 0),
+      Number(item.discountPercentage || 0),
+      item.offerMessage || null,
+      item.image || null,
+      Number(item.duration_minutes || 0),
+      Number(item.quantity || 0)
+    ]);
         db.query(itemSql, [values], (itemsErr) => {
           if (itemsErr) {
             return db.rollback(() => callback(itemsErr));
@@ -55,7 +55,7 @@ const Booking = {
 
   getOrdersByUser(userId, callback) {
     const sql = `
-      SELECT b.id, b.total, b.session_location AS address, b.created_at, b.completed_at AS delivered_at, u.username
+      SELECT b.id, b.total, b.session_location, b.created_at, b.completed_at, u.username
       FROM bookings b
       JOIN users u ON u.id = b.user_id
       WHERE b.user_id = ?
@@ -66,7 +66,7 @@ const Booking = {
 
   getAllOrders(searchTerm, callback) {
     let sql = `
-      SELECT b.id, b.total, b.session_location AS address, b.created_at, b.completed_at AS delivered_at, u.username
+      SELECT b.id, b.total, b.session_location, b.created_at, b.completed_at, u.username
       FROM bookings b
       JOIN users u ON u.id = b.user_id
     `;
@@ -81,7 +81,7 @@ const Booking = {
 
   getBookingsByCoach(coachId, searchTerm, callback) {
     let sql = `
-      SELECT DISTINCT b.id, b.total, b.session_location AS address, b.created_at, b.completed_at AS delivered_at, u.username
+      SELECT DISTINCT b.id, b.total, b.session_location, b.created_at, b.completed_at, u.username
       FROM bookings b
       JOIN booking_items bi ON bi.booking_id = b.id
       JOIN users u ON u.id = b.user_id
@@ -99,17 +99,17 @@ const Booking = {
   getOrderItems(orderId, coachId, callback) {
     const sql = `
         SELECT
-          bi.listing_id AS productId,
-          bi.listing_title AS productName,
+          bi.listing_id,
+          bi.listing_title,
           bi.price,
           bi.quantity,
           COALESCE(bi.listPrice, bi.price) AS listPrice,
           COALESCE(bi.discountPercentage, 0) AS discountPercentage,
           bi.offerMessage,
           bi.image,
-          bi.duration_minutes AS durationMinutes,
-          bi.coach_id AS coachId,
-          u.username AS coachName,
+          bi.duration_minutes,
+          bi.coach_id,
+          u.username,
           bi.sport
         FROM booking_items bi
         JOIN users u ON u.id = bi.coach_id
@@ -126,7 +126,7 @@ const Booking = {
 
   getOrderById(orderId, callback) {
     const sql = `
-      SELECT id, user_id AS userId, total, session_location AS address, created_at, completed_at AS delivered_at
+      SELECT id, user_id, total, session_location, created_at, completed_at
       FROM bookings
       WHERE id = ?
       LIMIT 1
@@ -145,7 +145,7 @@ const Booking = {
       VALUES (?, ?, ?, ?)
     `;
     const params = [
-      reviewData.order_id,
+      reviewData.booking_id,
       reviewData.user_id,
       reviewData.rating,
       reviewData.comment || null
@@ -155,14 +155,14 @@ const Booking = {
 
   getReviewByOrderId(orderId, callback) {
     const sql = `
-      SELECT id, booking_id AS order_id, user_id, rating, comment, created_at
+      SELECT id, booking_id, user_id, rating, comment, created_at
       FROM coach_reviews
       WHERE booking_id = ?
       LIMIT 1
     `;
     db.query(sql, [orderId], (err, rows) => callback(err, rows && rows[0] ? rows[0] : null));
-  }
-,
+  },
+
   deleteReviewByOrder(orderId, callback) {
     const sql = 'DELETE FROM coach_reviews WHERE booking_id = ?';
     db.query(sql, [orderId], (err, result) => callback(err, result));

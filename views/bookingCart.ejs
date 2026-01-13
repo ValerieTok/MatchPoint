@@ -19,49 +19,53 @@
       <% let totalSavings = 0; %>
       <div class="d-flex flex-column gap-3">
         <% cart.forEach(item => { 
-          const priceNum = Number(item.price || 0);
-          const original = Number(item.originalPrice || item.price || 0);
-          const sub = priceNum * item.quantity;
+          const basePrice = Number(item.price || 0);
+          const discountPercentage = Math.min(100, Math.max(0, Number(item.discount_percentage) || 0));
+          const hasDiscount = discountPercentage > 0;
+          const finalPrice = hasDiscount
+            ? Number((basePrice * (1 - discountPercentage / 100)).toFixed(2))
+            : basePrice;
+          const sub = finalPrice * item.quantity;
           total += sub;
-          if (item.hasDiscount) { totalSavings += (original - priceNum) * item.quantity; }
-          const stockAvailable = Number.isFinite(Number(item.availableStock)) ? Number(item.availableStock) : null;
+          if (hasDiscount) { totalSavings += (basePrice - finalPrice) * item.quantity; }
+          const stockAvailable = Number.isFinite(Number(item.available_slots)) ? Number(item.available_slots) : null;
         %>
           <div class="d-flex gap-3 align-items-center border rounded-3 p-3 bg-white shadow-sm">
             <div style="width: 90px; height: 90px;" class="d-flex align-items-center justify-content-center bg-light rounded">
               <% if (item.image) { %>
-                <img src="/images/<%= item.image %>" alt="<%= item.productName %>" class="img-fluid" style="max-height: 80px; object-fit: contain;">
+                <img src="/images/<%= item.image %>" alt="<%= item.listing_title %>" class="img-fluid" style="max-height: 80px; object-fit: contain;">
               <% } else { %>
                 <span class="text-muted small">No image</span>
               <% } %>
             </div>
             <div class="flex-grow-1">
-              <div class="fw-semibold"><%= item.productName %></div>
-              <div class="text-muted small mb-1"><%= item.coachName %><% if (item.sport) { %> • <%= item.sport %><% } %></div>
-              <% if (item.hasDiscount) { %>
-                <div class="text-muted small text-decoration-line-through mb-0">Rate: $<%= original.toFixed(2) %></div>
-                <div class="text-success small fw-semibold mb-1">$<%= priceNum.toFixed(2) %> (<%= Number(item.discountPercentage || 0).toFixed(0) %>% off)</div>
+              <div class="fw-semibold"><%= item.listing_title %></div>
+              <div class="text-muted small mb-1"><%= item.username %><% if (item.sport) { %> • <%= item.sport %><% } %></div>
+              <% if (hasDiscount) { %>
+                <div class="text-muted small text-decoration-line-through mb-0">Rate: $<%= basePrice.toFixed(2) %></div>
+                <div class="text-success small fw-semibold mb-1">$<%= finalPrice.toFixed(2) %> (<%= discountPercentage.toFixed(0) %>% off)</div>
               <% } else { %>
-                <div class="text-muted small mb-1">Rate: $<%= priceNum.toFixed(2) %></div>
+                <div class="text-muted small mb-1">Rate: $<%= basePrice.toFixed(2) %></div>
               <% } %>
               <div class="text-muted small mb-1">
                 Slots: <%= stockAvailable !== null ? stockAvailable : 'N/A' %>
-                <% if (item.durationMinutes) { %>
-                  <span class="text-muted"> • <%= item.durationMinutes %> mins</span>
+                <% if (item.duration_minutes) { %>
+                  <span class="text-muted"> • <%= item.duration_minutes %> mins</span>
                 <% } %>
               </div>
-              <% if (item.offerMessage) { %>
+              <% if (item.offer_message) { %>
                 <div class="alert alert-info py-2 px-3 mb-2">
                   <span class="fw-semibold small text-uppercase d-block mb-1">Promo</span>
-                  <div class="small mb-0"><%= item.offerMessage %></div>
+                  <div class="small mb-0"><%= item.offer_message %></div>
                 </div>
               <% } %>
-              <form class="d-flex align-items-center gap-2" action="/cart/update/<%= item.productId %>" method="POST">
-                <label class="small text-muted mb-0" for="cart-qty-<%= item.productId %>">Slots</label>
+              <form class="d-flex align-items-center gap-2" action="/cart/update/<%= item.listing_id %>" method="POST">
+                <label class="small text-muted mb-0" for="cart-qty-<%= item.listing_id %>">Slots</label>
                 <input
                   type="number"
                   class="form-control form-control-sm"
                   style="max-width: 90px;"
-                  id="cart-qty-<%= item.productId %>"
+                  id="cart-qty-<%= item.listing_id %>"
                   name="quantity"
                   min="1"
                   max="<%= Math.max(stockAvailable || 0, Number(item.quantity) || 1) %>"
@@ -74,7 +78,7 @@
             <div class="text-end">
               <div class="text-muted small">Subtotal</div>
               <div class="fw-semibold">$<%= sub.toFixed(2) %></div>
-              <form class="mt-2" action="/cart/remove/<%= item.productId %>" method="POST">
+              <form class="mt-2" action="/cart/remove/<%= item.listing_id %>" method="POST">
                 <button class="btn btn-sm btn-outline-danger" type="submit">Remove</button>
               </form>
             </div>
@@ -108,3 +112,4 @@
   </div>
 </div>
 <%- include('partials/footer') %>
+

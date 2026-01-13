@@ -48,23 +48,23 @@
       <div class="row g-3">
         <% products.forEach(p => {
           const priceNum = Number(p.price || 0);
-          const discountPercentage = Math.min(100, Math.max(0, Number(p.discountPercentage) || 0));
+          const discountPercentage = Math.min(100, Math.max(0, Number(p.discount_percentage) || 0));
           const hasDiscount = discountPercentage > 0;
           const discountedPrice = hasDiscount
             ? Number((priceNum * (1 - discountPercentage / 100)).toFixed(2))
             : priceNum;
-          const outOfStock = p.quantity <= 0;
+          const outOfStock = p.available_slots <= 0;
         %>
           <div class="col-12 col-sm-6 col-md-4">
             <div class="product-card h-100 d-flex flex-column bg-white">
-              <img src="/images/<%= p.image %>" class="card-img-top product-img" alt="<%= p.productName %>">
+              <img src="/images/<%= p.image %>" class="card-img-top product-img" alt="<%= p.listing_title %>">
               <div class="card-body d-flex flex-column">
-                <h6 class="fw-semibold mb-1"><%= p.productName %></h6>
-                <div class="small text-muted mb-1"><%= p.coachName %><% if (p.sport) { %> • <%= p.sport %><% } %></div>
+                <h6 class="fw-semibold mb-1"><%= p.listing_title %></h6>
+                <div class="small text-muted mb-1"><%= p.username %><% if (p.sport) { %> • <%= p.sport %><% } %></div>
                 <p class="<%= outOfStock ? 'text-danger' : 'text-muted' %> mb-1">
-                  <%= outOfStock ? 'No slots available' : 'Slots: ' + p.quantity %>
-                  <% if (p.durationMinutes) { %>
-                    <span class="text-muted"> • <%= p.durationMinutes %> mins</span>
+                  <%= outOfStock ? 'No slots available' : 'Slots: ' + p.available_slots %>
+                  <% if (p.duration_minutes) { %>
+                    <span class="text-muted"> • <%= p.duration_minutes %> mins</span>
                   <% } %>
                 </p>
                 <p class="mb-2">
@@ -81,20 +81,22 @@
                     <small class="text-muted ms-2">promo rate</small>
                   </div>
                 <% } %>
-                <% if (p.offerMessage) { %>
+                <% if (p.offer_message) { %>
                   <div class="alert alert-info py-2 px-3 mb-2">
                     <div class="small fw-semibold text-uppercase mb-1">Promo</div>
-                    <div class="small mb-0"><%= p.offerMessage %></div>
+                    <div class="small mb-0"><%= p.offer_message %></div>
                   </div>
                 <% } %>
-                <% if (typeof p.isActive !== 'undefined') { %>
-                  <div class="small <%= p.isActive ? 'text-success' : 'text-muted' %> mb-2">
-                    <%= p.isActive ? 'Active listing' : 'Hidden listing' %>
+                <% if (typeof p.is_active !== 'undefined') { %>
+                  <div class="small <%= p.is_active ? 'text-success' : 'text-muted' %> mb-2">
+                    <%= p.is_active ? 'Active listing' : 'Hidden listing' %>
                   </div>
                 <% } %>
                 <div class="mt-auto d-flex gap-2">
                   <a class="btn btn-success btn-sm" href="/updateProduct/<%= p.id %>">Edit</a>
-                  <a class="btn btn-danger btn-sm" href="/deleteProduct/<%= p.id %>" onclick="return confirm('Delete this listing?')">Delete</a>
+                  <form method="post" action="/deleteProduct/<%= p.id %>" onsubmit="return confirm('Delete this listing?')" class="d-inline">
+                    <button class="btn btn-danger btn-sm" type="submit">Delete</button>
+                  </form>
                 </div>
               </div>
             </div>
@@ -104,3 +106,4 @@
     <% } %>
   </div>
 <%- include('partials/footer') %>
+

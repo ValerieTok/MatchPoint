@@ -16,26 +16,23 @@
           </div>
           <div>
             <label class="form-label">Password</label>
-            <input class="form-control register-password-input" type="password" name="password" required>
+            <input class="form-control register-password-input" type="password" name="password" minlength="8" required>
           </div>
           <div>
-            <label class="form-label">Location</label>
-            <input class="form-control" type="text" name="address" value="<%= (formData && formData.address) || '' %>">
+            <input class="form-check-input" type="checkbox" id="show-password-register" data-show-password-target=".register-password-input">
+            <label class="form-check-label" for="show-password-register">Show password</label>
           </div>
           <div>
-            <label class="form-label">Contact</label>
-            <input class="form-control" type="text" name="contact" value="<%= (formData && formData.contact) || '' %>">
+            <label class="form-label">Phone number</label>
+            <input class="form-control" type="tel" name="contact" value="<%= (formData && formData.contact) || '' %>">
           </div>
           <div>
             <label class="form-label">Account type</label>
             <select class="form-select" name="role">
               <option value="user" <%= (formData && formData.role) === 'user' ? 'selected' : '' %>>Athlete</option>
               <option value="coach" <%= (formData && formData.role) === 'coach' ? 'selected' : '' %>>Coach</option>
+              <option value="admin" <%= (formData && formData.role) === 'admin' ? 'selected' : '' %>>Admin</option>
             </select>
-          </div>
-          <div class="form-check">
-            <input class="form-check-input" type="checkbox" id="show-password-register" data-show-password-target=".register-password-input">
-            <label class="form-check-label" for="show-password-register">Show password</label>
           </div>
           <button class="btn btn-danger w-100 py-2" type="submit">Create account</button>
           <div class="text-center">

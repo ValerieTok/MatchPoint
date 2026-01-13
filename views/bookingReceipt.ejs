@@ -71,30 +71,27 @@
               const hasDiscount = discountPercentage > 0 && listPrice > price;
               const subtotal = price * qty;
               const imageSrc = it.image ? '/images/' + it.image : null;
-              const original = Number(it.originalPrice || listPrice || price);
             %>
               <tr>
                 <td>
-                  <div class="fw-semibold text-dark"><%= it.productName %></div>
-                  <small class="text-muted d-block"><%= it.coachName %><% if (it.sport) { %> • <%= it.sport %><% } %></small>
+                  <div class="fw-semibold text-dark"><%= it.listing_title %></div>
+                  <small class="text-muted d-block"><%= it.username %><% if (it.sport) { %> • <%= it.sport %><% } %></small>
                   <% if (it.offerMessage) { %>
                     <small class="text-info"><%= it.offerMessage %></small>
                   <% } %>
                 </td>
                 <td class="text-center">
                   <% if (imageSrc) { %>
-                    <img src="<%= imageSrc %>" alt="<%= it.productName %>" class="img-fluid" style="max-height:60px;">
+                    <img src="<%= imageSrc %>" alt="<%= it.listing_title %>" class="img-fluid" style="max-height:60px;">
                   <% } else { %>
                     <span class="text-muted small">No image</span>
                   <% } %>
                 </td>
                 <td class="text-end"><%= qty %></td>
                 <td class="text-end">
-                  <% if (original > price) { %>
-                    <div class="text-decoration-line-through text-muted small">$<%= original.toFixed(2) %></div>
-                    <div class="text-success small">-<%= ((1 - price / original) * 100).toFixed(0) %>% off</div>
-                  <% } else if (hasDiscount) { %>
+                  <% if (hasDiscount) { %>
                     <div class="text-decoration-line-through text-muted small">$<%= listPrice.toFixed(2) %></div>
+                    <div class="text-success small">-<%= discountPercentage.toFixed(0) %>% off</div>
                   <% } %>
                   <div class="fw-semibold">$<%= price.toFixed(2) %></div>
                 </td>
@@ -110,8 +107,8 @@
       <div>
         <p class="text-muted mb-1">Total savings</p>
         <% const totalSavings = cart.reduce((sum, item) => {
-          const original = Number(item.originalPrice || item.listPrice || item.price || 0);
-          const discount = original - Number(item.price || 0);
+          const listPrice = Number(item.listPrice || item.price || 0);
+          const discount = listPrice - Number(item.price || 0);
           return sum + (discount > 0 ? discount * Number(item.quantity || 0) : 0);
         }, 0);
         %>
@@ -128,3 +125,4 @@
     </div>
   </div>
 <%- include('partials/footer') %>
+

@@ -3,18 +3,18 @@ const db = require('../db');
 const baseSelect = `
   SELECT
     l.id,
-    l.listing_title AS productName,
-    l.available_slots AS quantity,
+    l.listing_title,
+    l.available_slots,
     l.price,
     l.image,
-    l.discount_percentage AS discountPercentage,
-    l.offer_message AS offerMessage,
-    l.coach_id AS coachId,
-    u.username AS coachName,
+    l.discount_percentage,
+    l.offer_message,
+    l.coach_id,
+    u.username,
     l.sport,
     l.description,
-    l.duration_minutes AS durationMinutes,
-    l.is_active AS isActive
+    l.duration_minutes,
+    l.is_active
   FROM coach_listings l
   JOIN users u ON u.id = l.coach_id
 `;
@@ -47,17 +47,17 @@ module.exports = {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const params = [
-      productData.coachId,
-      productData.productName,
+      productData.coach_id,
+      productData.listing_title,
       productData.sport || null,
       productData.description || null,
-      typeof productData.quantity !== 'undefined' ? productData.quantity : 0,
+      typeof productData.available_slots !== 'undefined' ? productData.available_slots : 0,
       productData.price || 0,
       productData.image || null,
-      typeof productData.discountPercentage === 'number' ? productData.discountPercentage : 0,
-      productData.offerMessage || null,
-      typeof productData.durationMinutes !== 'undefined' ? productData.durationMinutes : null,
-      typeof productData.isActive !== 'undefined' ? productData.isActive : 1
+      typeof productData.discount_percentage === 'number' ? productData.discount_percentage : 0,
+      productData.offer_message || null,
+      typeof productData.duration_minutes !== 'undefined' ? productData.duration_minutes : null,
+      typeof productData.is_active !== 'undefined' ? productData.is_active : 1
     ];
     db.query(sql, params, (err, result) => callback(err, result));
   },
@@ -78,16 +78,16 @@ module.exports = {
       WHERE id = ?
     `;
     const params = [
-      updatedData.productName,
+      updatedData.listing_title,
       typeof updatedData.sport !== 'undefined' ? updatedData.sport : null,
       typeof updatedData.description !== 'undefined' ? updatedData.description : null,
-      typeof updatedData.quantity !== 'undefined' ? updatedData.quantity : null,
+      typeof updatedData.available_slots !== 'undefined' ? updatedData.available_slots : null,
       typeof updatedData.price !== 'undefined' ? updatedData.price : null,
       typeof updatedData.image !== 'undefined' ? updatedData.image : null,
-      typeof updatedData.discountPercentage !== 'undefined' ? updatedData.discountPercentage : 0,
-      typeof updatedData.offerMessage !== 'undefined' ? updatedData.offerMessage : null,
-      typeof updatedData.durationMinutes !== 'undefined' ? updatedData.durationMinutes : null,
-      typeof updatedData.isActive !== 'undefined' ? updatedData.isActive : 1,
+      typeof updatedData.discount_percentage !== 'undefined' ? updatedData.discount_percentage : 0,
+      typeof updatedData.offer_message !== 'undefined' ? updatedData.offer_message : null,
+      typeof updatedData.duration_minutes !== 'undefined' ? updatedData.duration_minutes : null,
+      typeof updatedData.is_active !== 'undefined' ? updatedData.is_active : 1,
       id
     ];
     db.query(sql, params, (err, result) => callback(err, result));
@@ -161,30 +161,30 @@ module.exports = {
         for (const item of cartItems) {
           await new Promise((resolve, reject) => {
             db.query(
-              'SELECT listing_title AS productName, available_slots AS quantity FROM coach_listings WHERE id = ? FOR UPDATE',
-              [item.productId],
+              'SELECT listing_title, available_slots FROM coach_listings WHERE id = ? FOR UPDATE',
+              [item.listing_id],
               (selectErr, rows) => {
                 if (selectErr) return reject(selectErr);
                 const row = rows && rows[0];
                 if (!row) {
                   return reject(Object.assign(new Error('Listing not found'), {
                     code: 'PRODUCT_NOT_FOUND',
-                    productId: item.productId
+                    productId: item.listing_id
                   }));
                 }
-                if (row.quantity < item.quantity) {
+                if (row.available_slots < item.quantity) {
                   return reject(Object.assign(new Error('Insufficient slots'), {
                     code: 'INSUFFICIENT_STOCK',
-                    productId: item.productId,
-                    productName: row.productName,
-                    available: row.quantity,
+                    productId: item.listing_id,
+                    listing_title: row.listing_title,
+                    available: row.available_slots,
                     requested: item.quantity
                   }));
                 }
-                const newQty = row.quantity - item.quantity;
+                const newQty = row.available_slots - item.quantity;
                 db.query(
                   'UPDATE coach_listings SET available_slots = ? WHERE id = ?',
-                  [newQty, item.productId],
+                  [newQty, item.listing_id],
                   (updateErr) => (updateErr ? reject(updateErr) : resolve())
                 );
               }

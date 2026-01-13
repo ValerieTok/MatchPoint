@@ -50,8 +50,12 @@
         </div>
 
         <% const totalSavings = cart.reduce((sum, item) => {
-            const original = Number(item.originalPrice || item.listPrice || item.price || 0);
-            const discount = original - Number(item.price || 0);
+            const basePrice = Number(item.price || 0);
+            const discountPercentage = Math.min(100, Math.max(0, Number(item.discount_percentage) || 0));
+            const finalPrice = discountPercentage > 0
+              ? Number((basePrice * (1 - discountPercentage / 100)).toFixed(2))
+              : basePrice;
+            const discount = basePrice - finalPrice;
             return sum + (discount > 0 ? discount * Number(item.quantity || 0) : 0);
           }, 0);
         %>
@@ -68,40 +72,39 @@
               </thead>
               <tbody>
                 <% cart.forEach(it => {
-                  const price = Number(it.price || 0);
+                  const basePrice = Number(it.price || 0);
                   const qty = Number(it.quantity || 0);
-                  const listPrice = Number(it.listPrice || price);
-                  const discountPercentage = Number(it.discountPercentage || 0);
-                  const hasDiscount = discountPercentage > 0 && listPrice > price;
+                  const discountPercentage = Math.min(100, Math.max(0, Number(it.discount_percentage) || 0));
+                  const hasDiscount = discountPercentage > 0;
+                  const finalPrice = hasDiscount
+                    ? Number((basePrice * (1 - discountPercentage / 100)).toFixed(2))
+                    : basePrice;
                   const imageSrc = it.image ? '/images/' + it.image : null;
                 %>
                   <tr>
                     <td>
-                      <div class="fw-semibold text-dark"><%= it.productName %></div>
-                      <small class="text-muted d-block"><%= it.coachName %><% if (it.sport) { %> • <%= it.sport %><% } %></small>
-                      <% if (it.offerMessage) { %>
-                        <small class="text-info"><%= it.offerMessage %></small>
+                      <div class="fw-semibold text-dark"><%= it.listing_title %></div>
+                      <small class="text-muted d-block"><%= it.username %><% if (it.sport) { %> • <%= it.sport %><% } %></small>
+                      <% if (it.offer_message) { %>
+                        <small class="text-info"><%= it.offer_message %></small>
                       <% } %>
                     </td>
                     <td class="text-center">
                       <% if (imageSrc) { %>
-                        <img src="<%= imageSrc %>" alt="<%= it.productName %>" class="img-fluid" style="max-height:55px;">
+                        <img src="<%= imageSrc %>" alt="<%= it.listing_title %>" class="img-fluid" style="max-height:55px;">
                       <% } else { %>
                         <span class="badge bg-secondary">No image</span>
                       <% } %>
                     </td>
                     <td class="text-end"><%= qty %></td>
                     <td class="text-end">
-                      <% const original = Number(it.originalPrice || listPrice || price); %>
-                      <% if (original > price) { %>
-                        <div class="text-decoration-line-through text-muted small">$<%= original.toFixed(2) %></div>
+                      <% if (hasDiscount) { %>
+                        <div class="text-decoration-line-through text-muted small">$<%= basePrice.toFixed(2) %></div>
                       <% } else { %>
                         <div class="text-muted small">Per slot</div>
                       <% } %>
-                      <div class="fw-semibold">$<%= price.toFixed(2) %></div>
-                      <% if (original > price) { %>
-                        <div class="text-success small">-<%= ((1 - price / original) * 100).toFixed(0) %>% off</div>
-                      <% } else if (hasDiscount) { %>
+                      <div class="fw-semibold">$<%= finalPrice.toFixed(2) %></div>
+                      <% if (hasDiscount) { %>
                         <div class="text-success small">-<%= discountPercentage.toFixed(0) %>% off</div>
                       <% } %>
                     </td>
@@ -135,3 +138,4 @@
     </div>
   </div>
 <%- include('partials/footer') %>
+

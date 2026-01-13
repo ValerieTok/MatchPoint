@@ -70,19 +70,19 @@
     <div class="row g-3">
       <% products.forEach(p => {
         const priceNum = Number(p.price || 0);
-        const discountPercentage = Math.min(100, Math.max(0, Number(p.discountPercentage) || 0));
+        const discountPercentage = Math.min(100, Math.max(0, Number(p.discount_percentage) || 0));
         const hasDiscount = discountPercentage > 0;
         const discountedPrice = hasDiscount
           ? Number((priceNum * (1 - discountPercentage / 100)).toFixed(2))
           : priceNum;
-        const outOfStock = p.quantity <= 0;
+        const outOfStock = p.available_slots <= 0;
       %>
         <div class="col-12 col-sm-6 col-md-4">
           <div class="product-card h-100 d-flex flex-column bg-white">
-            <img src="/images/<%= p.image %>" class="card-img-top product-img" alt="<%= p.productName %>">
+            <img src="/images/<%= p.image %>" class="card-img-top product-img" alt="<%= p.listing_title %>">
             <div class="card-body d-flex flex-column">
-              <h6 class="fw-semibold mb-1"><a href="/products/<%= p.id %>" class="text-decoration-none text-dark"><%= p.productName %></a></h6>
-              <div class="small text-muted mb-2"><%= p.coachName %><% if (p.sport) { %> • <%= p.sport %><% } %></div>
+              <h6 class="fw-semibold mb-1"><a href="/products/<%= p.id %>" class="text-decoration-none text-dark"><%= p.listing_title %></a></h6>
+              <div class="small text-muted mb-2"><%= p.username %><% if (p.sport) { %> • <%= p.sport %><% } %></div>
               <p class="mb-2">
                 <% if (hasDiscount) { %>
                   <span class="text-decoration-line-through text-muted me-2">$<%= priceNum.toFixed(2) %></span>
@@ -97,15 +97,15 @@
                   <small class="text-muted">Now $<%= discountedPrice.toFixed(2) %></small>
                 </div>
               <% } %>
-              <% if (p.offerMessage) { %>
+              <% if (p.offer_message) { %>
                 <div class="text-info small mb-2">
-                  <strong>Promo:</strong> <%= p.offerMessage %>
+                  <strong>Promo:</strong> <%= p.offer_message %>
                 </div>
               <% } %>
               <p class="<%= outOfStock ? 'text-danger' : 'text-muted' %> mb-2">
-                <%= outOfStock ? 'No slots available' : 'Slots: ' + p.quantity %>
-                <% if (p.durationMinutes) { %>
-                  <span class="text-muted"> • <%= p.durationMinutes %> mins</span>
+                <%= outOfStock ? 'No slots available' : 'Slots: ' + p.available_slots %>
+                <% if (p.duration_minutes) { %>
+                  <span class="text-muted"> • <%= p.duration_minutes %> mins</span>
                 <% } %>
               </p>
               <div class="mt-auto">
@@ -142,3 +142,4 @@
       });
     });
   </script>` }) %>
+

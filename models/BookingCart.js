@@ -1,41 +1,13 @@
 const db = require('../db');
 
-const normalisePrice = (value) => {
-  const parsed = Number.parseFloat(value);
-  if (!Number.isFinite(parsed) || parsed < 0) {
-    return 0;
-  }
-  return Number(parsed.toFixed(2));
-};
-
-const buildPricing = (productRow) => {
-  const basePrice = normalisePrice(productRow.price);
-  const discountPercentage = Math.min(
-    100,
-    Math.max(0, Number.parseFloat(productRow.discountPercentage) || 0)
-  );
-  const hasDiscount = discountPercentage > 0;
-  const effectivePrice = hasDiscount
-    ? normalisePrice(basePrice * (1 - discountPercentage / 100))
-    : basePrice;
-
-  return {
-    basePrice,
-    discountPercentage,
-    offerMessage: productRow.offerMessage ? String(productRow.offerMessage).trim() : null,
-    hasDiscount,
-    effectivePrice
-  };
-};
-
-const addOrIncrement = (userId, productId, quantity, callback) => {
+const addOrIncrement = (userId, listingId, quantity, callback) => {
   const qty = Number(quantity);
   if (!Number.isFinite(qty) || qty <= 0) {
     return callback(new Error('Invalid quantity.'));
   }
 
   const findSql = 'SELECT id, quantity FROM booking_cart_items WHERE user_id = ? AND listing_id = ? LIMIT 1';
-  db.query(findSql, [userId, productId], (findErr, rows) => {
+  db.query(findSql, [userId, listingId], (findErr, rows) => {
     if (findErr) {
       return callback(findErr);
     }
@@ -47,24 +19,24 @@ const addOrIncrement = (userId, productId, quantity, callback) => {
     }
 
     const insertSql = 'INSERT INTO booking_cart_items (user_id, listing_id, quantity) VALUES (?, ?, ?)';
-    return db.query(insertSql, [userId, productId, qty], callback);
+    return db.query(insertSql, [userId, listingId, qty], callback);
   });
 };
 
 const getCart = (userId, callback) => {
   const sql = `
         SELECT
-            c.listing_id AS product_id,
+            c.listing_id,
             c.quantity,
-            l.listing_title AS productName,
+            l.listing_title,
             l.price,
-            l.discount_percentage AS discountPercentage,
-            l.offer_message AS offerMessage,
+            l.discount_percentage,
+            l.offer_message,
             l.image,
-            l.available_slots AS stockAvailable,
-            l.coach_id AS coachId,
-            u.username AS coachName,
-            l.duration_minutes AS durationMinutes,
+            l.available_slots,
+            l.coach_id,
+            u.username,
+            l.duration_minutes,
             l.sport
         FROM booking_cart_items c
         JOIN coach_listings l ON l.id = c.listing_id
@@ -77,52 +49,47 @@ const getCart = (userId, callback) => {
       return callback(err);
     }
 
-    const items = (rows || []).map((row) => {
-      const pricing = buildPricing(row);
-      return {
-        productId: row.product_id,
-        productName: row.productName,
-        quantity: Number(row.quantity) || 0,
-        price: pricing.effectivePrice,
-        originalPrice: pricing.basePrice,
-        discountPercentage: pricing.discountPercentage,
-        offerMessage: pricing.offerMessage,
-        hasDiscount: pricing.hasDiscount,
-        image: row.image,
-        availableStock: Number(row.stockAvailable),
-        coachId: row.coachId,
-        coachName: row.coachName,
-        durationMinutes: row.durationMinutes,
-        sport: row.sport
-      };
-    });
+    const items = (rows || []).map((row) => ({
+      listing_id: row.listing_id,
+      quantity: Number(row.quantity) || 0,
+      listing_title: row.listing_title,
+      price: Number(row.price || 0),
+      discount_percentage: Number(row.discount_percentage || 0),
+      offer_message: row.offer_message ? String(row.offer_message).trim() : null,
+      image: row.image,
+      available_slots: Number(row.available_slots),
+      coach_id: row.coach_id,
+      username: row.username,
+      duration_minutes: row.duration_minutes,
+      sport: row.sport
+    }));
     return callback(null, items);
   });
 };
 
-const updateQuantity = (userId, productId, quantity, callback) => {
+const updateQuantity = (userId, listingId, quantity, callback) => {
   const qty = Number(quantity);
   if (!Number.isFinite(qty) || qty <= 0) {
     const deleteSql = 'DELETE FROM booking_cart_items WHERE user_id = ? AND listing_id = ?';
-    return db.query(deleteSql, [userId, productId], callback);
+    return db.query(deleteSql, [userId, listingId], callback);
   }
 
   const sql = 'UPDATE booking_cart_items SET quantity = ? WHERE user_id = ? AND listing_id = ?';
-  db.query(sql, [qty, userId, productId], (err, result) => {
+  db.query(sql, [qty, userId, listingId], (err, result) => {
     if (err) {
       return callback(err);
     }
     if (result.affectedRows === 0) {
       const insertSql = 'INSERT INTO booking_cart_items (user_id, listing_id, quantity) VALUES (?, ?, ?)';
-      return db.query(insertSql, [userId, productId, qty], callback);
+      return db.query(insertSql, [userId, listingId, qty], callback);
     }
     return callback(null, result);
   });
 };
 
-const removeItem = (userId, productId, callback) => {
+const removeItem = (userId, listingId, callback) => {
   const sql = 'DELETE FROM booking_cart_items WHERE user_id = ? AND listing_id = ?';
-  db.query(sql, [userId, productId], callback);
+  db.query(sql, [userId, listingId], callback);
 };
 
 const clearCart = (userId, callback) => {
@@ -132,9 +99,9 @@ const clearCart = (userId, callback) => {
 
 const getCartItems = (userId, callback) => {
   const sql = `
-        SELECT c.listing_id AS productId,
+        SELECT c.listing_id,
                c.quantity,
-               l.listing_title AS productName,
+               l.listing_title,
                l.price,
                l.image
         FROM booking_cart_items c
@@ -144,12 +111,12 @@ const getCartItems = (userId, callback) => {
   db.query(sql, [userId], (err, rows) => callback(err, rows || []));
 };
 
-const getItem = (userId, productId, callback) => {
+const getItem = (userId, listingId, callback) => {
   const sql = 'SELECT quantity FROM booking_cart_items WHERE user_id = ? AND listing_id = ? LIMIT 1';
-  db.query(sql, [userId, productId], (err, rows) => callback(err, rows && rows[0] ? rows[0] : null));
+  db.query(sql, [userId, listingId], (err, rows) => callback(err, rows && rows[0] ? rows[0] : null));
 };
 
-const setQuantity = (userId, productId, quantity, callback) => {
+const setQuantity = (userId, listingId, quantity, callback) => {
   const rawQty = Number(quantity);
   const qty = Number.isFinite(rawQty) ? rawQty : 0;
   const sql = `
@@ -157,11 +124,11 @@ const setQuantity = (userId, productId, quantity, callback) => {
         VALUES (?, ?, ?)
         ON DUPLICATE KEY UPDATE quantity = VALUES(quantity)
     `;
-  db.query(sql, [userId, productId, qty], (err, result) => callback(err, result));
+  db.query(sql, [userId, listingId, qty], (err, result) => callback(err, result));
 };
 
-const deleteItem = (userId, productId, callback) => {
-  removeItem(userId, productId, callback);
+const deleteItem = (userId, listingId, callback) => {
+  removeItem(userId, listingId, callback);
 };
 
 module.exports = {

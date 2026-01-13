@@ -7,8 +7,8 @@
     <form action="/addProduct" method="POST" enctype="multipart/form-data" class="mx-auto" style="max-width: 500px;">
 
       <div class="mb-3">
-        <label for="name" class="form-label">Listing Title</label>
-        <input type="text" class="form-control" id="name" name="name" required>
+        <label for="listing_title" class="form-label">Listing Title</label>
+        <input type="text" class="form-control" id="listing_title" name="listing_title" required>
       </div>
 
       <div class="mb-3">
@@ -22,13 +22,13 @@
       </div>
 
       <div class="mb-3">
-        <label for="durationMinutes" class="form-label">Session Duration (minutes)</label>
-        <input type="number" class="form-control" id="durationMinutes" name="durationMinutes" min="15" step="5" placeholder="e.g. 60">
+        <label for="duration_minutes" class="form-label">Session Duration (minutes)</label>
+        <input type="number" class="form-control" id="duration_minutes" name="duration_minutes" min="15" step="5" placeholder="e.g. 60">
       </div>
 
       <div class="mb-3">
-        <label for="quantity" class="form-label">Available Slots</label>
-        <input type="number" class="form-control" id="quantity" name="quantity" min="0" step="1" required>
+        <label for="available_slots" class="form-label">Available Slots</label>
+        <input type="number" class="form-control" id="available_slots" name="available_slots" min="0" step="1" required>
       </div>
 
       <div class="mb-3">
@@ -37,26 +37,26 @@
       </div>
 
       <div class="mb-3">
-        <label for="discountPercentage" class="form-label">Discount (%)</label>
-        <input type="number" class="form-control" id="discountPercentage" name="discountPercentage" min="0" max="100" step="1" value="0" required>
+        <label for="discount_percentage" class="form-label">Discount (%)</label>
+        <input type="number" class="form-control" id="discount_percentage" name="discount_percentage" min="0" max="100" step="1" value="0" required>
         <div class="form-text">Enter whole percentage values (e.g., 25, not 25.5)</div>
       </div>
 
       <div class="mb-3">
-        <label for="offerMessage" class="form-label">Promo message</label>
-        <input type="text" class="form-control" id="offerMessage" name="offerMessage" placeholder="e.g. First session 20% off">
+        <label for="offer_message" class="form-label">Promo message</label>
+        <input type="text" class="form-control" id="offer_message" name="offer_message" placeholder="e.g. First session 20% off">
       </div>
 
       <% if (user && user.role === 'admin') { %>
       <div class="mb-3">
-        <label for="coachId" class="form-label">Coach User ID</label>
-        <input type="number" class="form-control" id="coachId" name="coachId" min="1" step="1" placeholder="Assign listing to a coach">
+        <label for="coach_id" class="form-label">Coach User ID</label>
+        <input type="number" class="form-control" id="coach_id" name="coach_id" min="1" step="1" placeholder="Assign listing to a coach">
       </div>
       <% } %>
 
       <div class="mb-3">
-        <label for="isActive" class="form-label">Listing Status</label>
-        <select class="form-select" id="isActive" name="isActive">
+        <label for="is_active" class="form-label">Listing Status</label>
+        <select class="form-select" id="is_active" name="is_active">
           <option value="1" selected>Active</option>
           <option value="0">Hidden</option>
         </select>

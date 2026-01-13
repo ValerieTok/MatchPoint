@@ -31,7 +31,11 @@ module.exports = {
       if (err) {
         console.error('Failed to load bookings', err);
         req.flash('error', 'Unable to load bookings right now.');
-        return res.redirect('/inventory');
+        return res.render('bookingsManage', {
+          user: req.session && req.session.user,
+          orders: [],
+          searchTerm: searchTerm
+        });
       }
       const withItems = Promise.all(orders.map((o) => buildOrderDetails(o, isCoach ? user.id : null)));
       withItems.then((ordersWithItems) =>
@@ -55,7 +59,10 @@ module.exports = {
       if (err) {
         console.error('Failed to load booking history', err);
         req.flash('error', 'Unable to load your bookings right now.');
-        return res.redirect('/shopping');
+        return res.render('bookingsUser', {
+          user: req.session && req.session.user,
+          orders: []
+        });
       }
       const withItems = Promise.all(orders.map((o) => buildOrderDetails(o, null)));
       withItems.then((ordersWithItems) =>
@@ -84,12 +91,12 @@ module.exports = {
     }
     try {
       const order = await getOrderByIdAsync(orderId);
-    if (!order || order.userId !== userId) {
-      req.flash('error', 'Booking not found');
-      return res.redirect('/my-orders');
-    }
-    if (!order.delivered_at) {
-      await new Promise((resolve, reject) => {
+      if (!order || order.user_id !== userId) {
+        req.flash('error', 'Booking not found');
+        return res.redirect('/my-orders');
+      }
+      if (!order.completed_at) {
+        await new Promise((resolve, reject) => {
           Booking.markOrderDelivered(orderId, (err) => (err ? reject(err) : resolve()));
         });
       }
@@ -118,12 +125,12 @@ module.exports = {
     }
     try {
       const order = await getOrderByIdAsync(orderId);
-    if (!order || order.userId !== userId) {
-      req.flash('error', 'Booking not found');
-      return res.redirect('/my-orders');
-    }
-    if (!order.delivered_at) {
-      req.flash('error', 'Confirm session first');
+      if (!order || order.user_id !== userId) {
+        req.flash('error', 'Booking not found');
+        return res.redirect('/my-orders');
+      }
+      if (!order.completed_at) {
+        req.flash('error', 'Confirm session first');
         return res.redirect('/my-orders');
       }
       const detailed = await buildOrderDetails(order, null);
@@ -165,12 +172,12 @@ module.exports = {
     }
     try {
       const order = await getOrderByIdAsync(orderId);
-      if (!order || order.userId !== userId) {
-      req.flash('error', 'Booking not found');
+      if (!order || order.user_id !== userId) {
+        req.flash('error', 'Booking not found');
         return res.redirect('/my-orders');
       }
-      if (!order.delivered_at) {
-      req.flash('error', 'Confirm session first');
+      if (!order.completed_at) {
+        req.flash('error', 'Confirm session first');
         return res.redirect('/my-orders');
       }
       const existing = await new Promise((resolve, reject) => {
@@ -183,7 +190,7 @@ module.exports = {
       await new Promise((resolve, reject) => {
         Booking.createReview(
           {
-            order_id: orderId,
+            booking_id: orderId,
             user_id: userId,
             rating,
             comment
@@ -198,9 +205,8 @@ module.exports = {
       req.flash('error', 'Unable to save review');
       return res.redirect(`/orders/${orderId}/review`);
     }
-  }
+  },
 
-  ,
   async deleteReview(req, res) {
     if (!req.session || !req.session.user || req.session.user.role !== 'admin') {
       req.flash('error', 'Access denied');

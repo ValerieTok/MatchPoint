@@ -26,7 +26,7 @@
                     </div>
                     <div class="text-end">
                       <div class="fw-semibold">$<%= Number(o.total || 0).toFixed(2) %></div>
-                      <div class="text-muted small"><%= o.address || 'No location' %></div>
+                      <div class="text-muted small"><%= o.session_location || 'No location' %></div>
                       <% if (o.review) { %>
                         <div class="text-warning small">
                           <% for (let i = 0; i < o.review.rating; i++) { %>&#9733;<% } %>
@@ -69,15 +69,15 @@
                         %>
                           <tr>
                             <td>
-                              <div class="fw-semibold"><%= it.productName %></div>
-                              <div class="text-muted small"><%= it.coachName %><% if (it.sport) { %> • <%= it.sport %><% } %></div>
+                              <div class="fw-semibold"><%= it.listing_title %></div>
+                              <div class="text-muted small"><%= it.username %><% if (it.sport) { %> • <%= it.sport %><% } %></div>
                               <% if (it.offerMessage) { %>
                                 <div class="text-info small"><%= it.offerMessage %></div>
                               <% } %>
                             </td>
                             <td class="text-center">
                               <% if (imageSrc) { %>
-                                <img src="<%= imageSrc %>" alt="<%= it.productName %>" class="d-block mx-auto" style="max-height:70px;">
+                                <img src="<%= imageSrc %>" alt="<%= it.listing_title %>" class="d-block mx-auto" style="max-height:70px;">
                               <% } else { %>
                                 <span class="text-muted small">No image</span>
                               <% } %>
@@ -108,9 +108,9 @@
                   </div>
                   <% } %>
                   <div class="mt-3">
-                    <% if (o.delivered_at) { %>
+                    <% if (o.completed_at) { %>
                       <div class="alert alert-success py-2">
-                        Session completed at <strong><%= new Date(o.delivered_at).toLocaleString() %></strong>
+                        Session completed at <strong><%= new Date(o.completed_at).toLocaleString() %></strong>
                       </div>
                     <% } else { %>
                       <div class="alert alert-secondary py-2">
@@ -126,7 +126,7 @@
                         </div>
                         <p class="mb-0 text-muted"><%= o.review.comment || 'No comment provided.' %></p>
                       </div>
-                    <% } else if (o.delivered_at) { %>
+                    <% } else if (o.completed_at) { %>
                       <div class="mt-2">
                         <a class="btn btn-outline-primary btn-sm" href="/orders/<%= o.id %>/review">Leave a review</a>
                       </div>
@@ -173,3 +173,4 @@
       }, 1000);
     }
   </script>` }) %>
+

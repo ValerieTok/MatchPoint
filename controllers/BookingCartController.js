@@ -1,6 +1,5 @@
 const Listing = require('../models/Listing');
 const BookingCart = require('../models/BookingCart');
-const accountModel = require('../models/Account');
 const Booking = require('../models/Booking');
 
 const ensureShopperRole = (req, res) => {
@@ -33,7 +32,7 @@ const calculatePricing = (product) => {
   const basePrice = Number.parseFloat(product.price) || 0;
   const discountPercentage = Math.min(
     100,
-    Math.max(0, Number.parseFloat(product.discountPercentage) || 0)
+    Math.max(0, Number.parseFloat(product.discount_percentage) || 0)
   );
   const hasDiscount = discountPercentage > 0;
   const discountedPrice = hasDiscount
@@ -81,11 +80,11 @@ module.exports = {
         req.flash('error', 'Listing not found');
         return res.redirect('/shopping');
       }
-      if (product.isActive === 0 || product.isActive === '0') {
+      if (product.is_active === 0 || product.is_active === '0') {
         req.flash('error', 'Listing is not available');
         return res.redirect('/shopping');
       }
-      const available = Number(product.quantity) || 0;
+      const available = Number(product.available_slots) || 0;
       if (available <= 0) {
         req.flash('error', 'No session slots available');
         return res.redirect('/shopping');
@@ -93,7 +92,7 @@ module.exports = {
 
       const cartItems = await syncCartToSession(req);
       const existingQty =
-        cartItems.find((item) => Number(item.productId) === productId)?.quantity || 0;
+        cartItems.find((item) => Number(item.listing_id) === productId)?.quantity || 0;
       const desiredQty = existingQty + qty;
       if (desiredQty > available) {
         req.flash('error', `Only ${available} session slots available`);
@@ -106,7 +105,7 @@ module.exports = {
       const pricing = calculatePricing(product);
       req.flash(
         'success',
-        `${product.productName} added to booking cart at $${pricing.finalPrice.toFixed(2)}${
+        `${product.listing_title} added to booking cart at $${pricing.finalPrice.toFixed(2)}${
           pricing.hasDiscount ? ' (discounted)' : ''
         }.`
       );
@@ -122,9 +121,7 @@ module.exports = {
     if (!ensureShopperRole(req, res)) return;
     try {
       const cart = await syncCartToSession(req);
-      const flashAddress = req.flash('deliveryAddress')[0] || '';
-      const sessionAddress = req.session.user && req.session.user.address ? req.session.user.address : '';
-      const deliveryAddress = flashAddress || sessionAddress;
+      const deliveryAddress = req.flash('deliveryAddress')[0] || '';
       return res.render('bookingCart', {
         cart,
         user: req.session && req.session.user,
@@ -163,13 +160,13 @@ module.exports = {
         return res.redirect('/cart');
       }
 
-      const available = Number(product.quantity) || 0;
+      const available = Number(product.available_slots) || 0;
       if (available <= 0) {
         req.flash('error', 'No session slots available.');
         return res.redirect('/cart');
       }
       if (quantity > available) {
-        req.flash('error', `Only ${available} session slots available for ${product.productName}.`);
+        req.flash('error', `Only ${available} session slots available for ${product.listing_title}.`);
         return res.redirect('/cart');
       }
 
@@ -215,15 +212,16 @@ module.exports = {
         req.flash('error', 'Your booking cart is empty');
         return res.redirect('/cart');
       }
-      const requested = (req.body && req.body.deliveryAddress ? String(req.body.deliveryAddress).trim() : '');
-      const sessionAddress = req.session.user && req.session.user.address ? req.session.user.address : '';
-      const deliveryAddress = requested || sessionAddress;
+      const deliveryAddress = (req.body && req.body.deliveryAddress ? String(req.body.deliveryAddress).trim() : '');
       if (!deliveryAddress) {
         req.flash('error', 'Session location required');
-        req.flash('deliveryAddress', requested);
+        req.flash('deliveryAddress', deliveryAddress);
         return res.redirect('/cart');
       }
-      const total = cart.reduce((sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 0), 0);
+      const total = cart.reduce((sum, item) => {
+        const pricing = calculatePricing(item);
+        return sum + pricing.finalPrice * Number(item.quantity || 0);
+      }, 0);
       return res.render('bookingCheckout', {
         cart,
         user: req.session && req.session.user,
@@ -241,9 +239,7 @@ module.exports = {
     if (!ensureShopperRole(req, res)) return;
     try {
       const userId = req.session.user.id;
-      const providedAddress = (req.body && req.body.deliveryAddress ? String(req.body.deliveryAddress).trim() : '');
-      const sessionAddress = req.session.user && req.session.user.address ? req.session.user.address : '';
-      const deliveryAddress = providedAddress || sessionAddress;
+      const deliveryAddress = (req.body && req.body.deliveryAddress ? String(req.body.deliveryAddress).trim() : '');
       const cart = await syncCartToSession(req);
       if (!cart.length) {
         req.flash('error', 'Your booking cart is empty');
@@ -251,23 +247,26 @@ module.exports = {
       }
       if (!deliveryAddress) {
         req.flash('error', 'Session location required');
-        req.flash('deliveryAddress', providedAddress);
+        req.flash('deliveryAddress', deliveryAddress);
         return res.redirect('/cart');
       }
-      if (providedAddress && !sessionAddress) {
-        await new Promise((resolve, reject) => {
-          accountModel.updateAddressOnly(userId, providedAddress, (err) => (err ? reject(err) : resolve()));
-        });
-        req.session.user.address = providedAddress;
-      }
-      const cartSnapshot = cart.map((item) => ({ ...item }));
       await new Promise((resolve, reject) => {
         Listing.deductStock(cart, (err) => (err ? reject(err) : resolve()));
+      });
+      const pricedCart = cart.map((item) => {
+        const pricing = calculatePricing(item);
+        return {
+          ...item,
+          price: pricing.finalPrice,
+          listPrice: pricing.basePrice,
+          discountPercentage: pricing.discountPercentage,
+          offerMessage: item.offer_message
+        };
       });
       const { orderId, total } = await new Promise((resolve, reject) => {
         Booking.createOrder(
           userId,
-          cart,
+          pricedCart,
           deliveryAddress || null,
           (err, result) => (err ? reject(err) : resolve(result))
         );
@@ -277,7 +276,7 @@ module.exports = {
       });
       req.session.cart = [];
       return res.render('bookingReceipt', {
-        cart: cartSnapshot,
+        cart: pricedCart,
         user: req.session && req.session.user,
         deliveryAddress,
         total: total || 0,
@@ -287,7 +286,7 @@ module.exports = {
     } catch (err) {
       console.error(err);
       if (err && err.code === 'INSUFFICIENT_STOCK') {
-        req.flash('error', `Not enough slots for ${err.productName || 'a listing'}. Available: ${err.available}`);
+        req.flash('error', `Not enough slots for ${err.listing_title || 'a listing'}. Available: ${err.available}`);
       } else if (err && err.code === 'PRODUCT_NOT_FOUND') {
         req.flash('error', 'One of the listings is no longer available');
       } else {

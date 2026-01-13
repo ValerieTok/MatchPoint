@@ -23,10 +23,6 @@
           <input required type="password" name="password" class="form-control" placeholder="Min 6 chars">
         </div>
         <div class="col-md-4">
-          <label class="form-label">Location</label>
-          <input name="address" class="form-control" placeholder="Location">
-        </div>
-        <div class="col-md-4">
           <label class="form-label">Contact</label>
           <input name="contact" class="form-control" placeholder="Phone">
         </div>
@@ -56,7 +52,6 @@
                 <th>ID</th>
                 <th>Name</th>
                 <th>Email</th>
-                <th>Location</th>
                 <th>Contact</th>
                 <th>Role</th>
                 <th>2FA</th>
@@ -70,7 +65,6 @@
                     <td class="text-muted"><%= u.id %></td>
                     <td><input name="username" class="form-control form-control-sm" value="<%= u.username %>"></td>
                     <td><input type="email" name="email" class="form-control form-control-sm" value="<%= u.email %>"></td>
-                    <td><input name="address" class="form-control form-control-sm" value="<%= u.address || '' %>"></td>
                     <td><input name="contact" class="form-control form-control-sm" value="<%= u.contact || '' %>"></td>
                   <td>
                     <select name="role" class="form-select form-select-sm">
@@ -88,7 +82,9 @@
                   </td>
                   <td class="d-flex gap-2 align-items-center">
                     <button class="btn btn-sm btn-outline-primary" type="submit">Update</button>
-                    <a class="btn btn-sm btn-outline-danger" href="/users/delete/<%= u.id %>" onclick="return confirm('Delete this user?');">Delete</a>
+                    <form method="post" action="/users/delete/<%= u.id %>" onsubmit="return confirm('Delete this user?');" class="d-inline">
+                      <button class="btn btn-sm btn-outline-danger" type="submit">Delete</button>
+                    </form>
                     <% if (u.is_2fa_enabled) { %>
                       <button class="btn btn-sm btn-outline-secondary" type="submit" formaction="/users/<%= u.id %>/disable-2fa" formmethod="post" onclick="return confirm('Disable 2FA for this user?');">Disable 2FA</button>
                     <% } %>

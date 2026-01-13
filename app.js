@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const path = require('path');
+const crypto = require('crypto');
 const session = require('express-session');
 const flash = require('connect-flash');
 const multer = require('multer');
@@ -15,11 +16,27 @@ const { attachUser, checkAuthenticated, checkAdmin } = require('./middleware');
 const app = express();
 
 // file upload config
+const allowedImageTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
+const allowedImageExts = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif']);
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, path.join(__dirname, 'public', 'images')),
-  filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`)
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    const safeExt = allowedImageExts.has(ext) ? ext : '';
+    const randomName = crypto.randomBytes(16).toString('hex');
+    cb(null, `${Date.now()}-${randomName}${safeExt}`);
+  }
 });
-const upload = multer({ storage });
+const upload = multer({
+  storage,
+  limits: { fileSize: 2 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (!allowedImageTypes.has(file.mimetype)) {
+      return cb(new Error('Unsupported image type'));
+    }
+    return cb(null, true);
+  }
+});
 
 // view engine and middleware
 app.set('view engine', 'ejs');
@@ -29,19 +46,24 @@ app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 
 // in-memory sessions; cart persistence is DB-backed via user_cart_items
-const sessionSecret = process.env.SESSION_SECRET || 'dev-secret';
-if (!process.env.SESSION_SECRET) {
+const isProduction = process.env.NODE_ENV === 'production';
+const sessionSecret = process.env.SESSION_SECRET;
+if (!sessionSecret) {
+  if (isProduction) {
+    throw new Error('SESSION_SECRET missing from environment');
+  }
   console.warn('SESSION_SECRET missing from environment; using development fallback.');
 }
 app.use(session({
   name: 'sid',
-  secret: sessionSecret,
+  secret: sessionSecret || 'dev-secret',
   resave: false,
   saveUninitialized: false,
   cookie: {
     maxAge: 7 * 24 * 3600 * 1000,
     httpOnly: true,
-    sameSite: 'lax'
+    sameSite: 'lax',
+    secure: isProduction
   }
 }));
 app.use(flash());
@@ -62,8 +84,8 @@ app.get('/login', AccountController.loginPage);
 app.post('/login', AccountController.loginUser);
 app.get('/login/2fa', AccountController.showTwoFactorLogin);
 app.post('/login/2fa', AccountController.verifyTwoFactorLogin);
-app.get('/forgot-password', PasswordResetController.forgotPasswordPage);
-app.post('/forgot-password', PasswordResetController.requestPasswordReset);
+app.get('/forgot-password', checkAuthenticated, PasswordResetController.forgotPasswordPage);
+app.post('/forgot-password', checkAuthenticated, PasswordResetController.requestPasswordReset);
 app.get('/logout', AccountController.logoutUser);
 app.get('/2fa/setup', checkAuthenticated, AccountController.showTwoFactorSetup);
 app.post('/2fa/verify-setup', checkAuthenticated, AccountController.verifyTwoFactorSetup);
@@ -74,7 +96,7 @@ app.get('/users', checkAuthenticated, checkAdmin, AccountController.listAllUsers
 app.post('/users', checkAuthenticated, checkAdmin, AccountController.addUser);
 app.post('/users/:id', checkAuthenticated, checkAdmin, AccountController.updateUser);
 app.post('/users/:id/disable-2fa', checkAuthenticated, checkAdmin, AccountController.disableTwoFactor);
-app.get('/users/delete/:id', checkAuthenticated, checkAdmin, AccountController.deleteUser);
+app.post('/users/delete/:id', checkAuthenticated, checkAdmin, AccountController.deleteUser);
 app.get('/orders', checkAuthenticated, checkAdmin, BookingController.listAllOrders);
 app.get('/my-orders', checkAuthenticated, BookingController.userOrders);
 
@@ -89,7 +111,7 @@ app.get('/addProduct', checkAuthenticated, checkAdmin, ListingController.showAdd
 app.post('/addProduct', checkAuthenticated, checkAdmin, upload.single('image'), (req, res) => ListingController.addProduct(req, res, req.file));
 app.get('/updateProduct/:id', checkAuthenticated, checkAdmin, ListingController.showUpdateProductPage);
 app.post('/updateProduct/:id', checkAuthenticated, checkAdmin, upload.single('image'), (req, res) => ListingController.updateProduct(req, res, req.file));
-app.get('/deleteProduct/:id', checkAuthenticated, checkAdmin, ListingController.deleteProduct);
+app.post('/deleteProduct/:id', checkAuthenticated, checkAdmin, ListingController.deleteProduct);
 
 // Booking cart
 app.post('/add-to-cart/:id', checkAuthenticated, BookingCartController.addToCart);
@@ -105,9 +127,16 @@ app.route('/orders/:id/confirm-delivery')
   .post(checkAuthenticated, BookingController.confirmDelivery);
 app.get('/orders/:id/review', checkAuthenticated, BookingController.reviewOrderPage);
 app.post('/orders/:id/review', checkAuthenticated, BookingController.submitReview);
-app.route('/orders/:id/review/delete')
-  .get(checkAuthenticated, checkAdmin, BookingController.deleteReview)
-  .post(checkAuthenticated, checkAdmin, BookingController.deleteReview);
+app.post('/orders/:id/review/delete', checkAuthenticated, checkAdmin, BookingController.deleteReview);
+
+// upload error handling
+app.use((err, req, res, next) => {
+  if (err && (err.code === 'LIMIT_FILE_SIZE' || err.message === 'Unsupported image type')) {
+    req.flash('error', 'Image upload failed. Use JPG/PNG/WEBP/GIF under 2MB.');
+    return res.redirect('back');
+  }
+  return next(err);
+});
 
 // 404 fallback without template
 app.use((req, res) => res.status(404).type('text').send('Page not found'));

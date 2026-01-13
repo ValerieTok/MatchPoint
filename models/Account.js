@@ -1,59 +1,70 @@
 const db = require('../db');
+const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
+
+const SALT_ROUNDS = 12;
+const isBcryptHash = (value) => typeof value === 'string' && value.startsWith('$2');
+const sha1 = (value) => crypto.createHash('sha1').update(value).digest('hex');
 
 module.exports = {
   getAllUsers: function (callback) {
-    const sql = 'SELECT id, username, email, password, address, contact, role, is_2fa_enabled, twofactor_secret FROM users';
+    const sql = 'SELECT id, username, email, password, contact, role, is_2fa_enabled, twofactor_secret FROM users';
     db.query(sql, function (err, results) {
       return callback(err, results);
     });
   },
 
   getUserById: function (id, callback) {
-    const sql = 'SELECT id, username, email, password, address, contact, role, is_2fa_enabled, twofactor_secret FROM users WHERE id = ? LIMIT 1';
+    const sql = 'SELECT id, username, email, password, contact, role, is_2fa_enabled, twofactor_secret FROM users WHERE id = ? LIMIT 1';
     db.query(sql, [id], function (err, results) {
       return callback(err, results && results[0] ? results[0] : null);
     });
   },
 
   getUserByEmail: function (email, callback) {
-    const sql = 'SELECT id, username, email, password, address, contact, role, is_2fa_enabled, twofactor_secret FROM users WHERE email = ? LIMIT 1';
+    const sql = 'SELECT id, username, email, password, contact, role, is_2fa_enabled, twofactor_secret FROM users WHERE email = ? LIMIT 1';
     db.query(sql, [email], function (err, results) {
       return callback(err, results && results[0] ? results[0] : null);
     });
   },
 
   addUser: function (userData, callback) {
-    const sql = 'INSERT INTO users (username, email, password, address, contact, role) VALUES (?, ?, SHA1(?), ?, ?, ?)';
-    const params = [
-      userData.username,
-      userData.email,
-      userData.password, // plain; hashed by SHA1() in SQL
-      userData.address || null,
-      userData.contact || null,
-      userData.role || 'user'
-    ];
-    db.query(sql, params, (err, result) => callback(err, result));
+    const sql = 'INSERT INTO users (username, email, password, contact, role) VALUES (?, ?, ?, ?, ?)';
+    bcrypt.hash(userData.password, SALT_ROUNDS, (hashErr, hash) => {
+      if (hashErr) return callback(hashErr);
+      const params = [
+        userData.username,
+        userData.email,
+        hash,
+        userData.contact || null,
+        userData.role || 'user'
+      ];
+      db.query(sql, params, (err, result) => callback(err, result));
+    });
   },
 
   updateUser: function (id, updatedData, callback) {
     let sql, params;
     if (updatedData.password) {
-      sql = 'UPDATE users SET username = ?, email = ?, password = SHA1(?), address = ?, contact = ?, role = ? WHERE id = ?';
-      params = [
-        updatedData.username,
-        updatedData.email,
-        updatedData.password,
-        updatedData.address || null,
-        updatedData.contact || null,
-        updatedData.role || 'user',
-        id
-      ];
+      sql = 'UPDATE users SET username = ?, email = ?, password = ?, contact = ?, role = ? WHERE id = ?';
+      bcrypt.hash(updatedData.password, SALT_ROUNDS, (hashErr, hash) => {
+        if (hashErr) return callback(hashErr);
+        params = [
+          updatedData.username,
+          updatedData.email,
+          hash,
+          updatedData.contact || null,
+          updatedData.role || 'user',
+          id
+        ];
+        db.query(sql, params, (err, result) => callback(err, result));
+      });
+      return;
     } else {
-      sql = 'UPDATE users SET username = ?, email = ?, address = ?, contact = ?, role = ? WHERE id = ?';
+      sql = 'UPDATE users SET username = ?, email = ?, contact = ?, role = ? WHERE id = ?';
       params = [
         updatedData.username,
         updatedData.email,
-        updatedData.address || null,
         updatedData.contact || null,
         updatedData.role || 'user',
         id
@@ -77,15 +88,35 @@ module.exports = {
   },
 
   authenticate: function (email, password, callback) {
-    const sql = 'SELECT id, username, email, password, address, contact, role, is_2fa_enabled, twofactor_secret FROM users WHERE email = ? AND password = SHA1(?) LIMIT 1';
-    db.query(sql, [email, password], function (err, results) {
-      return callback(err, results && results[0] ? results[0] : null);
-    });
-  },
+    const sql = 'SELECT id, username, email, password, contact, role, is_2fa_enabled, twofactor_secret FROM users WHERE email = ? LIMIT 1';
+    db.query(sql, [email], function (err, results) {
+      if (err) return callback(err);
+      const user = results && results[0] ? results[0] : null;
+      if (!user || !user.password) return callback(null, null);
 
-  updateAddressOnly: function (id, address, callback) {
-    const sql = 'UPDATE users SET address = ? WHERE id = ?';
-    db.query(sql, [address || null, id], (err, result) => callback(err, result));
+      if (isBcryptHash(user.password)) {
+        return bcrypt.compare(password, user.password, (compareErr, ok) => {
+          if (compareErr) return callback(compareErr);
+          return callback(null, ok ? user : null);
+        });
+      }
+
+      if (sha1(password) !== user.password) {
+        return callback(null, null);
+      }
+
+      return bcrypt.hash(password, SALT_ROUNDS, (hashErr, hash) => {
+        if (hashErr) return callback(hashErr);
+        db.query('UPDATE users SET password = ? WHERE id = ?', [hash, user.id], (updateErr) => {
+          if (updateErr) {
+            console.error('Failed to upgrade password hash for user', user.id);
+          } else {
+            user.password = hash;
+          }
+          return callback(null, user);
+        });
+      });
+    });
   },
 
   saveTwoFactorSecret: function (id, secret, callback) {

@@ -1,5 +1,4 @@
 const userModel = require('../models/Account');
-const crypto = require('crypto');
 const speakeasy = require('speakeasy');
 const QRCode = require('qrcode');
 
@@ -27,7 +26,6 @@ function buildSafeUser(user) {
     id: user.id,
     username: user.username,
     email: user.email,
-    address: user.address,
     contact: user.contact,
     role: user.role,
     is_2fa_enabled: user.is_2fa_enabled ? 1 : 0
@@ -41,15 +39,15 @@ const AccountController = {
   },
 
   async registerUser(req, res) {
-    const { username, email, password, address, contact, role } = req.body || {};
+    const { username, email, password, contact, role } = req.body || {};
     if (!email || !password) {
       req.flash('error', 'Email and password required');
-      req.flash('formData', { username, email, address, contact, role });
+      req.flash('formData', { username, email, contact, role });
       return res.redirect('/register');
     }
-    if (password.length < 6) {
-      req.flash('error', 'Password must be at least 6 characters');
-      req.flash('formData', { username, email, address, contact, role });
+    if (password.length < 8) {
+      req.flash('error', 'Password must be at least 8 characters');
+      req.flash('formData', { username, email, contact, role });
       return res.redirect('/register');
     }
     try {
@@ -58,11 +56,11 @@ const AccountController = {
       });
       if (existing) {
         req.flash('error', 'Email already registered');
-        req.flash('formData', { username, email, address, contact, role });
+        req.flash('formData', { username, email, contact, role });
         return res.redirect('/register');
       }
       await new Promise((resolve, reject) => {
-        userModel.addUser({ username, email, password, address, contact, role }, (err) => (err ? reject(err) : resolve()));
+        userModel.addUser({ username, email, password, contact, role }, (err) => (err ? reject(err) : resolve()));
       });
       req.flash('success', 'Registration successful. Log in.');
       return res.redirect('/login');
@@ -85,21 +83,10 @@ const AccountController = {
     }
     try {
       const authFn = typeof userModel.authenticate === 'function' ? userModel.authenticate : userModel.authenticateUser;
-      let user = await new Promise((resolve, reject) => {
+      const user = await new Promise((resolve, reject) => {
         if (!authFn) return resolve(null);
         authFn.call(userModel, email, password, (err, u) => (err ? reject(err) : resolve(u)));
       });
-      if (!user) {
-        user = await new Promise((resolve, reject) => {
-          userModel.getUserByEmail(email, (err, u) => {
-            if (err) return reject(err);
-            if (!u) return resolve(null);
-            const hashed = crypto.createHash('sha1').update(password).digest('hex');
-            if (u.password !== hashed) return resolve(null);
-            return resolve(u);
-          });
-        });
-      }
       if (!user) {
         req.flash('error', 'Invalid credentials');
         return res.redirect('/login');
@@ -168,10 +155,13 @@ const AccountController = {
       username: req.body.username,
       email: req.body.email,
       password: req.body.password,
-      address: req.body.address || null,
       contact: req.body.contact || null,
       role: req.body.role || 'user'
     };
+    if (payload.password && payload.password.length < 8) {
+      req.flash('error', 'Password must be at least 8 characters');
+      return res.redirect('/users');
+    }
     try {
       const existing = await new Promise((resolve, reject) => {
         userModel.getUserByEmail(payload.email, (err, user) => (err ? reject(err) : resolve(user)));
@@ -208,11 +198,14 @@ const AccountController = {
     const updated = {
       username: req.body.username,
       email: req.body.email,
-      address: req.body.address || null,
       contact: req.body.contact || null,
       role: req.body.role || 'user'
     };
     if (req.body.password) {
+      if (req.body.password.length < 8) {
+        req.flash('error', 'Password must be at least 8 characters');
+        return res.redirect('/users');
+      }
       updated.password = req.body.password;
     }
     try {
