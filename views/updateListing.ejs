@@ -1,12 +1,12 @@
 <%- include('partials/head', { title: 'Update Listing', bodyClass: 'bg-light' }) %>
-<%- include('partials/navbar', { user, activePage: 'inventory' }) %>
+<%- include('partials/navbar', { user, activePage: 'listingsManage' }) %>
 
   <!-- Main content -->
   <div class="container mt-4">
     <h2 class="text-center mb-4">Update Coaching Listing</h2>
     
     <% if (product) { %>
-      <form action="/updateProduct/<%= product.id %>" method="POST" enctype="multipart/form-data" class="mx-auto" style="max-width: 500px;">
+      <form action="/updateListing/<%= product.id %>" method="POST" enctype="multipart/form-data" class="mx-auto" style="max-width: 500px;">
         
         <div class="mb-3">
           <label for="listing_title" class="form-label">Listing Title</label>
@@ -70,7 +70,7 @@
 
         <div class="d-grid gap-2">
           <button type="submit" class="btn btn-primary">Update Listing</button>
-          <a href="/inventory" class="btn btn-secondary">Back to Listings</a>
+          <a href="/listingsManage" class="btn btn-secondary">Back to Listings</a>
         </div>
       </form>
     <% } else { %>
@@ -78,3 +78,4 @@
     <% } %>
   </div>
 <%- include('partials/footer') %>
+

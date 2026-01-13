@@ -3,7 +3,8 @@ const attachUser = (req, res, next) => {
   res.locals.user = req.session && req.session.user;
   res.locals.messages = {
     success: req.flash('success'),
-    error: req.flash('error')
+    error: req.flash('error'),
+    info: req.flash('info')
   };
   next();
 };
@@ -17,7 +18,7 @@ const checkAuthenticated = (req, res, next) => {
 const checkAdmin = (req, res, next) => {
   if (req.session && req.session.user && (req.session.user.role === 'admin' || req.session.user.role === 'coach')) return next();
   req.flash('error', 'Access denied');
-  return res.redirect('/shopping');
+  return res.redirect('/listingsBrowse');
 };
 
 module.exports = {

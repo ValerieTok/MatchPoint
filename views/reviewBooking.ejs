@@ -58,7 +58,7 @@
       </div>
     </div>
     <div class="bg-white rounded-4 shadow-sm p-4">
-      <form action="/orders/<%= order.id %>/review" method="post">
+      <form action="/reviewBooking/<%= order.id %>/review" method="post">
         <div class="mb-3">
           <label class="form-label fw-semibold">Rating</label>
           <select class="form-select" name="rating" required>
@@ -73,11 +73,13 @@
           <textarea class="form-control" name="comment" rows="4" placeholder="Share your experience"></textarea>
         </div>
         <div class="d-flex gap-2">
-          <a class="btn btn-outline-secondary" href="/my-orders">Back to bookings</a>
+          <a class="btn btn-outline-secondary" href="/bookingsUser">Back to bookings</a>
           <button class="btn btn-success" type="submit">Submit review</button>
         </div>
       </form>
     </div>
   </div>
 <%- include('partials/footer') %>
+
+
 

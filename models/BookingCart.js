@@ -97,48 +97,16 @@ const clearCart = (userId, callback) => {
   db.query(sql, [userId], callback);
 };
 
-const getCartItems = (userId, callback) => {
-  const sql = `
-        SELECT c.listing_id,
-               c.quantity,
-               l.listing_title,
-               l.price,
-               l.image
-        FROM booking_cart_items c
-        JOIN coach_listings l ON l.id = c.listing_id
-        WHERE c.user_id = ?
-    `;
-  db.query(sql, [userId], (err, rows) => callback(err, rows || []));
-};
-
 const getItem = (userId, listingId, callback) => {
   const sql = 'SELECT quantity FROM booking_cart_items WHERE user_id = ? AND listing_id = ? LIMIT 1';
   db.query(sql, [userId, listingId], (err, rows) => callback(err, rows && rows[0] ? rows[0] : null));
 };
 
-const setQuantity = (userId, listingId, quantity, callback) => {
-  const rawQty = Number(quantity);
-  const qty = Number.isFinite(rawQty) ? rawQty : 0;
-  const sql = `
-        INSERT INTO booking_cart_items (user_id, listing_id, quantity)
-        VALUES (?, ?, ?)
-        ON DUPLICATE KEY UPDATE quantity = VALUES(quantity)
-    `;
-  db.query(sql, [userId, listingId, qty], (err, result) => callback(err, result));
-};
-
-const deleteItem = (userId, listingId, callback) => {
-  removeItem(userId, listingId, callback);
-};
-
 module.exports = {
   addOrIncrement,
   getCart,
-  getCartItems,
   getItem,
   updateQuantity,
-  setQuantity,
   removeItem,
-  deleteItem,
   clearCart
 };

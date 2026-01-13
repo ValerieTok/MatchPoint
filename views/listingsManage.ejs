@@ -24,7 +24,7 @@
     }
   </style>`
 }) %>
-<%- include('partials/navbar', { user, activePage: 'inventory' }) %>
+<%- include('partials/navbar', { user, activePage: 'listingsManage' }) %>
 
   <div class="container py-4">
     <div class="welcome-card p-4 mb-4">
@@ -93,8 +93,8 @@
                   </div>
                 <% } %>
                 <div class="mt-auto d-flex gap-2">
-                  <a class="btn btn-success btn-sm" href="/updateProduct/<%= p.id %>">Edit</a>
-                  <form method="post" action="/deleteProduct/<%= p.id %>" onsubmit="return confirm('Delete this listing?')" class="d-inline">
+                  <a class="btn btn-success btn-sm" href="/updateListing/<%= p.id %>">Edit</a>
+                  <form method="post" action="/listingsManage/delete/<%= p.id %>" onsubmit="return confirm('Delete this listing?')" class="d-inline">
                     <button class="btn btn-danger btn-sm" type="submit">Delete</button>
                   </form>
                 </div>

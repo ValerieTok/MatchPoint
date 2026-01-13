@@ -14,17 +14,17 @@
           <% } else { %>
             <% if (user.role === 'admin') { %>
               <div class="d-flex flex-wrap gap-2 mt-3">
-                <a class="btn btn-primary btn-lg px-4" href="/inventory">Manage Listings</a>
-                <a class="btn btn-outline-primary btn-lg px-4" href="/users">Manage Users</a>
-                <a class="btn btn-outline-primary btn-lg px-4" href="/orders">Manage Bookings</a>
+                <a class="btn btn-primary btn-lg px-4" href="/listingsManage">Manage Listings</a>
+                <a class="btn btn-outline-primary btn-lg px-4" href="/accounts">Manage Users</a>
+                <a class="btn btn-outline-primary btn-lg px-4" href="/bookingsManage">Manage Bookings</a>
               </div>
             <% } else if (user.role === 'coach') { %>
               <div class="d-flex flex-wrap gap-2 mt-3">
-                <a class="btn btn-primary btn-lg px-4" href="/inventory">Manage My Listings</a>
-                <a class="btn btn-outline-primary btn-lg px-4" href="/orders">View My Bookings</a>
+                <a class="btn btn-primary btn-lg px-4" href="/listingsManage">Manage My Listings</a>
+                <a class="btn btn-outline-primary btn-lg px-4" href="/bookingsManage">View My Bookings</a>
               </div>
             <% } else { %>
-              <a class="btn btn-primary btn-lg px-4 mt-3" href="/shopping">Find a Coach</a>
+              <a class="btn btn-primary btn-lg px-4 mt-3" href="/listingsBrowse">Find a Coach</a>
             <% } %>
           <% } %>
         </div>
@@ -34,3 +34,4 @@
       </div>
     </div>
 <%- include('partials/footer') %>
+

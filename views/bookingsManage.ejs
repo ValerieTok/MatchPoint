@@ -10,7 +10,7 @@
       </div>
       <button class="btn btn-outline-secondary" onclick="window.print()">Print page</button>
     </div>
-    <form class="row g-2 align-items-center mb-4" method="get" action="/orders">
+    <form class="row g-2 align-items-center mb-4" method="get" action="/bookingsManage">
       <div class="col-auto">
         <label class="visually-hidden" for="order-search">Search client</label>
         <input id="order-search" name="search" class="form-control" type="search" placeholder="Search by client" value="<%= safeSearchTerm %>">
@@ -18,7 +18,7 @@
       <div class="col-auto">
         <button class="btn btn-primary" type="submit">Filter</button>
         <% if (safeSearchTerm) { %>
-          <a class="btn btn-outline-secondary" href="/orders">Reset</a>
+          <a class="btn btn-outline-secondary" href="/bookingsManage">Reset</a>
         <% } %>
       </div>
     </form>
@@ -139,7 +139,7 @@
                       <% for (let i = o.review.rating; i < 5; i++) { %>&#9734;<% } %>
                     </div>
                     <p class="mb-0 text-muted"><%= o.review.comment || 'No comment provided.' %></p>
-                    <form class="mt-2" action="/orders/<%= o.id %>/review/delete" method="post">
+                    <form class="mt-2" action="/bookingsManage/<%= o.id %>/review/delete" method="post">
                       <button class="btn btn-outline-danger btn-sm" type="submit">Delete review</button>
                     </form>
                   </div>
@@ -182,4 +182,6 @@
       }, 1000);
     }
   </script>` }) %>
+
+
 

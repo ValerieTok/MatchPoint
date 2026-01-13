@@ -125,17 +125,19 @@
           <% } else { %>
             <p class="text-muted small mb-3">No discounts applied.</p>
           <% } %>
-          <form action="/checkout/confirm" method="post">
+          <form action="/bookingCheckout/confirm" method="post">
             <input type="hidden" name="deliveryAddress" value="<%= deliveryAddress %>">
             <button class="btn btn-success w-100 fw-semibold" type="submit">Confirm booking</button>
           </form>
         </div>
         <div class="item-card mt-3">
           <p class="mb-1">Need to adjust?</p>
-          <a class="btn btn-outline-secondary w-100" href="/cart">Edit cart</a>
+          <a class="btn btn-outline-secondary w-100" href="/bookingCart">Edit cart</a>
         </div>
       </div>
     </div>
   </div>
 <%- include('partials/footer') %>
+
+
 

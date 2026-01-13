@@ -11,7 +11,7 @@ const ensureShopperRole = (req, res) => {
   }
   if (user.role !== 'user') {
     req.flash('error', 'Access denied');
-    res.redirect(user.role === 'coach' ? '/inventory' : '/');
+    res.redirect(user.role === 'coach' ? '/listingsManage' : '/');
     return false;
   }
   return true;
@@ -69,25 +69,29 @@ module.exports = {
       const userId = req.session.user.id;
       const productId = parseInt(req.params.id, 10);
       const qty = parseInt(req.body.quantity, 10) || 1;
+      if (!Number.isFinite(qty) || qty <= 0) {
+        req.flash('error', 'Quantity must be at least 1');
+        return res.redirect('/listingsBrowse');
+      }
 
       if (Number.isNaN(productId)) {
         req.flash('error', 'Invalid listing selected.');
-        return res.redirect('/shopping');
+        return res.redirect('/listingsBrowse');
       }
 
       const product = await getProductByIdAsync(productId);
       if (!product) {
         req.flash('error', 'Listing not found');
-        return res.redirect('/shopping');
+        return res.redirect('/listingsBrowse');
       }
       if (product.is_active === 0 || product.is_active === '0') {
         req.flash('error', 'Listing is not available');
-        return res.redirect('/shopping');
+        return res.redirect('/listingsBrowse');
       }
       const available = Number(product.available_slots) || 0;
       if (available <= 0) {
         req.flash('error', 'No session slots available');
-        return res.redirect('/shopping');
+        return res.redirect('/listingsBrowse');
       }
 
       const cartItems = await syncCartToSession(req);
@@ -96,7 +100,7 @@ module.exports = {
       const desiredQty = existingQty + qty;
       if (desiredQty > available) {
         req.flash('error', `Only ${available} session slots available`);
-        return res.redirect('/shopping');
+        return res.redirect('/listingsBrowse');
       }
 
       await addOrIncrementItem(userId, productId, qty);
@@ -109,11 +113,11 @@ module.exports = {
           pricing.hasDiscount ? ' (discounted)' : ''
         }.`
       );
-      return res.redirect('/cart');
+      return res.redirect('/bookingCart');
     } catch (err) {
       console.error(err);
       req.flash('error', 'Unable to add to booking cart');
-      return res.redirect('/shopping');
+      return res.redirect('/listingsBrowse');
     }
   },
 
@@ -130,7 +134,7 @@ module.exports = {
     } catch (err) {
       console.error(err);
       req.flash('error', 'Unable to load booking cart');
-      return res.redirect('/shopping');
+      return res.redirect('/listingsBrowse');
     }
   },
 
@@ -143,7 +147,7 @@ module.exports = {
 
       if (Number.isNaN(productId)) {
         req.flash('error', 'Invalid listing.');
-        return res.redirect('/cart');
+        return res.redirect('/bookingCart');
       }
 
       // Treat non-positive quantities as removal without stock check
@@ -151,33 +155,33 @@ module.exports = {
         await addOrUpdateQuantity(userId, productId, quantity);
         await syncCartToSession(req);
         req.flash('success', 'Item removed from booking cart.');
-        return res.redirect('/cart');
+        return res.redirect('/bookingCart');
       }
 
       const product = await getProductByIdAsync(productId);
       if (!product) {
         req.flash('error', 'Listing not found.');
-        return res.redirect('/cart');
+        return res.redirect('/bookingCart');
       }
 
       const available = Number(product.available_slots) || 0;
       if (available <= 0) {
         req.flash('error', 'No session slots available.');
-        return res.redirect('/cart');
+        return res.redirect('/bookingCart');
       }
       if (quantity > available) {
         req.flash('error', `Only ${available} session slots available for ${product.listing_title}.`);
-        return res.redirect('/cart');
+        return res.redirect('/bookingCart');
       }
 
       await addOrUpdateQuantity(userId, productId, quantity);
       await syncCartToSession(req);
       req.flash('success', 'Booking cart updated successfully.');
-      return res.redirect('/cart');
+      return res.redirect('/bookingCart');
     } catch (err) {
       console.error(err);
       req.flash('error', 'Unable to update booking cart.');
-      return res.redirect('/cart');
+      return res.redirect('/bookingCart');
     }
   },
 
@@ -188,7 +192,7 @@ module.exports = {
       const productId = parseInt(req.params.id, 10);
       if (Number.isNaN(productId)) {
         req.flash('error', 'Invalid listing.');
-        return res.redirect('/cart');
+        return res.redirect('/bookingCart');
       }
 
       await new Promise((resolve, reject) => {
@@ -196,11 +200,11 @@ module.exports = {
       });
       await syncCartToSession(req);
       req.flash('success', 'Item removed from booking cart.');
-      return res.redirect('/cart');
+      return res.redirect('/bookingCart');
     } catch (err) {
       console.error(err);
       req.flash('error', 'Unable to update booking cart');
-      return res.redirect('/cart');
+      return res.redirect('/bookingCart');
     }
   },
 
@@ -210,13 +214,13 @@ module.exports = {
       const cart = await syncCartToSession(req);
       if (!cart.length) {
         req.flash('error', 'Your booking cart is empty');
-        return res.redirect('/cart');
+        return res.redirect('/bookingCart');
       }
       const deliveryAddress = (req.body && req.body.deliveryAddress ? String(req.body.deliveryAddress).trim() : '');
       if (!deliveryAddress) {
         req.flash('error', 'Session location required');
         req.flash('deliveryAddress', deliveryAddress);
-        return res.redirect('/cart');
+        return res.redirect('/bookingCart');
       }
       const total = cart.reduce((sum, item) => {
         const pricing = calculatePricing(item);
@@ -231,7 +235,7 @@ module.exports = {
     } catch (err) {
       console.error(err);
       req.flash('error', 'Unable to build booking summary');
-      return res.redirect('/cart');
+      return res.redirect('/bookingCart');
     }
   },
 
@@ -243,12 +247,12 @@ module.exports = {
       const cart = await syncCartToSession(req);
       if (!cart.length) {
         req.flash('error', 'Your booking cart is empty');
-        return res.redirect('/cart');
+        return res.redirect('/bookingCart');
       }
       if (!deliveryAddress) {
         req.flash('error', 'Session location required');
         req.flash('deliveryAddress', deliveryAddress);
-        return res.redirect('/cart');
+        return res.redirect('/bookingCart');
       }
       await new Promise((resolve, reject) => {
         Listing.deductStock(cart, (err) => (err ? reject(err) : resolve()));
@@ -292,7 +296,7 @@ module.exports = {
       } else {
         req.flash('error', 'Unable to process booking. Please try again.');
       }
-      return res.redirect('/cart');
+      return res.redirect('/bookingCart');
     }
   }
 };

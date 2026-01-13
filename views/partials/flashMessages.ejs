@@ -1,8 +1,12 @@
 <% const computedErrorClass = typeof errorClass === 'string' ? errorClass : 'alert alert-danger'; %>
 <% const computedSuccessClass = typeof successClass === 'string' ? successClass : 'alert alert-success'; %>
+<% const computedInfoClass = typeof infoClass === 'string' ? infoClass : 'alert alert-info'; %>
 <% if (messages && messages.error && messages.error.length) { %>
   <div class="<%= computedErrorClass %>"><%= messages.error[0] %></div>
 <% } %>
 <% if (messages && messages.success && messages.success.length) { %>
   <div class="<%= computedSuccessClass %>"><%= messages.success[0] %></div>
+<% } %>
+<% if (messages && messages.info && messages.info.length) { %>
+  <div class="<%= computedInfoClass %>"><%= messages.info[0] %></div>
 <% } %>

@@ -32,15 +32,15 @@ const PasswordResetController = {
     const confirmPassword = req.body && req.body.confirmPassword ? String(req.body.confirmPassword) : '';
     if (!password || !confirmPassword) {
       req.flash('error', 'Both password fields are required.');
-      return res.redirect('/forgot-password');
+      return res.redirect('/forgotPassword');
     }
     if (password !== confirmPassword) {
       req.flash('error', 'Passwords do not match.');
-      return res.redirect('/forgot-password');
+      return res.redirect('/forgotPassword');
     }
     if (password.length < 8) {
       req.flash('error', 'Password must be at least 8 characters.');
-      return res.redirect('/forgot-password');
+      return res.redirect('/forgotPassword');
     }
     try {
       const userId = req.session.user.id;
@@ -53,7 +53,7 @@ const PasswordResetController = {
       }
       if (await isSamePassword(password, user.password)) {
         req.flash('error', 'New password must be different from your current password.');
-        return res.redirect('/forgot-password');
+        return res.redirect('/forgotPassword');
       }
       const hashedNewPassword = await bcrypt.hash(password, SALT_ROUNDS);
       await new Promise((resolve, reject) => {
@@ -61,13 +61,14 @@ const PasswordResetController = {
       });
       console.info(`[Password Reset] Updated password for user #${user.id} (${user.email})`);
       req.flash('success', 'Password updated.');
-      return res.redirect('/');
+      return res.redirect('/listingsBrowse');
     } catch (err) {
       console.error(err);
       req.flash('error', 'Unable to reset password. Try again later.');
-      return res.redirect('/forgot-password');
+      return res.redirect('/forgotPassword');
     }
   }
 };
 
 module.exports = PasswordResetController;
+

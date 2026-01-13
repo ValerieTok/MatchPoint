@@ -23,7 +23,7 @@
                   <code class="fs-6"><%= manualKey %></code>
                 </div>
               </div>
-              <form action="/2fa/verify-setup" method="post" class="d-grid gap-3">
+              <form action="/2FASetup/verify-setup" method="post" class="d-grid gap-3">
                 <div>
                   <label class="form-label">6-digit code</label>
                   <input type="text" name="token" class="form-control" placeholder="123456" pattern="\d{6}" maxlength="6" required>
@@ -35,7 +35,7 @@
               </form>
             <% } else { %>
               <p class="text-muted">Two-factor authentication is already enabled. Disable it if you need to reconfigure or want to turn it off.</p>
-              <form action="/2fa/disable" method="post" class="d-grid gap-3">
+              <form action="/2FASetup/disable" method="post" class="d-grid gap-3">
                 <button type="submit" class="btn btn-outline-danger w-100 py-2">Disable 2FA</button>
                 <div class="text-center text-muted">
                   <small>Disabling 2FA will remove the requirement to enter a code on login.</small>
@@ -48,3 +48,4 @@
     </div>
   </div>
 <%- include('partials/footer') %>
+

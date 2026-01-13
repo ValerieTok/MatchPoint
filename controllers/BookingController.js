@@ -52,7 +52,7 @@ module.exports = {
     const sessionUser = req.session && req.session.user;
     if (!sessionUser || sessionUser.role !== 'user') {
       req.flash('error', 'Access denied');
-      return res.redirect('/inventory');
+      return res.redirect('/listingsManage');
     }
     const userId = sessionUser.id;
     Booking.getOrdersByUser(userId, (err, orders) => {
@@ -82,29 +82,29 @@ module.exports = {
     }
     if (req.session.user.role !== 'user') {
       req.flash('error', 'Access denied');
-      return res.redirect('/inventory');
+      return res.redirect('/listingsManage');
     }
     const orderId = parseInt(req.params.id, 10);
     if (Number.isNaN(orderId)) {
       req.flash('error', 'Invalid booking');
-      return res.redirect('/my-orders');
+      return res.redirect('/bookingsUser');
     }
     try {
       const order = await getOrderByIdAsync(orderId);
       if (!order || order.user_id !== userId) {
         req.flash('error', 'Booking not found');
-        return res.redirect('/my-orders');
+        return res.redirect('/bookingsUser');
       }
       if (!order.completed_at) {
         await new Promise((resolve, reject) => {
           Booking.markOrderDelivered(orderId, (err) => (err ? reject(err) : resolve()));
         });
       }
-      return res.redirect(`/orders/${orderId}/review`);
+      return res.redirect(`/reviewBooking/${orderId}`);
     } catch (err) {
       console.error(err);
       req.flash('error', 'Unable to confirm delivery');
-      return res.redirect('/my-orders');
+      return res.redirect('/bookingsUser');
     }
   },
 
@@ -116,27 +116,27 @@ module.exports = {
     }
     if (req.session.user.role !== 'user') {
       req.flash('error', 'Access denied');
-      return res.redirect('/inventory');
+      return res.redirect('/listingsManage');
     }
     const orderId = parseInt(req.params.id, 10);
     if (Number.isNaN(orderId)) {
       req.flash('error', 'Invalid booking');
-      return res.redirect('/my-orders');
+      return res.redirect('/bookingsUser');
     }
     try {
       const order = await getOrderByIdAsync(orderId);
       if (!order || order.user_id !== userId) {
         req.flash('error', 'Booking not found');
-        return res.redirect('/my-orders');
+        return res.redirect('/bookingsUser');
       }
       if (!order.completed_at) {
         req.flash('error', 'Confirm session first');
-        return res.redirect('/my-orders');
+        return res.redirect('/bookingsUser');
       }
       const detailed = await buildOrderDetails(order, null);
       if (detailed.review) {
         req.flash('info', 'Review already submitted');
-        return res.redirect('/my-orders');
+        return res.redirect('/bookingsUser');
       }
       return res.render('reviewBooking', {
         user: req.session && req.session.user,
@@ -145,7 +145,7 @@ module.exports = {
     } catch (err) {
       console.error(err);
       req.flash('error', 'Unable to load review form');
-      return res.redirect('/my-orders');
+      return res.redirect('/bookingsUser');
     }
   },
 
@@ -157,35 +157,35 @@ module.exports = {
     }
     if (req.session.user.role !== 'user') {
       req.flash('error', 'Access denied');
-      return res.redirect('/inventory');
+      return res.redirect('/listingsManage');
     }
     const orderId = parseInt(req.params.id, 10);
     if (Number.isNaN(orderId)) {
       req.flash('error', 'Invalid booking');
-      return res.redirect('/my-orders');
+      return res.redirect('/bookingsUser');
     }
     const rating = Math.min(5, Math.max(1, Math.round(Number(req.body.rating) || 0)));
     const comment = (req.body.comment || '').trim();
     if (!rating) {
       req.flash('error', 'Provide a rating between 1 and 5');
-      return res.redirect(`/orders/${orderId}/review`);
+      return res.redirect(`/reviewBooking/${orderId}`);
     }
     try {
       const order = await getOrderByIdAsync(orderId);
       if (!order || order.user_id !== userId) {
         req.flash('error', 'Booking not found');
-        return res.redirect('/my-orders');
+        return res.redirect('/bookingsUser');
       }
       if (!order.completed_at) {
         req.flash('error', 'Confirm session first');
-        return res.redirect('/my-orders');
+        return res.redirect('/bookingsUser');
       }
       const existing = await new Promise((resolve, reject) => {
         Booking.getReviewByOrderId(orderId, (err, review) => (err ? reject(err) : resolve(review)));
       });
       if (existing) {
         req.flash('info', 'Review already submitted');
-        return res.redirect('/my-orders');
+        return res.redirect('/bookingsUser');
       }
       await new Promise((resolve, reject) => {
         Booking.createReview(
@@ -199,34 +199,35 @@ module.exports = {
         );
       });
       req.flash('success', 'Review saved');
-      return res.redirect('/my-orders');
+      return res.redirect('/bookingsUser');
     } catch (err) {
       console.error(err);
       req.flash('error', 'Unable to save review');
-      return res.redirect(`/orders/${orderId}/review`);
+      return res.redirect(`/reviewBooking/${orderId}`);
     }
   },
 
   async deleteReview(req, res) {
     if (!req.session || !req.session.user || req.session.user.role !== 'admin') {
       req.flash('error', 'Access denied');
-      return res.redirect('/orders');
+      return res.redirect('/bookingsManage');
     }
     const orderId = parseInt(req.params.id, 10);
     if (Number.isNaN(orderId)) {
       req.flash('error', 'Invalid booking');
-      return res.redirect('/orders');
+      return res.redirect('/bookingsManage');
     }
     try {
       await new Promise((resolve, reject) => {
         Booking.deleteReviewByOrder(orderId, (err) => (err ? reject(err) : resolve()));
       });
       req.flash('success', 'Review deleted');
-      return res.redirect('/orders');
+      return res.redirect('/bookingsManage');
     } catch (err) {
       console.error(err);
       req.flash('error', 'Unable to delete review');
-      return res.redirect('/orders');
+      return res.redirect('/bookingsManage');
     }
   }
 };
+

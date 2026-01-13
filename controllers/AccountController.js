@@ -17,7 +17,7 @@ const ensureAdminOnly = (req, res) => {
     return true;
   }
   req.flash('error', 'Access denied');
-  res.redirect('/inventory');
+  res.redirect('/listingsManage');
   return false;
 };
 
@@ -101,7 +101,7 @@ const AccountController = {
         req.session.pending2FAUserId = safeUser.id;
         req.flash('success', 'Enter your authentication code to finish logging in.');
         return req.session.save(function () {
-          return res.redirect('/login/2fa');
+          return res.redirect('/login2FA');
         });
       }
       await new Promise(function (resolve, reject) {
@@ -113,7 +113,7 @@ const AccountController = {
       req.session.cart = [];
       req.flash('success', 'Login successful');
       return req.session.save(function () {
-        return res.redirect(safeUser.role === 'admin' || safeUser.role === 'coach' ? '/inventory' : '/shopping');
+        return res.redirect(safeUser.role === 'admin' || safeUser.role === 'coach' ? '/listingsManage' : '/listingsBrowse');
       });
     } catch (err) {
       console.error(err);
@@ -160,7 +160,7 @@ const AccountController = {
     };
     if (payload.password && payload.password.length < 8) {
       req.flash('error', 'Password must be at least 8 characters');
-      return res.redirect('/users');
+      return res.redirect('/accounts');
     }
     try {
       const existing = await new Promise((resolve, reject) => {
@@ -168,7 +168,7 @@ const AccountController = {
       });
       if (existing) {
         req.flash('error', 'Email already registered');
-        return res.redirect('/users');
+        return res.redirect('/accounts');
       }
 
       await new Promise((resolve, reject) => {
@@ -179,7 +179,7 @@ const AccountController = {
       console.error(err);
       req.flash('error', 'Failed to add user');
     }
-    return res.redirect('/users');
+    return res.redirect('/accounts');
   },
 
   async updateUser(req, res) {
@@ -193,7 +193,7 @@ const AccountController = {
     }
     if (!existingUser) {
       req.flash('error', 'User not found');
-      return res.redirect('/users');
+      return res.redirect('/accounts');
     }
     const updated = {
       username: req.body.username,
@@ -204,7 +204,7 @@ const AccountController = {
     if (req.body.password) {
       if (req.body.password.length < 8) {
         req.flash('error', 'Password must be at least 8 characters');
-        return res.redirect('/users');
+        return res.redirect('/accounts');
       }
       updated.password = req.body.password;
     }
@@ -213,7 +213,7 @@ const AccountController = {
         const adminCount = await getAdminCount();
         if (adminCount <= 1) {
           req.flash('error', 'Cannot remove the last remaining admin');
-          return res.redirect('/users');
+          return res.redirect('/accounts');
         }
       }
       await new Promise((resolve, reject) => {
@@ -224,7 +224,7 @@ const AccountController = {
       console.error(err);
       req.flash('error', 'Failed to update user');
     }
-    return res.redirect('/users');
+    return res.redirect('/accounts');
   },
 
   async deleteUser(req, res) {
@@ -234,13 +234,13 @@ const AccountController = {
       const userToDelete = await getUserByIdAsync(id);
       if (!userToDelete) {
         req.flash('error', 'User not found');
-        return res.redirect('/users');
+        return res.redirect('/accounts');
       }
       if (userToDelete.role === 'admin') {
         const adminCount = await getAdminCount();
         if (adminCount <= 1) {
           req.flash('error', 'Cannot delete the last remaining admin');
-          return res.redirect('/users');
+          return res.redirect('/accounts');
         }
       }
       await new Promise((resolve, reject) => {
@@ -251,7 +251,7 @@ const AccountController = {
       console.error(err);
       req.flash('error', 'Failed to delete user');
     }
-    return res.redirect('/users');
+    return res.redirect('/accounts');
   },
 
   async disableTwoFactor(req, res) {
@@ -271,7 +271,7 @@ const AccountController = {
       console.error(err);
       req.flash('error', 'Could not disable two-factor authentication for this user.');
     }
-    return res.redirect('/users');
+    return res.redirect('/accounts');
   },
 
   async disableOwnTwoFactor(req, res) {
@@ -294,11 +294,11 @@ const AccountController = {
           return err ? reject(err) : resolve();
         });
       });
-      return res.redirect('/2fa/setup');
+      return res.redirect('/2FASetup');
     } catch (err) {
       console.error(err);
       req.flash('error', 'Could not disable two-factor authentication.');
-      return res.redirect('/2fa/setup');
+      return res.redirect('/2FASetup');
     }
   },
 
@@ -352,7 +352,7 @@ const AccountController = {
     const tempSecret = req.session.temp2FASecret;
     if (!tempSecret) {
       req.flash('error', 'Setup session expired. Start again.');
-      return res.redirect('/2fa/setup');
+      return res.redirect('/2FASetup');
     }
     const verified = speakeasy.totp.verify({
       secret: tempSecret,
@@ -362,7 +362,7 @@ const AccountController = {
     });
     if (!verified) {
       req.flash('error', 'Invalid authentication code.');
-      return res.redirect('/2fa/setup');
+      return res.redirect('/2FASetup');
     }
     try {
       await new Promise(function (resolve, reject) {
@@ -379,7 +379,7 @@ const AccountController = {
     } catch (err) {
       console.error(err);
       req.flash('error', 'Could not enable two-factor authentication.');
-      return res.redirect('/2fa/setup');
+      return res.redirect('/2FASetup');
     }
   },
 
@@ -400,7 +400,7 @@ const AccountController = {
     const token = req.body && req.body.token ? String(req.body.token).trim() : '';
     if (!token) {
       req.flash('error', 'Enter the 6-digit code.');
-      return res.redirect('/login/2fa');
+      return res.redirect('/login2FA');
     }
     let user;
     try {
@@ -420,7 +420,7 @@ const AccountController = {
     });
     if (!verified) {
       req.flash('error', 'Invalid authentication code.');
-      return res.redirect('/login/2fa');
+      return res.redirect('/login2FA');
     }
     const safeUser = buildSafeUser(user);
     req.session.pending2FAUserId = null;
@@ -433,9 +433,10 @@ const AccountController = {
     req.session.cart = [];
     req.flash('success', 'Login successful');
     return req.session.save(function () {
-      return res.redirect(safeUser.role === 'admin' || safeUser.role === 'coach' ? '/inventory' : '/shopping');
+      return res.redirect(safeUser.role === 'admin' || safeUser.role === 'coach' ? '/listingsManage' : '/listingsBrowse');
     });
   }
 };
 
 module.exports = AccountController;
+

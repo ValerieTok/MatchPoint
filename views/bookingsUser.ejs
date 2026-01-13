@@ -128,10 +128,10 @@
                       </div>
                     <% } else if (o.completed_at) { %>
                       <div class="mt-2">
-                        <a class="btn btn-outline-primary btn-sm" href="/orders/<%= o.id %>/review">Leave a review</a>
+                        <a class="btn btn-outline-primary btn-sm" href="/reviewBooking/<%= o.id %>">Leave a review</a>
                       </div>
                     <% } else { %>
-                      <form class="mt-2" action="/orders/<%= o.id %>/confirm-delivery" method="post">
+                      <form class="mt-2" action="/bookingsUser/<%= o.id %>/confirm-delivery" method="post">
                         <button class="btn btn-outline-success btn-sm" type="submit">
                           Confirm session &amp; review
                         </button>
@@ -173,4 +173,5 @@
       }, 1000);
     }
   </script>` }) %>
+
 

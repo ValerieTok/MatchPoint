@@ -72,8 +72,8 @@ app.use(attachUser);
 // Home: route admins to inventory, users to shopping, guests see landing
 app.get('/', (req, res) => {
   const user = req.session.user;
-  if (user && user.role === 'admin') return res.redirect('/inventory');
-  if (user && user.role !== 'admin') return res.redirect('/shopping');
+  if (user && user.role === 'admin') return res.redirect('/listingsManage');
+  if (user && user.role !== 'admin') return res.redirect('/listingsBrowse');
   return res.render('index', { user });
 });
 
@@ -82,52 +82,47 @@ app.get('/register', AccountController.registerPage);
 app.post('/register', AccountController.registerUser);
 app.get('/login', AccountController.loginPage);
 app.post('/login', AccountController.loginUser);
-app.get('/login/2fa', AccountController.showTwoFactorLogin);
-app.post('/login/2fa', AccountController.verifyTwoFactorLogin);
-app.get('/forgot-password', checkAuthenticated, PasswordResetController.forgotPasswordPage);
-app.post('/forgot-password', checkAuthenticated, PasswordResetController.requestPasswordReset);
+app.get('/login2FA', AccountController.showTwoFactorLogin);
+app.post('/login2FA', AccountController.verifyTwoFactorLogin);
+app.get('/forgotPassword', checkAuthenticated, PasswordResetController.forgotPasswordPage);
+app.post('/forgotPassword', checkAuthenticated, PasswordResetController.requestPasswordReset);
 app.get('/logout', AccountController.logoutUser);
-app.get('/2fa/setup', checkAuthenticated, AccountController.showTwoFactorSetup);
-app.post('/2fa/verify-setup', checkAuthenticated, AccountController.verifyTwoFactorSetup);
-app.post('/2fa/disable', checkAuthenticated, AccountController.disableOwnTwoFactor);
-app.get('/2fa/disable', checkAuthenticated, (req, res) => res.redirect('/2fa/setup'));
+app.get('/2FASetup', checkAuthenticated, AccountController.showTwoFactorSetup);
+app.post('/2FASetup/verify-setup', checkAuthenticated, AccountController.verifyTwoFactorSetup);
+app.post('/2FASetup/disable', checkAuthenticated, AccountController.disableOwnTwoFactor);
 // Admin user management
-app.get('/users', checkAuthenticated, checkAdmin, AccountController.listAllUsers);
-app.post('/users', checkAuthenticated, checkAdmin, AccountController.addUser);
-app.post('/users/:id', checkAuthenticated, checkAdmin, AccountController.updateUser);
-app.post('/users/:id/disable-2fa', checkAuthenticated, checkAdmin, AccountController.disableTwoFactor);
-app.post('/users/delete/:id', checkAuthenticated, checkAdmin, AccountController.deleteUser);
-app.get('/orders', checkAuthenticated, checkAdmin, BookingController.listAllOrders);
-app.get('/my-orders', checkAuthenticated, BookingController.userOrders);
+app.get('/accounts', checkAuthenticated, checkAdmin, AccountController.listAllUsers);
+app.post('/accounts', checkAuthenticated, checkAdmin, AccountController.addUser);
+app.post('/accounts/:id', checkAuthenticated, checkAdmin, AccountController.updateUser);
+app.post('/accounts/:id/disable-2fa', checkAuthenticated, checkAdmin, AccountController.disableTwoFactor);
+app.post('/accounts/delete/:id', checkAuthenticated, checkAdmin, AccountController.deleteUser);
+app.get('/bookingsManage', checkAuthenticated, checkAdmin, BookingController.listAllOrders);
+app.get('/bookingsUser', checkAuthenticated, BookingController.userOrders);
 
 // Listing routes
-app.get('/products', checkAuthenticated, ListingController.listAllProducts);
-app.get('/products/:id', checkAuthenticated, ListingController.getProductById);
-app.get('/shopping', checkAuthenticated, ListingController.listAllProducts);
+app.get('/listingsBrowse', checkAuthenticated, ListingController.listAllProducts);
+app.get('/listingDetail/:id', checkAuthenticated, ListingController.getProductById);
 
 // Admin/coach listing pages
-app.get('/inventory', checkAuthenticated, checkAdmin, ListingController.listAllProducts);
-app.get('/addProduct', checkAuthenticated, checkAdmin, ListingController.showAddProductPage);
-app.post('/addProduct', checkAuthenticated, checkAdmin, upload.single('image'), (req, res) => ListingController.addProduct(req, res, req.file));
-app.get('/updateProduct/:id', checkAuthenticated, checkAdmin, ListingController.showUpdateProductPage);
-app.post('/updateProduct/:id', checkAuthenticated, checkAdmin, upload.single('image'), (req, res) => ListingController.updateProduct(req, res, req.file));
-app.post('/deleteProduct/:id', checkAuthenticated, checkAdmin, ListingController.deleteProduct);
+app.get('/listingsManage', checkAuthenticated, checkAdmin, ListingController.listAllProducts);
+app.get('/addListing', checkAuthenticated, checkAdmin, ListingController.showAddProductPage);
+app.get('/updateListing/:id', checkAuthenticated, checkAdmin, ListingController.showUpdateProductPage);
+app.post('/addListing', checkAuthenticated, checkAdmin, upload.single('image'), (req, res) => ListingController.addProduct(req, res, req.file));
+app.post('/updateListing/:id', checkAuthenticated, checkAdmin, upload.single('image'), (req, res) => ListingController.updateProduct(req, res, req.file));
+app.post('/listingsManage/delete/:id', checkAuthenticated, checkAdmin, ListingController.deleteProduct);
 
 // Booking cart
-app.post('/add-to-cart/:id', checkAuthenticated, BookingCartController.addToCart);
-app.get('/cart', checkAuthenticated, BookingCartController.showCart);
-app.get('/cart/remove/:id', checkAuthenticated, BookingCartController.removeFromCart);
-app.post('/cart/update/:id', checkAuthenticated, BookingCartController.updateCartItem);
-app.post('/cart/remove/:id', checkAuthenticated, BookingCartController.removeFromCart);
-app.get('/checkout', checkAuthenticated, (req, res) => res.redirect('/cart'));
-app.post('/checkout', checkAuthenticated, BookingCartController.showCheckoutSummary);
-app.post('/checkout/confirm', checkAuthenticated, BookingCartController.confirmCheckout);
-app.route('/orders/:id/confirm-delivery')
-  .get(checkAuthenticated, BookingController.confirmDelivery)
-  .post(checkAuthenticated, BookingController.confirmDelivery);
-app.get('/orders/:id/review', checkAuthenticated, BookingController.reviewOrderPage);
-app.post('/orders/:id/review', checkAuthenticated, BookingController.submitReview);
-app.post('/orders/:id/review/delete', checkAuthenticated, checkAdmin, BookingController.deleteReview);
+app.get('/bookingCart', checkAuthenticated, BookingCartController.showCart);
+app.post('/listingDetail/add-to-cart/:id', checkAuthenticated, BookingCartController.addToCart);
+app.post('/listingsBrowse/add-to-cart/:id', checkAuthenticated, BookingCartController.addToCart);
+app.post('/bookingCart/update/:id', checkAuthenticated, BookingCartController.updateCartItem);
+app.post('/bookingCart/remove/:id', checkAuthenticated, BookingCartController.removeFromCart);
+app.post('/bookingCheckout', checkAuthenticated, BookingCartController.showCheckoutSummary);
+app.post('/bookingCheckout/confirm', checkAuthenticated, BookingCartController.confirmCheckout);
+app.post('/bookingsManage/:id/review/delete', checkAuthenticated, checkAdmin, BookingController.deleteReview);
+app.post('/bookingsUser/:id/confirm-delivery', checkAuthenticated, BookingController.confirmDelivery);
+app.get('/reviewBooking/:id', checkAuthenticated, BookingController.reviewOrderPage);
+app.post('/reviewBooking/:id/review', checkAuthenticated, BookingController.submitReview);
 
 // upload error handling
 app.use((err, req, res, next) => {

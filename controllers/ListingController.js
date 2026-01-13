@@ -50,7 +50,7 @@ const ListingController = {
     const id = req.params.id || req.query.id;
     if (!id) {
       req.flash('error', 'Listing id required');
-      return res.redirect('/shopping');
+      return res.redirect('/listingsBrowse');
     }
     try {
       const product = await new Promise((resolve, reject) => {
@@ -58,18 +58,18 @@ const ListingController = {
       });
       if (!product) {
         req.flash('error', 'Listing not found');
-        return res.redirect('/shopping');
+        return res.redirect('/listingsBrowse');
       }
       const user = req.session && req.session.user;
       if (user && user.role === 'user' && !product.is_active) {
         req.flash('error', 'Listing not available');
-        return res.redirect('/shopping');
+        return res.redirect('/listingsBrowse');
       }
       return res.render('listingDetail', { product, user: req.session && req.session.user });
     } catch (err) {
       console.error(err);
       req.flash('error', 'Listing not found');
-      return res.redirect('/shopping');
+      return res.redirect('/listingsBrowse');
     }
   },
 
@@ -81,7 +81,7 @@ const ListingController = {
     const discountPercentage = parseDiscountPercentage(req.body.discount_percentage);
     if (discountPercentage === null) {
       req.flash('error', 'Discount must be an integer between 0 and 100');
-      return res.redirect('/addProduct');
+      return res.redirect('/addListing');
     }
     const sessionUser = req.session && req.session.user;
     const coachId = req.body.coach_id || (sessionUser && sessionUser.id);
@@ -100,11 +100,11 @@ const ListingController = {
     };
     if (!product.listing_title) {
       req.flash('error', 'Listing title required');
-      return res.redirect('/addProduct');
+      return res.redirect('/addListing');
     }
     if (!product.coach_id) {
       req.flash('error', 'Coach id required for listing');
-      return res.redirect('/addProduct');
+      return res.redirect('/addListing');
     }
     try {
       await new Promise((resolve, reject) => {
@@ -115,7 +115,7 @@ const ListingController = {
       console.error(err);
       req.flash('error', 'Failed to add listing');
     }
-    return res.redirect('/inventory');
+    return res.redirect('/listingsManage');
   },
 
   async showUpdateProductPage(req, res) {
@@ -126,18 +126,18 @@ const ListingController = {
       });
       if (!product) {
         req.flash('error', 'Listing not found');
-        return res.redirect('/inventory');
+        return res.redirect('/listingsManage');
       }
       const user = req.session && req.session.user;
       if (user && user.role === 'coach' && String(product.coach_id) !== String(user.id)) {
         req.flash('error', 'Access denied');
-        return res.redirect('/inventory');
+        return res.redirect('/listingsManage');
       }
       return res.render('updateListing', { product, user: req.session && req.session.user });
     } catch (err) {
       console.error(err);
       req.flash('error', 'Listing not found');
-      return res.redirect('/inventory');
+      return res.redirect('/listingsManage');
     }
   },
 
@@ -146,7 +146,7 @@ const ListingController = {
     const discountPercentage = parseDiscountPercentage(req.body.discount_percentage);
     if (discountPercentage === null) {
       req.flash('error', 'Discount must be an integer between 0 and 100');
-      return res.redirect(`/updateProduct/${id}`);
+      return res.redirect(`/updateListing/${id}`);
     }
     const current = await new Promise((resolve) => {
       Listing.getProductById(id, (err, row) => resolve(row || null));
@@ -154,11 +154,11 @@ const ListingController = {
     const user = req.session && req.session.user;
     if (!current) {
       req.flash('error', 'Listing not found');
-      return res.redirect('/inventory');
+      return res.redirect('/listingsManage');
     }
     if (user && user.role === 'coach' && String(current.coach_id) !== String(user.id)) {
       req.flash('error', 'Access denied');
-      return res.redirect('/inventory');
+      return res.redirect('/listingsManage');
     }
     const updated = {
       listing_title: req.body.listing_title,
@@ -181,7 +181,7 @@ const ListingController = {
       console.error(err);
       req.flash('error', 'Failed to update listing');
     }
-    return res.redirect('/inventory');
+    return res.redirect('/listingsManage');
   },
 
   async deleteProduct(req, res) {
@@ -193,11 +193,11 @@ const ListingController = {
       const user = req.session && req.session.user;
       if (!current) {
         req.flash('error', 'Listing not found');
-        return res.redirect('/inventory');
+        return res.redirect('/listingsManage');
       }
       if (user && user.role === 'coach' && String(current.coach_id) !== String(user.id)) {
         req.flash('error', 'Access denied');
-        return res.redirect('/inventory');
+        return res.redirect('/listingsManage');
       }
       await new Promise((resolve, reject) => {
         Listing.deleteProduct(id, (err) => (err ? reject(err) : resolve()));
@@ -207,7 +207,7 @@ const ListingController = {
       console.error(err);
       req.flash('error', 'Failed to delete listing');
     }
-    return res.redirect('/inventory');
+    return res.redirect('/listingsManage');
   }
 };
 
