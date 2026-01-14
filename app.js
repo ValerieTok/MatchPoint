@@ -73,7 +73,7 @@ app.use(attachUser);
 app.get('/', (req, res) => {
   const user = req.session.user;
   if (user && user.role === 'admin') return res.redirect('/listingsManage');
-  if (user && user.role !== 'admin') return res.redirect('/listingsBrowse');
+  if (user && user.role !== 'admin') return res.redirect('/userdashboard');
   return res.render('index', { user });
 });
 
@@ -100,7 +100,8 @@ app.get('/bookingsManage', checkAuthenticated, checkAdmin, BookingController.lis
 app.get('/bookingsUser', checkAuthenticated, BookingController.userOrders);
 
 // Listing routes
-app.get('/listingsBrowse', checkAuthenticated, ListingController.listAllProducts);
+app.get('/userdashboard', checkAuthenticated, ListingController.listAllProducts);
+app.get('/viewcourses', checkAuthenticated, ListingController.listAllProducts);
 app.get('/listingDetail/:id', checkAuthenticated, ListingController.getProductById);
 
 // Admin/coach listing pages
@@ -114,7 +115,7 @@ app.post('/listingsManage/delete/:id', checkAuthenticated, checkAdmin, ListingCo
 // Booking cart
 app.get('/bookingCart', checkAuthenticated, BookingCartController.showCart);
 app.post('/listingDetail/add-to-cart/:id', checkAuthenticated, BookingCartController.addToCart);
-app.post('/listingsBrowse/add-to-cart/:id', checkAuthenticated, BookingCartController.addToCart);
+app.post('/userdashboard/add-to-cart/:id', checkAuthenticated, BookingCartController.addToCart);
 app.post('/bookingCart/update/:id', checkAuthenticated, BookingCartController.updateCartItem);
 app.post('/bookingCart/remove/:id', checkAuthenticated, BookingCartController.removeFromCart);
 app.post('/bookingCheckout', checkAuthenticated, BookingCartController.showCheckoutSummary);

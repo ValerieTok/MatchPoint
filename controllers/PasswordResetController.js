@@ -61,7 +61,7 @@ const PasswordResetController = {
       });
       console.info(`[Password Reset] Updated password for user #${user.id} (${user.email})`);
       req.flash('success', 'Password updated.');
-      return res.redirect('/listingsBrowse');
+      return res.redirect('/userdashboard');
     } catch (err) {
       console.error(err);
       req.flash('error', 'Unable to reset password. Try again later.');

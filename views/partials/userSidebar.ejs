@@ -1,0 +1,40 @@
+<aside class="sidebar">
+  <div class="brand">
+    <div class="brand__dot"><i class="fa-solid fa-futbol"></i></div>
+    <span class="brand__name">MatchPoint</span>
+  </div>
+
+  <nav class="nav">
+    <a class="nav__item <%= active === 'courses' ? 'nav__item--active' : '' %>" href="/viewcourses">
+      <i class="fa-regular fa-user"></i>
+      <span>Courses</span>
+      <% if (typeof courseCount !== "undefined") { %>
+        <span class="nav__badge"><%= courseCount %></span>
+      <% } %>
+    </a>
+
+    <a class="nav__item <%= active === 'dashboard' ? 'nav__item--active' : '' %>" href="/userdashboard">
+      <i class="fa-solid fa-chart-line"></i>
+      <span>Dashboard</span>
+    </a>
+
+    <a class="nav__item <%= active === 'cart' ? 'nav__item--active' : '' %>" href="/bookingCart">
+      <i class="fa-solid fa-cart-shopping"></i>
+      <span>Cart</span>
+    </a>
+
+    <a class="nav__item <%= active === 'profile' ? 'nav__item--active' : '' %>" href="/profile">
+      <i class="fa-regular fa-id-card"></i>
+      <span>Profile</span>
+    </a>
+  </nav>
+
+  <div class="sidebar__footer">
+    <form action="/logout" method="post">
+      <button class="logout" type="submit">
+        <i class="fa-solid fa-right-from-bracket"></i>
+        Logout
+      </button>
+    </form>
+  </div>
+</aside>

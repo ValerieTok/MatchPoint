@@ -113,7 +113,7 @@ const AccountController = {
       req.session.cart = [];
       req.flash('success', 'Login successful');
       return req.session.save(function () {
-        return res.redirect(safeUser.role === 'admin' || safeUser.role === 'coach' ? '/listingsManage' : '/listingsBrowse');
+        return res.redirect(safeUser.role === 'admin' || safeUser.role === 'coach' ? '/listingsManage' : '/userdashboard');
       });
     } catch (err) {
       console.error(err);

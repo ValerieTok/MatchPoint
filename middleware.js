@@ -18,7 +18,7 @@ const checkAuthenticated = (req, res, next) => {
 const checkAdmin = (req, res, next) => {
   if (req.session && req.session.user && (req.session.user.role === 'admin' || req.session.user.role === 'coach')) return next();
   req.flash('error', 'Access denied');
-  return res.redirect('/listingsBrowse');
+  return res.redirect('/userdashboard');
 };
 
 module.exports = {

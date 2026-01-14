@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MatchPoint • User Dashboard</title>
+
+  <!-- Icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+<link rel="stylesheet" href="/css/user-common.css">
+<link rel="stylesheet" href="/css/user-dashboard.css">
+
+
+</head>
+<body>
+  <div class="app">
+
+    <!-- SIDEBAR -->
+<%- include("partials/userSidebar", {
+  active: "dashboard",
+  courseCount: 3
+}) %>
+
+    <!-- MAIN -->
+    <main class="main">
+      <header class="topbar">
+        <div class="crumb">USER DASHBOARD PAGE</div>
+        <div class="topbar__pill"><i class="fa-solid fa-bolt"></i></div>
+      </header>
+
+      <section class="hero">
+        <div class="hero__left">
+          <h1>Hello <span class="hero__name"><%= user?.username || (user?.email ? user.email.split('@')[0] : '') %></span> <span class="wave">👋</span>,</h1>
+
+          <div class="stats">
+            <div class="stat">
+              <div class="stat__icon"><i class="fa-solid fa-user-group"></i></div>
+              <div class="stat__meta">
+                <div class="stat__label">Upcoming Sessions</div>
+                <div class="stat__value"><%= upcomingCount ?? 4 %></div>
+              </div>
+            </div>
+
+            <div class="stat">
+              <div class="stat__icon"><i class="fa-solid fa-award"></i></div>
+              <div class="stat__meta">
+                <div class="stat__label">Completed Sessions</div>
+                <div class="stat__value"><%= completedCount ?? 32 %></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card__head">
+          <div class="card__title">All Sessions</div>
+
+          <div class="card__tools">
+            <div class="search">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input id="searchInput" type="text" placeholder="Search" />
+            </div>
+
+            <div class="sort">
+              <span class="sort__label">SORT BY:</span>
+              <button class="sort__btn" type="button">
+                Recent <i class="fa-solid fa-chevron-down"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="tableWrap">
+          <table class="table" id="sessionsTable">
+            <thead>
+              <tr>
+                <th>Coach Name</th>
+                <th>Date</th>
+                <th>Phone Number</th>
+                <th>Email</th>
+                <th>Sport</th>
+                <th>Package</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              <% 
+                const rows = sessions || [
+                  { coach:"Jamie Cooper", date:"25/12/2025", phone:"+65 6881 6433", email:"jamie@gmail.com", sport:"Badminton", pkg:"UPCOMING", status:"UPCOMING" },
+                  { coach:"Floyd Miles", date:"24/12/2025", phone:"+65 6881 6463", email:"floyd@gmail.com", sport:"Tennis", pkg:"UPCOMING", status:"UPCOMING" },
+                  { coach:"Ronald Richards", date:"18/12/2025", phone:"+65 6881 6744", email:"ronald@gmail.com", sport:"Soccer", pkg:"UPCOMING", status:"UPCOMING" },
+                  { coach:"Marvin McKinney", date:"10/12/2025", phone:"+65 6881 7553", email:"marvin@gmail.com", sport:"Soccer", pkg:"COMPLETED", status:"REVIEW" },
+                  { coach:"Jerome Bell", date:"08/12/2025", phone:"+65 6881 7922", email:"jerome@gmail.com", sport:"Volleyball", pkg:"COMPLETED", status:"REVIEW" }
+                ];
+              %>
+
+              <% rows.forEach(r => { %>
+                <tr>
+                  <td><%= r.coach %></td>
+                  <td><%= r.date %></td>
+                  <td><%= r.phone %></td>
+                  <td><%= r.email %></td>
+                  <td><%= r.sport %></td>
+                  <td><%= r.pkg %></td>
+                  <td>
+                    <% if ((r.status || "").toUpperCase() === "UPCOMING") { %>
+                      <span class="pill pill--upcoming">UPCOMING</span>
+                    <% } else { %>
+                      <span class="pill pill--review">REVIEW</span>
+                    <% } %>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="card__foot">
+          <div class="hint">Showing data 1 to 5 of 10 entries</div>
+
+          <div class="pager">
+            <button class="pager__btn" type="button"><i class="fa-solid fa-chevron-left"></i></button>
+            <button class="pager__num pager__num--active" type="button">1</button>
+            <button class="pager__num" type="button">2</button>
+            <button class="pager__num" type="button">3</button>
+            <span class="pager__dots">…</span>
+            <button class="pager__num" type="button">10</button>
+            <button class="pager__btn" type="button"><i class="fa-solid fa-chevron-right"></i></button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    // Client-side search filter
+    const input = document.getElementById("searchInput");
+    const table = document.getElementById("sessionsTable");
+    input?.addEventListener("input", () => {
+      const q = input.value.toLowerCase().trim();
+      const rows = table.querySelectorAll("tbody tr");
+      rows.forEach(tr => {
+        const text = tr.innerText.toLowerCase();
+        tr.style.display = text.includes(q) ? "" : "none";
+      });
+    });
+  </script>
+</body>
+</html>

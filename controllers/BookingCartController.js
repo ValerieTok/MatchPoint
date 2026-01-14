@@ -71,27 +71,27 @@ module.exports = {
       const qty = parseInt(req.body.quantity, 10) || 1;
       if (!Number.isFinite(qty) || qty <= 0) {
         req.flash('error', 'Quantity must be at least 1');
-        return res.redirect('/listingsBrowse');
+        return res.redirect('/userdashboard');
       }
 
       if (Number.isNaN(productId)) {
         req.flash('error', 'Invalid listing selected.');
-        return res.redirect('/listingsBrowse');
+        return res.redirect('/userdashboard');
       }
 
       const product = await getProductByIdAsync(productId);
       if (!product) {
         req.flash('error', 'Listing not found');
-        return res.redirect('/listingsBrowse');
+        return res.redirect('/userdashboard');
       }
       if (product.is_active === 0 || product.is_active === '0') {
         req.flash('error', 'Listing is not available');
-        return res.redirect('/listingsBrowse');
+        return res.redirect('/userdashboard');
       }
       const available = Number(product.available_slots) || 0;
       if (available <= 0) {
         req.flash('error', 'No session slots available');
-        return res.redirect('/listingsBrowse');
+        return res.redirect('/userdashboard');
       }
 
       const cartItems = await syncCartToSession(req);
@@ -100,7 +100,7 @@ module.exports = {
       const desiredQty = existingQty + qty;
       if (desiredQty > available) {
         req.flash('error', `Only ${available} session slots available`);
-        return res.redirect('/listingsBrowse');
+        return res.redirect('/userdashboard');
       }
 
       await addOrIncrementItem(userId, productId, qty);
@@ -117,7 +117,7 @@ module.exports = {
     } catch (err) {
       console.error(err);
       req.flash('error', 'Unable to add to booking cart');
-      return res.redirect('/listingsBrowse');
+      return res.redirect('/userdashboard');
     }
   },
 
@@ -134,7 +134,7 @@ module.exports = {
     } catch (err) {
       console.error(err);
       req.flash('error', 'Unable to load booking cart');
-      return res.redirect('/listingsBrowse');
+      return res.redirect('/userdashboard');
     }
   },
 

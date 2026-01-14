@@ -1,0 +1,141 @@
+:root{
+  --bg:#f5f5f5;
+  --panel:#ffffff;
+  --muted:#6b7280;
+  --text:#111827;
+  --line:#e5e7eb;
+  --soft:#f3f4f6;
+  --accent:#ef4444;
+  --green:#22c55e;
+  --orange:#f59e0b;
+  --radius:16px;
+}
+
+*{ box-sizing:border-box; }
+
+body{
+  margin:0;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Apple Color Emoji","Segoe UI Emoji";
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* App shell */
+.app{
+  width:100%;
+  margin:0;
+  min-height:100vh;
+  display:flex;
+  background: var(--panel);
+}
+
+/* Sidebar */
+.sidebar{
+  width:230px;
+  background:#fff;
+  border-right:1px solid var(--line);
+  display:flex;
+  flex-direction:column;
+  padding:18px 14px;
+}
+
+.brand{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:6px 8px 18px;
+}
+.brand__dot{
+  width:26px; height:26px;
+  display:grid;
+  place-items:center;
+  font-size:14px;
+  background:transparent;
+  color:#111827;
+}
+.brand__name{
+  font-weight:700;
+  letter-spacing:.2px;
+}
+
+.nav{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  padding:4px 6px;
+  margin-top:6px;
+}
+.nav__item{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:10px 12px;
+  border-radius:12px;
+  text-decoration:none;
+  color:#111827;
+  font-weight:600;
+  font-size:14px;
+}
+.nav__item i{ width:18px; opacity:.85; }
+.nav__badge{
+  margin-left:auto;
+  background:var(--accent);
+  color:#fff;
+  font-size:12px;
+  padding:2px 8px;
+  border-radius:999px;
+}
+.nav__item--active{
+  background:var(--accent);
+  color:#fff;
+}
+.nav__item--active i{ opacity:1; }
+
+.sidebar__footer{
+  margin-top:auto;
+  padding:12px 6px 4px;
+}
+.logout{
+  width:100%;
+  border:none;
+  background:var(--accent);
+  color:#fff;
+  padding:10px 12px;
+  border-radius:12px;
+  font-weight:700;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+}
+
+/* Main area */
+.main{
+  flex:1;
+  padding:20px 22px;
+  background:#fff;
+}
+
+/* Topbar (shared) */
+.topbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:10px;
+}
+.crumb{
+  font-size:12px;
+  letter-spacing:.08em;
+  color:#111827;
+  font-weight:700;
+}
+.topbar__pill{
+  width:34px; height:34px;
+  border-radius:999px;
+  background:#e6fff1;
+  display:grid;
+  place-items:center;
+  color:#10b981;
+  font-weight:900;
+}

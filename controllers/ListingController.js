@@ -1,4 +1,5 @@
 const Listing = require('../models/Listing');
+const Course = require('../models/Course');
 
 const allowedSkillLevels = new Set(['beginner', 'intermediate', 'advanced', 'expert']);
 const normalizeSkillLevel = (value, fallback) => {
@@ -19,12 +20,23 @@ const ListingController = {
     const user = (req.session && req.session.user) || {};
     const isAdmin = user.role === 'admin';
     const isCoach = user.role === 'coach';
-    const view = isAdmin || isCoach ? 'listingsManage' : 'listingsBrowse';
+    const path = req.path;
+    let view = isAdmin || isCoach ? 'listingsManage' : 'userdashboard';
+    if (path === '/viewcourses') {
+      view = 'viewcourses';
+    }
 
     try {
       const products = await new Promise((resolve, reject) => {
         let fetcher;
-        if (search) {
+        if (view === 'viewcourses') {
+          fetcher = (cb) => {
+            if (search) {
+              return Course.searchCourses(search, cb);
+            }
+            return Course.getActiveCourses(cb);
+          };
+        } else if (search) {
           const options = {
             activeOnly: !isAdmin && !isCoach,
             coachId: isCoach ? user.id : undefined
@@ -39,11 +51,19 @@ const ListingController = {
         }
         fetcher((err, rows) => (err ? reject(err) : resolve(rows || [])));
       });
-      return res.render(view, { products, user, search });
+      const upcomingCount = 4;
+      const completedCount = 32;
+      const sessions = [];
+      
+      return res.render(view, { products, user, search, upcomingCount, completedCount, sessions });
     } catch (err) {
       console.error(err);
       req.flash('error', 'Failed to load listings');
-      return res.render(view, { products: [], user, search });
+      const upcomingCount = 4;
+      const completedCount = 32;
+      const sessions = [];
+      
+      return res.render(view, { products: [], user, search, upcomingCount, completedCount, sessions });
     }
   },
 
@@ -59,18 +79,18 @@ const ListingController = {
       });
       if (!product) {
         req.flash('error', 'Listing not found');
-        return res.redirect('/listingsBrowse');
+        return res.redirect('/userdashboard');
       }
       const user = req.session && req.session.user;
       if (user && user.role === 'user' && !product.is_active) {
         req.flash('error', 'Listing not available');
-        return res.redirect('/listingsBrowse');
+        return res.redirect('/userdashboard');
       }
       return res.render('listingDetail', { product, user: req.session && req.session.user });
     } catch (err) {
       console.error(err);
       req.flash('error', 'Listing not found');
-      return res.redirect('/listingsBrowse');
+      return res.redirect('/userdashboard');
     }
   },
 

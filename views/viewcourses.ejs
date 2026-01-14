@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MatchPoint • Available Courses</title>
+
+  <!-- Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <link rel="stylesheet" href="/css/user-common.css">
+  <link rel="stylesheet" href="/css/courses.css">
+</head>
+
+<body>
+  <div class="app">
+    <!-- SIDEBAR -->
+    <%- include("partials/userSidebar", {
+      active: "courses",
+    }) %>
+
+    <!-- MAIN -->
+    <main class="main">
+      <header class="topbar">
+        <div class="crumb">AVAILABLE COURSES</div>
+        <div class="topbar__pill"><i class="fa-solid fa-book"></i></div>
+      </header>
+
+      <section class="courses-header">
+        <h2 class="courses-header__title">
+          Hello <strong class="hello__name"><%= (user && user.username) ? user.username : (user && user.email ? user.email.split('@')[0] : '') %></strong>! <span>👋</span>
+        </h2>
+
+        <div class="courses-filters">
+          <div class="search">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input
+              id="q"
+              type="text"
+              placeholder="Search by coach name, sport or location"
+              value="<%= (typeof search !== "undefined" ? search : "") %>"
+            />
+          </div>
+
+          <div class="filter-group">
+            <select id="sport" class="filter-select">
+              <option value="">All Sports</option>
+              <%
+                const sports = Array.from(
+                  new Set((products || [])
+                    .map(p => String(p.sport || "").trim())
+                    .filter(Boolean)
+                  )
+                ).sort((a, b) => a.localeCompare(b));
+
+                sports.forEach(s => {
+              %>
+                <option value="<%= s %>"><%= s %></option>
+              <% }) %>
+            </select>
+            <i class="fa-solid fa-chevron-down"></i>
+          </div>
+
+          <div class="filter-group">
+            <select id="level" class="filter-select">
+              <option value="">All Levels</option>
+              <option value="beginner">Beginner</option>
+              <option value="intermediate">Intermediate</option>
+              <option value="advanced">Advanced</option>
+              <option value="expert">Expert</option>
+            </select>
+            <i class="fa-solid fa-chevron-down"></i>
+          </div>
+        </div>
+      </section>
+
+      <section class="courses-grid" id="grid">
+        <% const list = products || []; %>
+        <% const seenCoaches = new Set(); %>
+        <% const seenSports = new Set(); %>
+
+        <% if (list.length === 0) { %>
+          <div class="empty-state">
+            <div class="empty-state__icon"><i class="fa-solid fa-inbox"></i></div>
+            <div class="empty-state__title">No courses found</div>
+            <div class="empty-state__hint">Try a different search or clear filters.</div>
+          </div>
+        <% } %>
+
+        <% list.forEach((p) => {
+          const title = p.listing_title || p.title || "Coach Session";
+          const coach = p.coach_name || p.username || title;
+          const levelRaw = (p.skill_level != null ? String(p.skill_level).trim() : "");
+          const level = levelRaw ? levelRaw.toLowerCase() : "";
+          const mins = (p.duration_minutes != null ? Number(p.duration_minutes) : null);
+          const loc = (p.session_location != null ? String(p.session_location).trim() : "");
+          const sportRaw = (p.sport != null ? p.sport : "");
+          const sportName = String(sportRaw).trim();                // for display
+          const sportKey  = String(sportRaw).trim().toLowerCase();  // for logic/filtering
+
+          const price = (p.price != null ? Number(p.price) : 0);
+          const rating = (p.rating != null ? Number(p.rating).toFixed(1) : null);
+          const enrolled = (p.students_enrolled != null ? Number(p.students_enrolled) : null);
+
+          const coachKey = String(coach || '').trim().toLowerCase();
+          const skipCard = (coachKey && seenCoaches.has(coachKey)) || (sportKey && seenSports.has(sportKey));
+          if (!skipCard) {
+            if (coachKey) seenCoaches.add(coachKey);
+            if (sportKey) seenSports.add(sportKey);
+          }
+
+          // ---- IMAGE LOGIC (Football always uses your local file) ----
+          // Your file is: public/images/football.jpg
+          // Served as: /images/football.jpg
+          let img;
+
+          if (sportKey.includes("football")) {
+            img = "/images/football.jpg";
+          } else if (p.image) {
+            const rawImg = String(p.image);
+            img = rawImg.startsWith("http") || rawImg.startsWith("/")
+              ? rawImg
+              : `/images/${rawImg}`;
+          } else {
+            img = "/images/football.jpg"; // fallback
+          }
+        %>
+
+          <% if (!skipCard) { %>
+          <article class="course-card"
+            data-coach="<%= String(coach).toLowerCase() %>"
+            data-sport="<%= sportKey %>"
+            data-loc="<%= String(loc).toLowerCase() %>"
+            data-level="<%= level %>"
+          >
+            <div class="course-card__image">
+              <img src="<%= img %>" alt="<%= coach %>" />
+              <span class="course-card__sport"><%= sportName %></span>
+            </div>
+
+            <div class="course-card__content">
+              <div class="course-card__header">
+                <div>
+                  <h3 class="course-card__name"><%= coach %></h3>
+                  <p class="course-card__level"><%= level ? (level.charAt(0).toUpperCase() + level.slice(1)) : "Not set" %> Level</p>
+                </div>
+                <% if (rating !== null) { %>
+                  <div class="course-card__rating">
+                    <i class="fa-solid fa-star"></i>
+                    <span><%= rating %></span>
+                  </div>
+                <% } %>
+              </div>
+
+              <div class="course-card__details">
+                <div class="detail"><i class="fa-regular fa-clock"></i> <span><%= mins != null ? mins : "TBC" %> Minutes</span></div>
+                <div class="detail"><i class="fa-solid fa-location-dot"></i> <span><%= loc || "TBC" %></span></div>
+                <% if (enrolled != null) { %>
+                  <div class="detail"><i class="fa-regular fa-user"></i> <span><%= enrolled %> students enrolled</span></div>
+                <% } %>
+              </div>
+
+              <div class="course-card__footer">
+                <div>
+                  <p class="course-card__price-label">Price per session</p>
+                  <p class="course-card__price">$<%= price %></p>
+                </div>
+                <a href="/listing/<%= p.id || p.listing_id || '' %>" class="course-card__btn">Book Now</a>
+              </div>
+            </div>
+          </article>
+          <% } %>
+
+        <% }) %>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    // Client-side filtering
+    const q = document.getElementById("q");
+    const sport = document.getElementById("sport");
+    const level = document.getElementById("level");
+    const cards = () => Array.from(document.querySelectorAll(".course-card"));
+
+    function applyFilters(){
+      const text = (q.value || "").toLowerCase().trim();
+      const sportVal = (sport.value || "").toLowerCase().trim();
+      const levelVal = (level.value || "").toLowerCase().trim();
+
+      cards().forEach(card => {
+        const hay = [
+          card.dataset.coach,
+          card.dataset.sport,
+          card.dataset.loc
+        ].join(" ");
+
+        const matchesText = !text || hay.includes(text);
+        const matchesSport = !sportVal || card.dataset.sport === sportVal;
+        const matchesLevel = !levelVal || card.dataset.level === levelVal;
+
+        card.style.display = (matchesText && matchesSport && matchesLevel) ? "" : "none";
+      });
+    }
+
+    [q, sport, level].forEach(el => el && el.addEventListener("input", applyFilters));
+  </script>
+</body>
+</html>
+
