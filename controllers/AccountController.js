@@ -1,4 +1,5 @@
 const userModel = require('../models/Account');
+const userProfileModel = require('../models/UserProfile');
 const speakeasy = require('speakeasy');
 const QRCode = require('qrcode');
 
@@ -434,7 +435,179 @@ const AccountController = {
     req.flash('success', 'Login successful');
     return req.session.save(function () {
       return res.redirect(safeUser.role === 'admin' || safeUser.role === 'coach' ? '/listingsManage' : '/listingsBrowse');
-    });
+    });  },
+
+  async showProfile(req, res) {
+    const userId = req.session?.user?.id;
+    if (!userId) {
+      req.flash('error', 'Please log in to view your profile');
+      return res.redirect('/login');
+    }
+
+    try {
+      const user = await getUserByIdAsync(userId);
+      if (!user) {
+        req.flash('error', 'User not found');
+        return res.redirect('/');
+      }
+
+      const profile = await new Promise((resolve, reject) => {
+        userProfileModel.getByUserId(userId, (err, row) => (err ? reject(err) : resolve(row)));
+      });
+
+      // Get past bookings
+      const Booking = require('../models/Booking');
+      const bookings = await new Promise((resolve, reject) => {
+        Booking.getOrdersByUser(userId, (err, result) => {
+          if (err) return reject(err);
+          resolve(result || []);
+        });
+      });
+
+      // Get booking items for past sessions
+      const sessionsWithDetails = await Promise.all(
+        bookings.map(async (booking) => {
+          const items = await new Promise((resolve, reject) => {
+            Booking.getOrderItems(booking.id, null, (err, result) => {
+              if (err) return reject(err);
+              resolve(result || []);
+            });
+          });
+          return { ...booking, items };
+        })
+      );
+
+      return res.render('profile', {
+        user,
+        profile,
+        messages: res.locals.messages,
+        sessions: sessionsWithDetails
+      });
+    } catch (err) {
+      console.error('Error loading profile:', err);
+      req.flash('error', 'Failed to load profile');
+      return res.redirect('/userdashboard');
+    }
+  },
+
+  async updateProfile(req, res) {
+    const userId = req.session?.user?.id;
+    if (!userId) {
+      req.flash('error', 'Please log in');
+      return res.redirect('/login');
+    }
+
+    const { first_name, last_name, email, contact, bio } = req.body || {};
+    const photo = req.file ? `/images/${req.file.filename}` : undefined;
+
+    if (!first_name || !email) {
+      req.flash('error', 'First name and email are required');
+      return res.redirect('/prof');
+    }
+
+    try {
+      const existingProfile = await new Promise((resolve, reject) => {
+        userProfileModel.getByUserId(userId, (err, row) => (err ? reject(err) : resolve(row)));
+      });
+
+      await new Promise((resolve, reject) => {
+        userProfileModel.upsert(
+          userId,
+          {
+            first_name,
+            last_name,
+            email,
+            phone_number: contact,
+            bio,
+            photo: photo !== undefined ? photo : (existingProfile ? existingProfile.photo : null)
+          },
+          (err, result) => (err ? reject(err) : resolve(result))
+        );
+      });
+
+      await new Promise((resolve, reject) => {
+        userModel.updateUser(userId, { username: req.session.user.username, email, contact: req.session.user.contact, role: req.session.user.role }, (err, result) => {
+          if (err) return reject(err);
+          resolve(result);
+        });
+      });
+
+      // Update session user data
+      const updatedUser = await getUserByIdAsync(userId);
+      if (updatedUser) {
+        req.session.user = buildSafeUser(updatedUser);
+      }
+
+      req.flash('success', 'Profile updated successfully');
+      return res.redirect('/prof');
+    } catch (err) {
+      console.error('Error updating profile:', err);
+      req.flash('error', 'Failed to update profile');
+      return res.redirect('/prof');
+    }
+  },
+
+  async resetPassword(req, res) {
+    const userId = req.session?.user?.id;
+    if (!userId) {
+      req.flash('error', 'Please log in');
+      return res.redirect('/login');
+    }
+
+    const { currentPassword, newPassword, confirmPassword } = req.body || {};
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      req.flash('error', 'All password fields are required');
+      return res.redirect('/prof');
+    }
+
+    if (newPassword.length < 8) {
+      req.flash('error', 'New password must be at least 8 characters');
+      return res.redirect('/prof');
+    }
+
+    if (newPassword !== confirmPassword) {
+      req.flash('error', 'New passwords do not match');
+      return res.redirect('/prof');
+    }
+
+    try {
+      const user = await getUserByIdAsync(userId);
+      if (!user) {
+        req.flash('error', 'User not found');
+        return res.redirect('/prof');
+      }
+
+      // Verify current password
+      const bcrypt = require('bcryptjs');
+      const isValid = await bcrypt.compare(currentPassword, user.password);
+      if (!isValid) {
+        req.flash('error', 'Current password is incorrect');
+        return res.redirect('/prof');
+      }
+
+      // Update password
+      await new Promise((resolve, reject) => {
+        userModel.updateUser(userId, { username: user.username, email: user.email, contact: user.contact, role: user.role, password: newPassword }, (err, result) => {
+          if (err) return reject(err);
+          resolve(result);
+        });
+      });
+
+      // Log the user out after a successful password reset
+      req.session.regenerate((regenErr) => {
+        if (regenErr) {
+          console.error('Session regenerate failed after password reset', regenErr);
+        }
+        req.flash('success', 'Password updated successfully. Please log in again.');
+        return res.redirect('/login');
+      });
+      return undefined;
+    } catch (err) {
+      console.error('Error resetting password:', err);
+      req.flash('error', 'Failed to reset password');
+      return res.redirect('/prof');
+    }
   }
 };
 

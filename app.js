@@ -86,10 +86,14 @@ app.get('/login2FA', AccountController.showTwoFactorLogin);
 app.post('/login2FA', AccountController.verifyTwoFactorLogin);
 app.get('/forgotPassword', checkAuthenticated, PasswordResetController.forgotPasswordPage);
 app.post('/forgotPassword', checkAuthenticated, PasswordResetController.requestPasswordReset);
-app.get('/logout', AccountController.logoutUser);
+app.post('/logout', AccountController.logoutUser);
 app.get('/2FASetup', checkAuthenticated, AccountController.showTwoFactorSetup);
 app.post('/2FASetup/verify-setup', checkAuthenticated, AccountController.verifyTwoFactorSetup);
 app.post('/2FASetup/disable', checkAuthenticated, AccountController.disableOwnTwoFactor);
+// Profile routes
+app.get('/prof', checkAuthenticated, AccountController.showProfile);
+app.post('/prof', checkAuthenticated, upload.single('photo'), AccountController.updateProfile);
+app.post('/prof/reset-password', checkAuthenticated, AccountController.resetPassword);
 // Admin user management
 app.get('/accounts', checkAuthenticated, checkAdmin, AccountController.listAllUsers);
 app.post('/accounts', checkAuthenticated, checkAdmin, AccountController.addUser);

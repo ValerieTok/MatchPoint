@@ -129,6 +129,40 @@ module.exports = {
     db.query(sql, [id], function (err, result) {
       return callback(err, result);
     });
+  },
+
+  updateUserProfile: function (id, profileData, callback) {
+    const fields = [];
+    const params = [];
+
+    if (profileData.username !== undefined) {
+      fields.push('username = ?');
+      params.push(profileData.username);
+    }
+    if (profileData.email !== undefined) {
+      fields.push('email = ?');
+      params.push(profileData.email);
+    }
+    if (profileData.contact !== undefined) {
+      fields.push('contact = ?');
+      params.push(profileData.contact || null);
+    }
+    if (profileData.bio !== undefined) {
+      fields.push('bio = ?');
+      params.push(profileData.bio || null);
+    }
+    if (profileData.photo !== undefined) {
+      fields.push('photo = ?');
+      params.push(profileData.photo || null);
+    }
+
+    if (fields.length === 0) {
+      return callback(new Error('No fields to update'));
+    }
+
+    params.push(id);
+    const sql = `UPDATE users SET ${fields.join(', ')} WHERE id = ?`;
+    db.query(sql, params, (err, result) => callback(err, result));
   }
 };
 

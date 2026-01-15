@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MatchPoint • Profile</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <link rel="stylesheet" href="/css/user-common.css">
+  <link rel="stylesheet" href="/css/user-profile.css">
+</head>
+<body>
+  <div class="app">
+
+    <!-- SIDEBAR -->
+    <%- include("partials/userSidebar", {
+      active: "profile",
+      courseCount: 3
+    }) %>
+
+    <!-- MAIN -->
+    <main class="main">
+      <header class="topbar">
+        <div class="crumb">USER PROFILE PAGE</div>
+        <div class="topbar__pill"><i class="fa-solid fa-bolt"></i></div>
+      </header>
+
+      <!-- Flash Messages -->
+      <%- include("partials/flashMessages") %>
+
+      <div class="profile-container">
+        <!-- LEFT SECTION: Profile Form -->
+        <section class="profile-form">
+          <div class="greeting">
+            <h1>Hello <span class="name"><%= (profile && (profile.first_name || profile.last_name)) ? ((profile.first_name || '') + ' ' + (profile.last_name || '')).trim() : (user?.username || (user?.email ? user.email.split('@')[0] : '')) %></span> <span class="wave">👋</span>,</h1>
+          </div>
+
+          <form action="/prof" method="POST" enctype="multipart/form-data">
+            <!-- Photo Upload -->
+            <div class="form-section">
+              <div class="photo-upload">
+                <div class="photo-preview">
+                  <% if (profile?.photo) { %>
+                    <img src="<%= profile.photo %>" alt="Profile Photo" class="photo-img">
+                  <% } else { %>
+                    <i class="fa-solid fa-user photo-placeholder"></i>
+                  <% } %>
+                </div>
+                <div class="upload-btn-wrapper">
+                  <label for="photo" class="upload-btn">
+                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                    Upload Photo
+                  </label>
+                  <input type="file" name="photo" id="photo" accept="image/jpeg,image/png,image/gif,image/webp" />
+                  <div class="upload-hint">JPG, PNG or GIF. Max size 2MB</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Name Fields -->
+            <div class="form-row">
+              <div class="form-group">
+                <label for="firstname">
+                  <i class="fa-solid fa-user"></i>
+                  First name
+                </label>
+                <input type="text" id="firstname" name="first_name" value="<%= profile?.first_name || '' %>" placeholder="Yuwarane" required>
+              </div>
+
+              <div class="form-group">
+                <label for="lastname">
+                  <i class="fa-solid fa-user"></i>
+                  Last name
+                </label>
+                <input type="text" id="lastname" name="last_name" value="<%= profile?.last_name || '' %>" placeholder="Sri">
+              </div>
+            </div>
+
+            <!-- Email -->
+            <div class="form-group">
+              <label for="email">
+                <i class="fa-solid fa-envelope"></i>
+                Email
+              </label>
+              <input type="email" id="email" name="email" value="<%= profile?.email || user?.email || '' %>" placeholder="yuwaranesri18@gmail.com" required>
+            </div>
+
+            <!-- Phone Number -->
+            <div class="form-group">
+              <label for="contact">
+                <i class="fa-solid fa-phone"></i>
+                Phone Number
+              </label>
+              <input type="tel" id="contact" name="contact" value="<%= profile?.phone_number || '' %>" placeholder="+65 87707650">
+            </div>
+
+            <!-- Bio -->
+            <div class="form-group">
+              <label for="bio">
+                <i class="fa-solid fa-align-left"></i>
+                Bio
+              </label>
+              <textarea id="bio" name="bio" rows="3" placeholder="Passionate athlete looking to improve my skills across multiple sports."><%= profile?.bio || '' %></textarea>
+            </div>
+
+            <button type="submit" class="btn-save">Save Changes</button>
+          </form>
+        </section>
+
+        <!-- RIGHT SECTION: Password Reset & Past Sessions -->
+        <aside class="profile-sidebar">
+          <!-- Reset Password -->
+          <div class="sidebar-card">
+            <h2 class="sidebar-title">Reset Password</h2>
+            <form action="/prof/reset-password" method="POST">
+              <div class="form-group">
+                <label for="currentPassword">
+                  <i class="fa-solid fa-lock"></i>
+                  Current Password
+                </label>
+                <input type="password" id="currentPassword" name="currentPassword" required>
+              </div>
+
+              <div class="form-group">
+                <label for="newPassword">
+                  <i class="fa-solid fa-lock"></i>
+                  New Password
+                </label>
+                <input type="password" id="newPassword" name="newPassword" required>
+                <small class="hint">At least 8 characters long</small>
+              </div>
+
+              <div class="form-group">
+                <label for="confirmPassword">
+                  <i class="fa-solid fa-lock"></i>
+                  Confirm New Password
+                </label>
+                <input type="password" id="confirmPassword" name="confirmPassword" required>
+              </div>
+
+              <button type="submit" class="btn-reset">Reset Password</button>
+            </form>
+          </div>
+
+          <!-- Past Sessions -->
+          <div class="sidebar-card">
+            <h2 class="sidebar-title">Past Sessions</h2>
+            <div class="sessions-list">
+              <% if (sessions && sessions.length > 0) { %>
+                <% sessions.slice(0, 5).forEach(function(session) { %>
+                  <% if (session.items && session.items.length > 0) { %>
+                    <% session.items.forEach(function(item) { %>
+                      <div class="session-item">
+                        <div class="session-header">
+                          <h3 class="session-name"><%= item.listing_title || item.sport + ' Session' %></h3>
+                          <div class="session-meta">
+                            <i class="fa-regular fa-calendar"></i>
+                            <span><%= new Date(session.created_at).toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }) %></span>
+                          </div>
+                          <div class="session-meta">
+                            <i class="fa-regular fa-clock"></i>
+                            <span><%= new Date(session.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) %></span>
+                          </div>
+                        </div>
+                        <a href="/reviewBooking/<%= session.id %>" class="btn-review">
+                          <i class="fa-solid fa-star"></i>
+                          Write Review
+                        </a>
+                      </div>
+                    <% }); %>
+                  <% } %>
+                <% }); %>
+              <% } else { %>
+                <p class="no-sessions">No past sessions yet</p>
+              <% } %>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // Preview photo before upload
+    document.getElementById('photo').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(event) {
+          const preview = document.querySelector('.photo-preview');
+          preview.innerHTML = '<img src="' + event.target.result + '" alt="Preview" class="photo-img">';
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+    // Keep first/last name fields separate for user_profiles.
+  </script>
+</body>
+</html>
