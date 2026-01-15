@@ -4,7 +4,6 @@ const baseSelect = `
   SELECT
     l.id,
     l.listing_title,
-    l.available_slots,
     l.price,
     l.image,
     l.discount_percentage,
@@ -45,15 +44,14 @@ module.exports = {
   addProduct: function (productData, callback) {
     const sql = `
       INSERT INTO coach_listings
-      (coach_id, listing_title, sport, description, available_slots, price, image, discount_percentage, offer_message, duration_minutes, skill_level, session_location, is_active)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (coach_id, listing_title, sport, description, price, image, discount_percentage, offer_message, duration_minutes, skill_level, session_location, is_active)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const params = [
       productData.coach_id,
       productData.listing_title,
       productData.sport || null,
       productData.description || null,
-      typeof productData.available_slots !== 'undefined' ? productData.available_slots : 0,
       productData.price || 0,
       productData.image || null,
       typeof productData.discount_percentage === 'number' ? productData.discount_percentage : 0,
@@ -72,7 +70,6 @@ module.exports = {
       SET listing_title = ?,
           sport = ?,
           description = ?,
-          available_slots = ?,
           price = ?,
           image = ?,
           discount_percentage = ?,
@@ -87,7 +84,6 @@ module.exports = {
       updatedData.listing_title,
       typeof updatedData.sport !== 'undefined' ? updatedData.sport : null,
       typeof updatedData.description !== 'undefined' ? updatedData.description : null,
-      typeof updatedData.available_slots !== 'undefined' ? updatedData.available_slots : null,
       typeof updatedData.price !== 'undefined' ? updatedData.price : null,
       typeof updatedData.image !== 'undefined' ? updatedData.image : null,
       typeof updatedData.discount_percentage !== 'undefined' ? updatedData.discount_percentage : 0,
@@ -157,58 +153,6 @@ module.exports = {
 
   // deduct stock for each cart item within a transaction
   deductStock: function (cartItems, callback) {
-    if (!Array.isArray(cartItems) || cartItems.length === 0) {
-      return callback(null);
-    }
-
-    db.beginTransaction(async (txErr) => {
-      if (txErr) return callback(txErr);
-
-      try {
-        // process items sequentially so locks are respected
-        for (const item of cartItems) {
-          await new Promise((resolve, reject) => {
-            db.query(
-              'SELECT listing_title, available_slots FROM coach_listings WHERE id = ? FOR UPDATE',
-              [item.listing_id],
-              (selectErr, rows) => {
-                if (selectErr) return reject(selectErr);
-                const row = rows && rows[0];
-                if (!row) {
-                  return reject(Object.assign(new Error('Listing not found'), {
-                    code: 'PRODUCT_NOT_FOUND',
-                    productId: item.listing_id
-                  }));
-                }
-                if (row.available_slots < item.quantity) {
-                  return reject(Object.assign(new Error('Insufficient slots'), {
-                    code: 'INSUFFICIENT_STOCK',
-                    productId: item.listing_id,
-                    listing_title: row.listing_title,
-                    available: row.available_slots,
-                    requested: item.quantity
-                  }));
-                }
-                const newQty = row.available_slots - item.quantity;
-                db.query(
-                  'UPDATE coach_listings SET available_slots = ? WHERE id = ?',
-                  [newQty, item.listing_id],
-                  (updateErr) => (updateErr ? reject(updateErr) : resolve())
-                );
-              }
-            );
-          });
-        }
-
-        db.commit((commitErr) => {
-          if (commitErr) {
-            return db.rollback(() => callback(commitErr));
-          }
-          return callback(null);
-        });
-      } catch (err) {
-        db.rollback(() => callback(err));
-      }
-    });
+    return callback(null);
   }
 };

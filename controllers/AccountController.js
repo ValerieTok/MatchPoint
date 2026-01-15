@@ -1,4 +1,6 @@
 const userModel = require('../models/Account');
+const Listing = require('../models/Listing');
+const BookingCart = require('../models/BookingCart');
 const speakeasy = require('speakeasy');
 const QRCode = require('qrcode');
 
@@ -11,6 +13,55 @@ const getUserByIdAsync = (id) =>
   new Promise((resolve, reject) => {
     userModel.getUserById(id, (err, u) => (err ? reject(err) : resolve(u)));
   });
+
+const getListingByIdAsync = (id) =>
+  new Promise((resolve, reject) => {
+    Listing.getProductById(id, (err, row) => (err ? reject(err) : resolve(row)));
+  });
+
+const addPendingBookingToCart = async (req) => {
+  const pending = req.session && req.session.pendingBooking;
+  if (!pending) return null;
+  if (!req.session.user || req.session.user.role !== 'user') {
+    delete req.session.pendingBooking;
+    return null;
+  }
+
+  delete req.session.pendingBooking;
+
+  try {
+    const userId = req.session.user.id;
+    const productId = parseInt(pending.productId, 10);
+    const quantity = parseInt(pending.quantity, 10) || 1;
+    const sessionDate = pending.sessionDate ? String(pending.sessionDate).trim() : '';
+    const sessionTime = pending.sessionTime ? String(pending.sessionTime).trim() : '';
+    if (!Number.isFinite(productId) || !sessionDate || !sessionTime) {
+      return null;
+    }
+
+    const product = await getListingByIdAsync(productId);
+    if (!product || product.is_active === 0 || product.is_active === '0') {
+      req.flash('error', 'Listing is not available');
+      return null;
+    }
+    await new Promise((resolve, reject) => {
+      BookingCart.addOrIncrement(
+        userId,
+        productId,
+        quantity,
+        sessionDate,
+        sessionTime,
+        (err) => (err ? reject(err) : resolve())
+      );
+    });
+    req.flash('success', 'Booking added to cart.');
+    return '/bookingCart';
+  } catch (err) {
+    console.error(err);
+    req.flash('error', 'Unable to add booking after login.');
+    return null;
+  }
+};
 
 const ensureAdminOnly = (req, res) => {
   if (req.session && req.session.user && req.session.user.role === 'admin') {
@@ -115,28 +166,38 @@ const AccountController = {
       }
       const safeUser = buildSafeUser(user);
       if (safeUser.is_2fa_enabled) {
+        const pendingBooking = req.session && req.session.pendingBooking;
         await new Promise(function (resolve, reject) {
           req.session.regenerate(function (err) {
             return err ? reject(err) : resolve();
           });
         });
+        if (pendingBooking) {
+          req.session.pendingBooking = pendingBooking;
+        }
         req.session.pending2FAUserId = safeUser.id;
         req.flash('success', 'Enter your authentication code to finish logging in.');
         return req.session.save(function () {
           return res.redirect('/login2FA');
         });
       }
+      const pendingBooking = req.session && req.session.pendingBooking;
       await new Promise(function (resolve, reject) {
         req.session.regenerate(function (err) {
           return err ? reject(err) : resolve();
         });
       });
+      if (pendingBooking) {
+        req.session.pendingBooking = pendingBooking;
+      }
       req.session.user = safeUser;
       req.session.cart = [];
       req.flash('success', 'Login successful');
+      const pendingRedirect = await addPendingBookingToCart(req);
       return req.session.save(function () {
         if (safeUser.role === 'admin') return res.redirect('/admindashboard');
         if (safeUser.role === 'coach') return res.redirect('/listingsManage');
+        if (pendingRedirect) return res.redirect(pendingRedirect);
         return res.redirect('/userdashboard');
       });
     } catch (err) {
@@ -448,18 +509,24 @@ const AccountController = {
     }
     const safeUser = buildSafeUser(user);
     req.session.pending2FAUserId = null;
+    const pendingBooking = req.session && req.session.pendingBooking;
     await new Promise(function (resolve, reject) {
       req.session.regenerate(function (err) {
         return err ? reject(err) : resolve();
       });
     });
+    if (pendingBooking) {
+      req.session.pendingBooking = pendingBooking;
+    }
     req.session.user = safeUser;
     req.session.cart = [];
     req.flash('success', 'Login successful');
+    const pendingRedirect = await addPendingBookingToCart(req);
     return req.session.save(function () {
       if (safeUser.role === 'admin') return res.redirect('/admindashboard');
       if (safeUser.role === 'coach') return res.redirect('/listingsManage');
-      return res.redirect('/listingsBrowse');
+      if (pendingRedirect) return res.redirect(pendingRedirect);
+      return res.redirect('/userdashboard');
     });
   }
 };

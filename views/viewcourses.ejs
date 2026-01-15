@@ -9,9 +9,10 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
   <link rel="stylesheet" href="/css/user-common.css">
   <link rel="stylesheet" href="/css/courses.css">
+  <link rel="stylesheet" href="/css/admin-dashboard.css" />
 </head>
 
-<body>
+<body class="admin-dashboard">
   <div class="app">
     <!-- SIDEBAR -->
     <%- include("partials/userSidebar", {
@@ -75,8 +76,6 @@
 
       <section class="courses-grid" id="grid">
         <% const list = products || []; %>
-        <% const seenCoaches = new Set(); %>
-        <% const seenSports = new Set(); %>
 
         <% if (list.length === 0) { %>
           <div class="empty-state">
@@ -101,13 +100,6 @@
           const rating = (p.rating != null ? Number(p.rating).toFixed(1) : null);
           const enrolled = (p.students_enrolled != null ? Number(p.students_enrolled) : null);
 
-          const coachKey = String(coach || '').trim().toLowerCase();
-          const skipCard = (coachKey && seenCoaches.has(coachKey)) || (sportKey && seenSports.has(sportKey));
-          if (!skipCard) {
-            if (coachKey) seenCoaches.add(coachKey);
-            if (sportKey) seenSports.add(sportKey);
-          }
-
           // ---- IMAGE LOGIC (Football always uses your local file) ----
           // Your file is: public/images/football.jpg
           // Served as: /images/football.jpg
@@ -125,7 +117,6 @@
           }
         %>
 
-          <% if (!skipCard) { %>
           <article class="course-card"
             data-coach="<%= String(coach).toLowerCase() %>"
             data-sport="<%= sportKey %>"
@@ -134,13 +125,13 @@
           >
             <div class="course-card__image">
               <img src="<%= img %>" alt="<%= coach %>" />
-              <span class="course-card__sport"><%= sportName %></span>
+              <span class="course-card__sport"><%= coach %></span>
             </div>
 
             <div class="course-card__content">
               <div class="course-card__header">
                 <div>
-                  <h3 class="course-card__name"><%= coach %></h3>
+                  <h3 class="course-card__name"><%= sportName || (p.listing_title || "") %></h3>
                   <p class="course-card__level"><%= level ? (level.charAt(0).toUpperCase() + level.slice(1)) : "Not set" %> Level</p>
                 </div>
                 <% if (rating !== null) { %>
@@ -172,7 +163,6 @@
               </div>
             </div>
           </article>
-          <% } %>
 
         <% }) %>
       </section>

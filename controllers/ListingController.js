@@ -1,5 +1,5 @@
 const Listing = require('../models/Listing');
-const Course = require('../models/Course');
+const Booking = require('../models/Booking');
 
 const allowedSkillLevels = new Set(['beginner', 'intermediate', 'advanced', 'expert']);
 const normalizeSkillLevel = (value, fallback) => {
@@ -51,18 +51,40 @@ const ListingController = {
         }
         fetcher((err, rows) => (err ? reject(err) : resolve(rows || [])));
       });
-      const upcomingCount = 4;
-      const completedCount = 32;
-      const sessions = [];
-      
+      let upcomingCount = 0;
+      let completedCount = 0;
+      let sessions = [];
+      if (view === 'userdashboard' && user.role === 'user') {
+        const [stats, sessionRows] = await Promise.all([
+          new Promise((resolve, reject) => {
+            Booking.getUserDashboardStats(user.id, (err, data) => (err ? reject(err) : resolve(data)));
+          }),
+          new Promise((resolve, reject) => {
+            Booking.getUserDashboardSessions(user.id, (err, rows) => (err ? reject(err) : resolve(rows)));
+          })
+        ]);
+        upcomingCount = stats ? stats.upcomingCount : 0;
+        completedCount = stats ? stats.completedCount : 0;
+        sessions = (sessionRows || []).map((row) => ({
+          coach: row.coach_name || '',
+          date: row.session_date || null,
+          time: row.session_time || null,
+          phone: row.coach_contact || '',
+          email: row.coach_email || '',
+          sport: row.sport || '',
+          pkg: row.listing_title || row.sport || 'Session',
+          status: row.session_completed ? 'COMPLETED' : 'UPCOMING'
+        }));
+      }
+
       return res.render(view, { products, user, search, upcomingCount, completedCount, sessions });
     } catch (err) {
       console.error(err);
       req.flash('error', 'Failed to load listings');
-      const upcomingCount = 4;
-      const completedCount = 32;
+      const upcomingCount = 0;
+      const completedCount = 0;
       const sessions = [];
-      
+
       return res.render(view, { products: [], user, search, upcomingCount, completedCount, sessions });
     }
   },
@@ -148,7 +170,6 @@ const ListingController = {
       skill_level: skillLevel,
       session_location: sessionLocation || null,
       duration_minutes: durationMinutes,
-      available_slots: 1,
       price: price,
       image: (file && file.filename) || req.body.image || null,
       discount_percentage: 0,
@@ -266,7 +287,6 @@ const ListingController = {
         ? (updatedSessionLocation || null)
         : current.session_location,
       duration_minutes: durationMinutes,
-      available_slots: current.available_slots,
       price: price,
       image: updatedImage || null,
       discount_percentage: current.discount_percentage,

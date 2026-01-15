@@ -9,16 +9,17 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
 <link rel="stylesheet" href="/css/user-common.css">
 <link rel="stylesheet" href="/css/user-dashboard.css">
+<link rel="stylesheet" href="/css/admin-dashboard.css" />
 
 
 </head>
-<body>
+<body class="admin-dashboard">
   <div class="app">
 
     <!-- SIDEBAR -->
 <%- include("partials/userSidebar", {
   active: "dashboard",
-  courseCount: 3
+  courseCount: undefined
 }) %>
 
     <!-- MAIN -->
@@ -86,33 +87,40 @@
             </thead>
 
             <tbody>
-              <% 
-                const rows = sessions || [
-                  { coach:"Jamie Cooper", date:"25/12/2025", phone:"+65 6881 6433", email:"jamie@gmail.com", sport:"Badminton", pkg:"UPCOMING", status:"UPCOMING" },
-                  { coach:"Floyd Miles", date:"24/12/2025", phone:"+65 6881 6463", email:"floyd@gmail.com", sport:"Tennis", pkg:"UPCOMING", status:"UPCOMING" },
-                  { coach:"Ronald Richards", date:"18/12/2025", phone:"+65 6881 6744", email:"ronald@gmail.com", sport:"Soccer", pkg:"UPCOMING", status:"UPCOMING" },
-                  { coach:"Marvin McKinney", date:"10/12/2025", phone:"+65 6881 7553", email:"marvin@gmail.com", sport:"Soccer", pkg:"COMPLETED", status:"REVIEW" },
-                  { coach:"Jerome Bell", date:"08/12/2025", phone:"+65 6881 7922", email:"jerome@gmail.com", sport:"Volleyball", pkg:"COMPLETED", status:"REVIEW" }
-                ];
+              <%
+                const formatSessionDate = (value) =>
+                  value ? new Date(value).toLocaleDateString('en-GB') : 'TBC';
+                const formatSessionTime = (value) => (value ? String(value).slice(0, 5) : '');
+                const rows = Array.isArray(sessions) ? sessions : [];
               %>
 
-              <% rows.forEach(r => { %>
+              <% if (!rows.length) { %>
                 <tr>
-                  <td><%= r.coach %></td>
-                  <td><%= r.date %></td>
-                  <td><%= r.phone %></td>
-                  <td><%= r.email %></td>
-                  <td><%= r.sport %></td>
-                  <td><%= r.pkg %></td>
-                  <td>
-                    <% if ((r.status || "").toUpperCase() === "UPCOMING") { %>
-                      <span class="pill pill--upcoming">UPCOMING</span>
-                    <% } else { %>
-                      <span class="pill pill--review">REVIEW</span>
-                    <% } %>
-                  </td>
+                  <td colspan="7">No sessions yet.</td>
                 </tr>
-              <% }) %>
+              <% } else { %>
+                <% rows.forEach(r => { %>
+                  <tr>
+                    <td><%= r.coach || '-' %></td>
+                    <td>
+                      <% const dateLabel = formatSessionDate(r.date); %>
+                      <% const timeLabel = formatSessionTime(r.time); %>
+                      <%= timeLabel ? `${dateLabel} ${timeLabel}` : dateLabel %>
+                    </td>
+                    <td><%= r.phone || '-' %></td>
+                    <td><%= r.email || '-' %></td>
+                    <td><%= r.sport || '-' %></td>
+                    <td><%= r.pkg || '-' %></td>
+                    <td>
+                      <% if ((r.status || "").toUpperCase() === "UPCOMING") { %>
+                        <span class="pill pill--upcoming">UPCOMING</span>
+                      <% } else { %>
+                        <span class="pill pill--review">COMPLETED</span>
+                      <% } %>
+                    </td>
+                  </tr>
+                <% }) %>
+              <% } %>
             </tbody>
           </table>
         </div>

@@ -57,16 +57,37 @@ const addOrUpdateQuantity = (userId, productId, quantity) =>
     BookingCart.updateQuantity(userId, productId, quantity, (err) => (err ? reject(err) : resolve()));
   });
 
+const getListingRedirect = (productId) =>
+  Number.isFinite(productId) ? `/listingDetail/${productId}` : '/userdashboard';
+
 module.exports = {
   async addToCart(req, res) {
+    const sessionUser = req.session && req.session.user;
+    if (!sessionUser) {
+      const productId = parseInt(req.params.id, 10);
+      const quantity = parseInt(req.body.quantity, 10) || 1;
+      const sessionDate = req.body.session_date ? String(req.body.session_date).trim() : '';
+      const sessionTime = req.body.session_time ? String(req.body.session_time).trim() : '';
+      if (Number.isFinite(productId) && sessionDate && sessionTime) {
+        req.session.pendingBooking = {
+          productId,
+          quantity,
+          sessionDate,
+          sessionTime
+        };
+      }
+      req.flash('info', 'Please log in to finish booking.');
+      return req.session.save(() => res.redirect('/login'));
+    }
     if (!ensureShopperRole(req, res)) return;
     try {
       const userId = req.session.user.id;
       const productId = parseInt(req.params.id, 10);
+      const fallbackRedirect = getListingRedirect(productId);
       const qty = parseInt(req.body.quantity, 10) || 1;
       if (!Number.isFinite(qty) || qty <= 0) {
         req.flash('error', 'Quantity must be at least 1');
-        return res.redirect('/userdashboard');
+        return res.redirect(fallbackRedirect);
       }
 
       if (Number.isNaN(productId)) {
@@ -77,31 +98,17 @@ module.exports = {
       const sessionTime = req.body.session_time ? String(req.body.session_time).trim() : '';
       if (!sessionDate || !sessionTime) {
         req.flash('error', 'Please select a session date and time.');
-        return res.redirect(`/listingDetail/${productId}`);
+        return res.redirect(fallbackRedirect);
       }
 
       const product = await getProductByIdAsync(productId);
       if (!product) {
         req.flash('error', 'Listing not found');
-        return res.redirect('/userdashboard');
+        return res.redirect(fallbackRedirect);
       }
       if (product.is_active === 0 || product.is_active === '0') {
         req.flash('error', 'Listing is not available');
-        return res.redirect('/userdashboard');
-      }
-      const available = Number(product.available_slots) || 0;
-      if (available <= 0) {
-        req.flash('error', 'No session slots available');
-        return res.redirect('/userdashboard');
-      }
-
-      const cartItems = await syncCartToSession(req);
-      const existingQty =
-        cartItems.find((item) => Number(item.listing_id) === productId)?.quantity || 0;
-      const desiredQty = existingQty + qty;
-      if (desiredQty > available) {
-        req.flash('error', `Only ${available} session slots available`);
-        return res.redirect('/userdashboard');
+        return res.redirect(fallbackRedirect);
       }
 
       await new Promise((resolve, reject) => {
@@ -127,7 +134,8 @@ module.exports = {
     } catch (err) {
       console.error(err);
       req.flash('error', 'Unable to add to booking cart');
-      return res.redirect('/userdashboard');
+      const productId = parseInt(req.params.id, 10);
+      return res.redirect(getListingRedirect(productId));
     }
   },
 
@@ -171,16 +179,6 @@ module.exports = {
       const product = await getProductByIdAsync(productId);
       if (!product) {
         req.flash('error', 'Listing not found.');
-        return res.redirect('/bookingCart');
-      }
-
-      const available = Number(product.available_slots) || 0;
-      if (available <= 0) {
-        req.flash('error', 'No session slots available.');
-        return res.redirect('/bookingCart');
-      }
-      if (quantity > available) {
-        req.flash('error', `Only ${available} session slots available for ${product.listing_title}.`);
         return res.redirect('/bookingCart');
       }
 
@@ -299,9 +297,7 @@ module.exports = {
       });
     } catch (err) {
       console.error(err);
-      if (err && err.code === 'INSUFFICIENT_STOCK') {
-        req.flash('error', `Not enough slots for ${err.listing_title || 'a listing'}. Available: ${err.available}`);
-      } else if (err && err.code === 'PRODUCT_NOT_FOUND') {
+      if (err && err.code === 'PRODUCT_NOT_FOUND') {
         req.flash('error', 'One of the listings is no longer available');
       } else {
         req.flash('error', 'Unable to process booking. Please try again.');

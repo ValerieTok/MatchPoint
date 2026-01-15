@@ -68,6 +68,74 @@ const Booking = {
     db.query(sql, [userId], (err, rows) => callback(err, rows || []));
   },
 
+  getUserDashboardStats(userId, callback) {
+    const sql = `
+      SELECT
+        SUM(
+          CASE
+            WHEN bi.session_date IS NOT NULL
+              AND TIMESTAMP(bi.session_date, IFNULL(bi.session_time, '00:00:00')) <= NOW()
+            THEN 1 ELSE 0
+          END
+        ) AS completed_count,
+        SUM(
+          CASE
+            WHEN bi.session_date IS NULL
+              OR TIMESTAMP(bi.session_date, IFNULL(bi.session_time, '00:00:00')) > NOW()
+            THEN 1 ELSE 0
+          END
+        ) AS upcoming_count
+      FROM bookings b
+      JOIN booking_items bi ON bi.booking_id = b.id
+      WHERE b.user_id = ?
+    `;
+    db.query(sql, [userId], (err, rows) => {
+      if (err) return callback(err);
+      const row = rows && rows[0] ? rows[0] : {};
+      return callback(null, {
+        upcomingCount: Number(row.upcoming_count || 0),
+        completedCount: Number(row.completed_count || 0)
+      });
+    });
+  },
+
+  getUserDashboardSessions(userId, callback) {
+    const sql = `
+      SELECT
+        bi.session_date,
+        bi.session_time,
+        bi.sport,
+        bi.listing_title,
+        bi.session_location,
+        COALESCE(u.full_name, u.username) AS coach_name,
+        u.email AS coach_email,
+        u.contact AS coach_contact,
+        b.completed_at,
+        b.status AS booking_status,
+        b.created_at,
+        TIMESTAMP(bi.session_date, IFNULL(bi.session_time, '00:00:00')) AS session_at,
+        CASE
+          WHEN bi.session_date IS NOT NULL
+            AND TIMESTAMP(bi.session_date, IFNULL(bi.session_time, '00:00:00')) <= NOW()
+          THEN 1 ELSE 0
+        END AS session_completed
+      FROM bookings b
+      JOIN booking_items bi ON bi.booking_id = b.id
+      JOIN users u ON u.id = bi.coach_id
+      WHERE b.user_id = ?
+      ORDER BY
+        CASE
+          WHEN bi.session_date IS NOT NULL
+            AND TIMESTAMP(bi.session_date, IFNULL(bi.session_time, '00:00:00')) > NOW()
+          THEN 0 ELSE 1
+        END,
+        session_at DESC,
+        b.created_at DESC,
+        b.id DESC
+    `;
+    db.query(sql, [userId], (err, rows) => callback(err, rows || []));
+  },
+
   getAllOrders(searchTerm, callback) {
     let sql = `
       SELECT b.id, b.total, b.session_location, b.created_at, b.completed_at, b.status, u.username

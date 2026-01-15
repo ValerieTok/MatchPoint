@@ -117,6 +117,7 @@ app.post('/login2FA', AccountController.verifyTwoFactorLogin);
 app.get('/forgotPassword', checkAuthenticated, PasswordResetController.forgotPasswordPage);
 app.post('/forgotPassword', checkAuthenticated, PasswordResetController.requestPasswordReset);
 app.get('/logout', AccountController.logoutUser);
+app.post('/logout', AccountController.logoutUser);
 app.get('/2FASetup', checkAuthenticated, AccountController.showTwoFactorSetup);
 app.post('/2FASetup/verify-setup', checkAuthenticated, AccountController.verifyTwoFactorSetup);
 app.post('/2FASetup/disable', checkAuthenticated, AccountController.disableOwnTwoFactor);

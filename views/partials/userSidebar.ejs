@@ -8,9 +8,6 @@
     <a class="nav__item <%= active === 'courses' ? 'nav__item--active' : '' %>" href="/viewcourses">
       <i class="fa-regular fa-user"></i>
       <span>Courses</span>
-      <% if (typeof courseCount !== "undefined") { %>
-        <span class="nav__badge"><%= courseCount %></span>
-      <% } %>
     </a>
 
     <a class="nav__item <%= active === 'dashboard' ? 'nav__item--active' : '' %>" href="/userdashboard">

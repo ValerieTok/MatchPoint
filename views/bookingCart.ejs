@@ -28,7 +28,6 @@
           const sub = finalPrice * item.quantity;
           total += sub;
           if (hasDiscount) { totalSavings += (basePrice - finalPrice) * item.quantity; }
-          const stockAvailable = Number.isFinite(Number(item.available_slots)) ? Number(item.available_slots) : null;
           const sessionDateLabel = item.session_date ? new Date(item.session_date).toLocaleDateString() : 'TBC';
           const sessionTimeLabel = item.session_time ? String(item.session_time).slice(0, 5) : 'TBC';
         %>
@@ -49,12 +48,7 @@
               <% } else { %>
                 <div class="text-muted small mb-1">Rate: $<%= basePrice.toFixed(2) %></div>
               <% } %>
-              <div class="text-muted small mb-1">
-                Slots: <%= stockAvailable !== null ? stockAvailable : 'N/A' %>
-                <% if (item.duration_minutes) { %>
-                  <span class="text-muted"> • <%= item.duration_minutes %> mins</span>
-                <% } %>
-              </div>
+              <div class="text-muted small mb-1"><% if (item.duration_minutes) { %><span class="text-muted"><%= item.duration_minutes %> mins</span><% } %></div>
               <div class="text-muted small mb-1">Session: <%= sessionDateLabel %> ƒ?› <%= sessionTimeLabel %></div>
               <% if (item.offer_message) { %>
                 <div class="alert alert-info py-2 px-3 mb-2">
@@ -71,11 +65,10 @@
                   id="cart-qty-<%= item.listing_id %>"
                   name="quantity"
                   min="1"
-                  max="<%= Math.max(stockAvailable || 0, Number(item.quantity) || 1) %>"
+                  
                   value="<%= item.quantity %>"
-                  <%= stockAvailable !== null && stockAvailable <= 0 ? 'disabled' : '' %>
                   required>
-                <button type="submit" class="btn btn-sm btn-outline-primary" <%= stockAvailable !== null && stockAvailable <= 0 ? 'disabled' : '' %>>Update</button>
+                <button type="submit" class="btn btn-sm btn-outline-primary">Update</button>
               </form>
             </div>
             <div class="text-end">
@@ -115,6 +108,7 @@
   </div>
 </div>
 <%- include('partials/footer') %>
+
 
 
 
