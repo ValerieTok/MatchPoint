@@ -32,9 +32,9 @@ const ListingController = {
         if (view === 'viewcourses') {
           fetcher = (cb) => {
             if (search) {
-              return Course.searchCourses(search, cb);
+              return Listing.searchListings(search, { activeOnly: true }, cb);
             }
-            return Course.getActiveCourses(cb);
+            return Listing.getActiveProducts(cb);
           };
         } else if (search) {
           const options = {

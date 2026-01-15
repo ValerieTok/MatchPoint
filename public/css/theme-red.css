@@ -1,0 +1,15 @@
+:root {
+  --bs-primary: #ef4444;
+  --bs-primary-rgb: 239, 68, 68;
+  --bs-link-color: #ef4444;
+  --bs-link-hover-color: #dc2626;
+  --bs-danger: #dc2626;
+  --bs-danger-rgb: 220, 38, 38;
+  --bs-success: #22c55e;
+  --bs-warning: #f59e0b;
+  --bs-body-font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+}
+
+body {
+  font-family: var(--bs-body-font-family);
+}
