@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Admin Coaches - MatchPoint</title>
-    <link rel="stylesheet" href="/css/admin-coaches.css" />
+    <title>Admin Students - MatchPoint</title>
+    <link rel="stylesheet" href="/css/admin-students.css" />
   </head>
-  <body class="admin-coaches">
+  <body class="admin-students">
     <div class="admin-shell">
       <aside class="sidebar">
         <div class="brand">
@@ -15,8 +15,8 @@
         </div>
         <nav class="nav">
           <a href="/admindashboard"><span class="dot"></span>Overview</a>
-          <a class="active" href="/admincoaches"><span class="dot"></span>Coaches</a>
-          <a href="/adminstudents"><span class="dot"></span>Students</a>
+          <a href="/admincoaches"><span class="dot"></span>Coaches</a>
+          <a class="active" href="/adminstudents"><span class="dot"></span>Students</a>
           <a href="/adminservices"><span class="dot"></span>Services</a>
           <a href="/adminfeedback"><span class="dot"></span>Feedback</a>
         </nav>
@@ -28,22 +28,22 @@
             <h1>
               Hello <%= user?.username || (user?.email ? user.email.split('@')[0] : 'Admin') %>,
             </h1>
-            <p>Review coach performance and session history.</p>
+            <p>Monitor student activity and session history.</p>
           </div>
-          <div class="welcome-badge">Admin Coaches</div>
+          <div class="welcome-badge">Admin Students</div>
         </section>
 
         <% const safeStats = stats || {}; %>
         <section class="stats">
           <div class="stat-card">
-            <div class="stat-icon">C</div>
+            <div class="stat-icon">S</div>
             <div>
-              <span>Total Coaches</span>
-              <h3><%= (safeStats.totalCoaches || 0).toLocaleString('en-US') %></h3>
+              <span>Total Students</span>
+              <h3><%= (safeStats.totalStudents || 0).toLocaleString('en-US') %></h3>
             </div>
           </div>
           <div class="stat-card">
-            <div class="stat-icon">S</div>
+            <div class="stat-icon">C</div>
             <div>
               <span>Total Completed Sessions</span>
               <h3><%= (safeStats.completedSessions || 0).toLocaleString('en-US') %></h3>
@@ -52,9 +52,9 @@
         </section>
 
         <section class="activity">
-          <% const rows = Array.isArray(coaches) ? coaches : []; %>
+          <% const rows = Array.isArray(students) ? students : []; %>
           <% const activeFilters = filters || {}; %>
-          <% const pager = pagination || { page: 1, perPage: 8, totalCoaches: rows.length, totalPages: 1 }; %>
+          <% const pager = pagination || { page: 1, perPage: 8, totalStudents: rows.length, totalPages: 1 }; %>
           <% const buildQuery = (pageNum) => { %>
             <% const params = []; %>
             <% if (activeFilters.search) params.push(`search=${encodeURIComponent(activeFilters.search)}`); %>
@@ -64,10 +64,10 @@
           <% }; %>
 
           <div class="activity-head">
-            <h2>All Coaches</h2>
+            <h2>All Students</h2>
             <div class="activity-tools">
-              <input class="input" id="coachSearch" type="search" placeholder="Search" value="<%= activeFilters.search || '' %>" />
-              <select class="select" id="coachSort">
+              <input class="input" id="studentSearch" type="search" placeholder="Search" value="<%= activeFilters.search || '' %>" />
+              <select class="select" id="studentSort">
                 <option value="newest" <%= activeFilters.sort !== 'oldest' ? 'selected' : '' %>>Sort by: Newest</option>
                 <option value="oldest" <%= activeFilters.sort === 'oldest' ? 'selected' : '' %>>Sort by: Oldest</option>
               </select>
@@ -77,34 +77,33 @@
           <table>
             <thead>
               <tr>
-                <th>Coach Name</th>
-                <th>Sport</th>
+                <th>User</th>
+                <th>Join Date</th>
                 <th>Sessions</th>
-                <th>Rating</th>
+                <th>Status</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               <% if (!rows.length) { %>
                 <tr>
-                  <td colspan="5">No coaches found.</td>
+                  <td colspan="5">No students found.</td>
                 </tr>
               <% } else { %>
                 <% rows.forEach(row => { %>
                   <tr>
                     <td><%= row.username %></td>
-                    <td><%= row.sport || row.contact || '-' %></td>
+                    <td>
+                      <% const joinDate = row.created_at ? new Date(row.created_at) : null; %>
+                      <%= joinDate && !Number.isNaN(joinDate.getTime()) ? joinDate.toLocaleDateString('en-GB') : '-' %>
+                    </td>
                     <td><%= Number(row.sessions || 0).toLocaleString('en-US') %></td>
                     <td>
-                      <% if (row.rating) { %>
-                        <span class="rating">&#9733; <%= row.rating %></span>
-                      <% } else { %>
-                        <span class="rating muted">No reviews</span>
-                      <% } %>
+                      <span class="status <%= row.status %>"><%= row.status.toUpperCase() %></span>
                     </td>
                     <td class="actions">
                       <button class="btn warn" type="button">Issue Warning</button>
-                      <button class="btn danger" type="button">Ban Coach</button>
+                      <button class="btn danger" type="button">Ban User</button>
                     </td>
                   </tr>
                 <% }) %>
@@ -113,19 +112,19 @@
           </table>
 
           <div class="pager">
-            <% const startIndex = pager.totalCoaches ? ((pager.page - 1) * pager.perPage + 1) : 0; %>
-            <% const endIndex = Math.min(pager.page * pager.perPage, pager.totalCoaches || 0); %>
-            <div>Showing <%= startIndex %> to <%= endIndex %> of <%= pager.totalCoaches %> coaches</div>
+            <% const startIndex = pager.totalStudents ? ((pager.page - 1) * pager.perPage + 1) : 0; %>
+            <% const endIndex = Math.min(pager.page * pager.perPage, pager.totalStudents || 0); %>
+            <div>Showing <%= startIndex %> to <%= endIndex %> of <%= pager.totalStudents %> students</div>
             <div class="pages">
               <% if (pager.totalPages > 1) { %>
                 <% if (pager.page > 1) { %>
-                  <a class="page" href="/admincoaches?<%= buildQuery(pager.page - 1) %>">&lt;</a>
+                  <a class="page" href="/adminstudents?<%= buildQuery(pager.page - 1) %>">&lt;</a>
                 <% } %>
                 <% for (let p = 1; p <= pager.totalPages; p += 1) { %>
-                  <a class="page <%= p === pager.page ? 'active' : '' %>" href="/admincoaches?<%= buildQuery(p) %>"><%= p %></a>
+                  <a class="page <%= p === pager.page ? 'active' : '' %>" href="/adminstudents?<%= buildQuery(p) %>"><%= p %></a>
                 <% } %>
                 <% if (pager.page < pager.totalPages) { %>
-                  <a class="page" href="/admincoaches?<%= buildQuery(pager.page + 1) %>">&gt;</a>
+                  <a class="page" href="/adminstudents?<%= buildQuery(pager.page + 1) %>">&gt;</a>
                 <% } %>
               <% } else { %>
                 <div class="page active">1</div>
@@ -136,8 +135,8 @@
       </main>
     </div>
     <script>
-      const search = document.getElementById('coachSearch');
-      const sort = document.getElementById('coachSort');
+      const search = document.getElementById('studentSearch');
+      const sort = document.getElementById('studentSort');
 
       const buildUrl = (params) => {
         const url = new URL(window.location.href);

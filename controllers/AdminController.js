@@ -1,5 +1,8 @@
 const AdminDashboard = require('../models/AdminDashboard');
 const AdminCoaches = require('../models/AdminCoaches');
+const AdminStudents = require('../models/AdminStudents');
+const AdminServices = require('../models/AdminServices');
+const AdminFeedback = require('../models/AdminFeedback');
 
 const formatTimeAgo = (input) => {
   const date = new Date(input);
@@ -113,6 +116,191 @@ const AdminController = {
       req.flash('error', 'Failed to load coaches.');
       return res.redirect('/admindashboard');
     }
+  },
+  students: async function (req, res) {
+    try {
+      const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+      const perPage = 8;
+      const sort = req.query.sort === 'oldest' ? 'oldest' : 'newest';
+      const search = req.query.search ? String(req.query.search) : '';
+
+      const [stats, studentResult] = await Promise.all([
+        new Promise((resolve, reject) => {
+          AdminStudents.getStats((err, data) => (err ? reject(err) : resolve(data)));
+        }),
+        new Promise((resolve, reject) => {
+          AdminStudents.getStudents({
+            limit: perPage,
+            offset: (page - 1) * perPage,
+            sort,
+            search
+          }, (err, result) => (err ? reject(err) : resolve(result)));
+        })
+      ]);
+
+      const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+      const students = (studentResult.rows || []).map((row) => {
+        const last = row.last_booking ? new Date(row.last_booking).getTime() : 0;
+        return {
+          ...row,
+          status: last && last >= cutoff ? 'active' : 'inactive'
+        };
+      });
+
+      const totalStudents = Number(studentResult.total || 0);
+      const totalPages = Math.max(1, Math.ceil(totalStudents / perPage));
+
+      return res.render('adminstudents', {
+        user: req.session.user,
+        messages: res.locals.messages,
+        stats,
+        students,
+        filters: { search, sort },
+        pagination: {
+          page,
+          perPage,
+          totalStudents,
+          totalPages
+        }
+      });
+    } catch (err) {
+      console.error(err);
+      req.flash('error', 'Failed to load students.');
+      return res.redirect('/admindashboard');
+    }
+  },
+
+  services: async function (req, res) {
+    try {
+      const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+      const perPage = 8;
+      const sort = req.query.sort === 'oldest' ? 'oldest' : 'newest';
+      const search = req.query.search ? String(req.query.search) : '';
+
+      const [stats, serviceResult] = await Promise.all([
+        new Promise((resolve, reject) => {
+          AdminServices.getStats((err, data) => (err ? reject(err) : resolve(data)));
+        }),
+        new Promise((resolve, reject) => {
+          AdminServices.getServices({
+            limit: perPage,
+            offset: (page - 1) * perPage,
+            sort,
+            search
+          }, (err, result) => (err ? reject(err) : resolve(result)));
+        })
+      ]);
+
+      const totalServices = Number(serviceResult.total || 0);
+      const totalPages = Math.max(1, Math.ceil(totalServices / perPage));
+
+      return res.render('adminservices', {
+        user: req.session.user,
+        messages: res.locals.messages,
+        stats,
+        services: serviceResult.rows || [],
+        filters: { search, sort },
+        pagination: {
+          page,
+          perPage,
+          totalServices,
+          totalPages
+        }
+      });
+    } catch (err) {
+      console.error(err);
+      req.flash('error', 'Failed to load services.');
+      return res.redirect('/admindashboard');
+    }
+  },
+
+  toggleService: async function (req, res) {
+    try {
+      const id = req.params.id;
+      const isActive = req.body && req.body.is_active === '1';
+      await new Promise((resolve, reject) => {
+        AdminServices.setServiceActive(id, isActive, (err) => (err ? reject(err) : resolve()));
+      });
+      req.flash('success', 'Service updated.');
+    } catch (err) {
+      console.error(err);
+      req.flash('error', 'Failed to update service.');
+    }
+    return res.redirect('/adminservices');
+  },
+
+  feedback: async function (req, res) {
+    try {
+      const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+      const perPage = 6;
+      const sort = req.query.sort || 'newest';
+      const status = req.query.status ? String(req.query.status) : '';
+      const search = req.query.search ? String(req.query.search) : '';
+
+      const [stats, feedbackResult] = await Promise.all([
+        new Promise((resolve, reject) => {
+          AdminFeedback.getStats((err, data) => (err ? reject(err) : resolve(data)));
+        }),
+        new Promise((resolve, reject) => {
+          AdminFeedback.getFeedback({
+            limit: perPage,
+            offset: (page - 1) * perPage,
+            sort,
+            status,
+            search
+          }, (err, result) => (err ? reject(err) : resolve(result)));
+        })
+      ]);
+
+      const totalReviews = Number(feedbackResult.total || 0);
+      const totalPages = Math.max(1, Math.ceil(totalReviews / perPage));
+
+      return res.render('adminfeedback', {
+        user: req.session.user,
+        messages: res.locals.messages,
+        stats,
+        feedback: feedbackResult.rows || [],
+        filters: { search, sort, status },
+        pagination: {
+          page,
+          perPage,
+          totalReviews,
+          totalPages
+        }
+      });
+    } catch (err) {
+      console.error(err);
+      req.flash('error', 'Failed to load feedback.');
+      return res.redirect('/admindashboard');
+    }
+  },
+
+  approveFeedback: async function (req, res) {
+    try {
+      const id = req.params.id;
+      await new Promise((resolve, reject) => {
+        AdminFeedback.updateStatus(id, 'approved', (err) => (err ? reject(err) : resolve()));
+      });
+      req.flash('success', 'Feedback approved.');
+    } catch (err) {
+      console.error(err);
+      req.flash('error', 'Failed to update feedback.');
+    }
+    return res.redirect('/adminfeedback');
+  },
+
+  rejectFeedback: async function (req, res) {
+    try {
+      const id = req.params.id;
+      await new Promise((resolve, reject) => {
+        AdminFeedback.updateStatus(id, 'rejected', (err) => (err ? reject(err) : resolve()));
+      });
+      req.flash('success', 'Feedback rejected.');
+    } catch (err) {
+      console.error(err);
+      req.flash('error', 'Failed to update feedback.');
+    }
+    return res.redirect('/adminfeedback');
   }
 };
 

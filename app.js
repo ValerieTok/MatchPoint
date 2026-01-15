@@ -108,6 +108,12 @@ app.get('/listingDetail/:id', checkAuthenticated, ListingController.getProductBy
 // Admin/coach listing pages
 app.get('/admindashboard', checkAuthenticated, checkAdmin, AdminController.dashboard);
 app.get('/admincoaches', checkAuthenticated, checkAdmin, AdminController.coaches);
+app.get('/adminstudents', checkAuthenticated, checkAdmin, AdminController.students);
+app.get('/adminservices', checkAuthenticated, checkAdmin, AdminController.services);
+app.post('/adminservices/:id/toggle', checkAuthenticated, checkAdmin, AdminController.toggleService);
+app.get('/adminfeedback', checkAuthenticated, checkAdmin, AdminController.feedback);
+app.post('/adminfeedback/:id/approve', checkAuthenticated, checkAdmin, AdminController.approveFeedback);
+app.post('/adminfeedback/:id/reject', checkAuthenticated, checkAdmin, AdminController.rejectFeedback);
 app.get('/listingsManage', checkAuthenticated, checkAdmin, ListingController.listAllProducts);
 app.get('/addListing', checkAuthenticated, checkAdmin, ListingController.showAddProductPage);
 app.get('/updateListing/:id', checkAuthenticated, checkAdmin, ListingController.showUpdateProductPage);
