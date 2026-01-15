@@ -4,47 +4,53 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Admin Services - MatchPoint</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link rel="stylesheet" href="/css/user-common.css" />
+    <link rel="stylesheet" href="/css/user-dashboard.css" />
     <link rel="stylesheet" href="/css/admin-services.css" />
   </head>
   <body class="admin-services">
-    <div class="admin-shell">
+    <div class="app">
       <aside class="sidebar">
         <div class="brand">
-          <div class="brand-mark"><span></span></div>
-          <div>MatchPoint</div>
+          <div class="brand__dot"><i class="fa-solid fa-bullseye"></i></div>
+          <div class="brand__name">MatchPoint</div>
         </div>
         <nav class="nav">
-          <a href="/admindashboard"><span class="dot"></span>Overview</a>
-          <a href="/admincoaches"><span class="dot"></span>Coaches</a>
-          <a href="/adminstudents"><span class="dot"></span>Students</a>
-          <a class="active" href="/adminservices"><span class="dot"></span>Services</a>
-          <a href="/adminfeedback"><span class="dot"></span>Feedback</a>
+          <a class="nav__item" href="/admindashboard"><i class="fa-regular fa-chart-bar"></i>Overview</a>
+          <a class="nav__item" href="/admincoaches"><i class="fa-solid fa-user-tie"></i>Coaches</a>
+          <a class="nav__item" href="/adminstudents"><i class="fa-solid fa-user-group"></i>Students</a>
+          <a class="nav__item nav__item--active" href="/adminservices"><i class="fa-solid fa-layer-group"></i>Services</a>
+          <a class="nav__item" href="/adminfeedback"><i class="fa-regular fa-message"></i>Feedback</a>
         </nav>
       </aside>
 
       <main class="main">
-        <section class="welcome">
-          <div>
-            <h1>
-              Hello <%= user?.username || (user?.email ? user.email.split('@')[0] : 'Admin') %>,
-            </h1>
-            <p>Review and manage active coaching services.</p>
-          </div>
-          <div class="welcome-badge">Admin Services</div>
-        </section>
+        <header class="topbar">
+          <div class="crumb">ADMIN SERVICES</div>
+          <div class="topbar__pill"><i class="fa-solid fa-layer-group"></i></div>
+        </header>
 
         <% const safeStats = stats || {}; %>
-        <section class="stats">
-          <div class="stat-card">
-            <div class="stat-icon">S</div>
-            <div>
-              <span>Total Services</span>
-              <h3><%= (safeStats.totalServices || 0).toLocaleString('en-US') %></h3>
+        <section class="hero">
+          <div class="hero__left">
+            <h1>
+              Hello <span class="hero__name"><%= user?.username || (user?.email ? user.email.split('@')[0] : 'Admin') %></span>
+              <span class="wave">👋</span>,
+            </h1>
+            <div class="stats">
+              <div class="stat">
+                <div class="stat__icon"><i class="fa-solid fa-layer-group"></i></div>
+                <div class="stat__meta">
+                  <div class="stat__label">Total Services</div>
+                  <div class="stat__value"><%= (safeStats.totalServices || 0).toLocaleString('en-US') %></div>
+                </div>
+              </div>
             </div>
           </div>
         </section>
 
-        <section class="activity">
+        <section class="card">
           <% const rows = Array.isArray(services) ? services : []; %>
           <% const activeFilters = filters || {}; %>
           <% const pager = pagination || { page: 1, perPage: 8, totalServices: rows.length, totalPages: 1 }; %>
@@ -56,74 +62,82 @@
             <% return params.join('&'); %>
           <% }; %>
 
-          <div class="activity-head">
-            <h2>All Services</h2>
-            <div class="activity-tools">
-              <input class="input" id="serviceSearch" type="search" placeholder="Search" value="<%= activeFilters.search || '' %>" />
-              <select class="select" id="serviceSort">
-                <option value="newest" <%= activeFilters.sort !== 'oldest' ? 'selected' : '' %>>Sort by: Newest</option>
-                <option value="oldest" <%= activeFilters.sort === 'oldest' ? 'selected' : '' %>>Sort by: Oldest</option>
-              </select>
+          <div class="card__head">
+            <div class="card__title">All Services</div>
+            <div class="card__tools">
+              <div class="search">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input id="serviceSearch" type="search" placeholder="Search" value="<%= activeFilters.search || '' %>" />
+              </div>
+              <div class="sort">
+                <span class="sort__label">SORT BY:</span>
+                <select class="sort__btn" id="serviceSort">
+                  <option value="newest" <%= activeFilters.sort !== 'oldest' ? 'selected' : '' %>>Newest</option>
+                  <option value="oldest" <%= activeFilters.sort === 'oldest' ? 'selected' : '' %>>Oldest</option>
+                </select>
+              </div>
             </div>
           </div>
 
-          <table>
-            <thead>
-              <tr>
-                <th>Sport</th>
-                <th>Duration per Session</th>
-                <th>Price per Session</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <% if (!rows.length) { %>
+          <div class="tableWrap">
+            <table class="table">
+              <thead>
                 <tr>
-                  <td colspan="5">No services found.</td>
+                  <th>Sport</th>
+                  <th>Duration per Session</th>
+                  <th>Price per Session</th>
+                  <th>Status</th>
+                  <th>Actions</th>
                 </tr>
-              <% } else { %>
-                <% rows.forEach(row => { %>
+              </thead>
+              <tbody>
+                <% if (!rows.length) { %>
                   <tr>
-                    <td><%= row.sport || row.listing_title || 'Service' %></td>
-                    <td><%= row.duration_minutes ? `${row.duration_minutes} minutes` : '-' %></td>
-                    <td><%= Number(row.price || 0).toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }) %></td>
-                    <td>
-                      <span class="status <%= row.is_active ? 'active' : 'inactive' %>">
-                        <%= row.is_active ? 'ACTIVE' : 'INACTIVE' %>
-                      </span>
-                    </td>
-                    <td class="actions">
-                      <form method="post" action="/adminservices/<%= row.id %>/toggle">
-                        <input type="hidden" name="is_active" value="<%= row.is_active ? 0 : 1 %>">
-                        <button class="btn danger" type="submit">
-                          <%= row.is_active ? 'Remove Service' : 'Activate Service' %>
-                        </button>
-                      </form>
-                    </td>
+                    <td colspan="5">No services found.</td>
                   </tr>
-                <% }) %>
-              <% } %>
-            </tbody>
-          </table>
+                <% } else { %>
+                  <% rows.forEach(row => { %>
+                    <tr>
+                      <td><%= row.sport || row.listing_title || 'Service' %></td>
+                      <td><%= row.duration_minutes ? `${row.duration_minutes} minutes` : '-' %></td>
+                      <td><%= Number(row.price || 0).toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }) %></td>
+                      <td>
+                        <span class="pill pill--<%= row.is_active ? 'active' : 'inactive' %>">
+                          <%= row.is_active ? 'ACTIVE' : 'INACTIVE' %>
+                        </span>
+                      </td>
+                      <td class="actions">
+                        <form method="post" action="/adminservices/<%= row.id %>/toggle">
+                          <input type="hidden" name="is_active" value="<%= row.is_active ? 0 : 1 %>">
+                          <button class="btn danger" type="submit">
+                            <%= row.is_active ? 'Remove Service' : 'Activate Service' %>
+                          </button>
+                        </form>
+                      </td>
+                    </tr>
+                  <% }) %>
+                <% } %>
+              </tbody>
+            </table>
+          </div>
 
-          <div class="pager">
+          <div class="card__foot">
             <% const startIndex = pager.totalServices ? ((pager.page - 1) * pager.perPage + 1) : 0; %>
             <% const endIndex = Math.min(pager.page * pager.perPage, pager.totalServices || 0); %>
-            <div>Showing <%= startIndex %> to <%= endIndex %> of <%= pager.totalServices %> services</div>
-            <div class="pages">
+            <div class="hint">Showing <%= startIndex %> to <%= endIndex %> of <%= pager.totalServices %> services</div>
+            <div class="pager">
               <% if (pager.totalPages > 1) { %>
                 <% if (pager.page > 1) { %>
-                  <a class="page" href="/adminservices?<%= buildQuery(pager.page - 1) %>">&lt;</a>
+                  <a class="pager__btn" href="/adminservices?<%= buildQuery(pager.page - 1) %>"><i class="fa-solid fa-chevron-left"></i></a>
                 <% } %>
                 <% for (let p = 1; p <= pager.totalPages; p += 1) { %>
-                  <a class="page <%= p === pager.page ? 'active' : '' %>" href="/adminservices?<%= buildQuery(p) %>"><%= p %></a>
+                  <a class="pager__num <%= p === pager.page ? 'pager__num--active' : '' %>" href="/adminservices?<%= buildQuery(p) %>"><%= p %></a>
                 <% } %>
                 <% if (pager.page < pager.totalPages) { %>
-                  <a class="page" href="/adminservices?<%= buildQuery(pager.page + 1) %>">&gt;</a>
+                  <a class="pager__btn" href="/adminservices?<%= buildQuery(pager.page + 1) %>"><i class="fa-solid fa-chevron-right"></i></a>
                 <% } %>
               <% } else { %>
-                <div class="page active">1</div>
+                <span class="pager__num pager__num--active">1</span>
               <% } %>
             </div>
           </div>

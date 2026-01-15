@@ -4,54 +4,60 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Admin Feedback - MatchPoint</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link rel="stylesheet" href="/css/user-common.css" />
+    <link rel="stylesheet" href="/css/user-dashboard.css" />
     <link rel="stylesheet" href="/css/admin-feedback.css" />
   </head>
   <body class="admin-feedback">
-    <div class="admin-shell">
+    <div class="app">
       <aside class="sidebar">
         <div class="brand">
-          <div class="brand-mark"><span></span></div>
-          <div>MatchPoint</div>
+          <div class="brand__dot"><i class="fa-solid fa-bullseye"></i></div>
+          <div class="brand__name">MatchPoint</div>
         </div>
         <nav class="nav">
-          <a href="/admindashboard"><span class="dot"></span>Overview</a>
-          <a href="/admincoaches"><span class="dot"></span>Coaches</a>
-          <a href="/adminstudents"><span class="dot"></span>Students</a>
-          <a href="/adminservices"><span class="dot"></span>Services</a>
-          <a class="active" href="/adminfeedback"><span class="dot"></span>Feedback</a>
+          <a class="nav__item" href="/admindashboard"><i class="fa-regular fa-chart-bar"></i>Overview</a>
+          <a class="nav__item" href="/admincoaches"><i class="fa-solid fa-user-tie"></i>Coaches</a>
+          <a class="nav__item" href="/adminstudents"><i class="fa-solid fa-user-group"></i>Students</a>
+          <a class="nav__item" href="/adminservices"><i class="fa-solid fa-layer-group"></i>Services</a>
+          <a class="nav__item nav__item--active" href="/adminfeedback"><i class="fa-regular fa-message"></i>Feedback</a>
         </nav>
       </aside>
 
       <main class="main">
-        <section class="welcome">
-          <div>
-            <h1>
-              Hello <%= user?.username || (user?.email ? user.email.split('@')[0] : 'Admin') %>,
-            </h1>
-            <p>Review and approve student feedback.</p>
-          </div>
-          <div class="welcome-badge">Admin Feedback</div>
-        </section>
+        <header class="topbar">
+          <div class="crumb">ADMIN FEEDBACK</div>
+          <div class="topbar__pill"><i class="fa-regular fa-message"></i></div>
+        </header>
 
         <% const safeStats = stats || {}; %>
-        <section class="stats">
-          <div class="stat-card">
-            <div class="stat-icon">S</div>
-            <div>
-              <span>Total Students</span>
-              <h3><%= (safeStats.totalStudents || 0).toLocaleString('en-US') %></h3>
-            </div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-icon">C</div>
-            <div>
-              <span>Total Coaches</span>
-              <h3><%= (safeStats.totalCoaches || 0).toLocaleString('en-US') %></h3>
+        <section class="hero">
+          <div class="hero__left">
+            <h1>
+              Hello <span class="hero__name"><%= user?.username || (user?.email ? user.email.split('@')[0] : 'Admin') %></span>
+              <span class="wave">👋</span>,
+            </h1>
+            <div class="stats">
+              <div class="stat">
+                <div class="stat__icon"><i class="fa-solid fa-user-group"></i></div>
+                <div class="stat__meta">
+                  <div class="stat__label">Total Students</div>
+                  <div class="stat__value"><%= (safeStats.totalStudents || 0).toLocaleString('en-US') %></div>
+                </div>
+              </div>
+              <div class="stat">
+                <div class="stat__icon"><i class="fa-solid fa-user-tie"></i></div>
+                <div class="stat__meta">
+                  <div class="stat__label">Total Coaches</div>
+                  <div class="stat__value"><%= (safeStats.totalCoaches || 0).toLocaleString('en-US') %></div>
+                </div>
+              </div>
             </div>
           </div>
         </section>
 
-        <section class="feedback">
+        <section class="card feedback-card">
           <% const rows = Array.isArray(feedback) ? feedback : []; %>
           <% const activeFilters = filters || {}; %>
           <% const pager = pagination || { page: 1, perPage: 6, totalReviews: rows.length, totalPages: 1 }; %>
@@ -64,57 +70,65 @@
             <% return params.join('&'); %>
           <% }; %>
 
-          <div class="feedback-head">
-            <h2>Recent Feedback</h2>
-            <div class="feedback-tools">
-              <input class="input" id="feedbackSearch" type="search" placeholder="Search" value="<%= activeFilters.search || '' %>" />
-              <select class="select" id="feedbackStatus">
-                <option value="">Status: All</option>
-                <option value="pending" <%= activeFilters.status === 'pending' ? 'selected' : '' %>>Pending</option>
-                <option value="approved" <%= activeFilters.status === 'approved' ? 'selected' : '' %>>Approved</option>
-                <option value="rejected" <%= activeFilters.status === 'rejected' ? 'selected' : '' %>>Rejected</option>
-              </select>
-              <select class="select" id="feedbackSort">
-                <option value="newest" <%= activeFilters.sort !== 'oldest' && activeFilters.sort !== 'highest' && activeFilters.sort !== 'lowest' ? 'selected' : '' %>>Sort: Newest</option>
-                <option value="oldest" <%= activeFilters.sort === 'oldest' ? 'selected' : '' %>>Sort: Oldest</option>
-                <option value="highest" <%= activeFilters.sort === 'highest' ? 'selected' : '' %>>Highest to Lowest</option>
-                <option value="lowest" <%= activeFilters.sort === 'lowest' ? 'selected' : '' %>>Lowest to Highest</option>
-              </select>
+          <div class="card__head">
+            <div class="card__title">Recent Feedback</div>
+            <div class="card__tools">
+              <div class="search">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input id="feedbackSearch" type="search" placeholder="Search" value="<%= activeFilters.search || '' %>" />
+              </div>
+              <div class="sort">
+                <span class="sort__label">STATUS:</span>
+                <select class="sort__btn" id="feedbackStatus">
+                  <option value="">All</option>
+                  <option value="pending" <%= activeFilters.status === 'pending' ? 'selected' : '' %>>Pending</option>
+                  <option value="approved" <%= activeFilters.status === 'approved' ? 'selected' : '' %>>Approved</option>
+                  <option value="rejected" <%= activeFilters.status === 'rejected' ? 'selected' : '' %>>Rejected</option>
+                </select>
+              </div>
+              <div class="sort">
+                <span class="sort__label">SORT BY:</span>
+                <select class="sort__btn" id="feedbackSort">
+                  <option value="newest" <%= activeFilters.sort !== 'oldest' && activeFilters.sort !== 'highest' && activeFilters.sort !== 'lowest' ? 'selected' : '' %>>Newest</option>
+                  <option value="oldest" <%= activeFilters.sort === 'oldest' ? 'selected' : '' %>>Oldest</option>
+                  <option value="highest" <%= activeFilters.sort === 'highest' ? 'selected' : '' %>>Highest</option>
+                  <option value="lowest" <%= activeFilters.sort === 'lowest' ? 'selected' : '' %>>Lowest</option>
+                </select>
+              </div>
             </div>
           </div>
 
           <% if (!rows.length) { %>
-            <div class="empty">No feedback found.</div>
+            <div class="feedback-empty">No feedback found.</div>
           <% } else { %>
             <div class="feedback-grid">
               <% rows.forEach(row => { %>
-                <article class="feedback-card">
+                <article class="feedback-item">
                   <div class="feedback-meta">
-                    <div>
-                      <div class="from">From: <strong><%= row.student_name %></strong> (User)</div>
-                      <div class="to">To: <strong><%= row.coach_name || 'Coach' %></strong></div>
+                    <div class="feedback-from">
+                      From: <strong><%= row.student_name %></strong> (User)
                     </div>
-                    <div class="session">
-                      <div class="session-title"><%= row.listing_title || 'Coaching Session' %></div>
-                      <div class="session-date">
-                        <% const createdDate = row.created_at ? new Date(row.created_at) : null; %>
-                        <%= createdDate && !Number.isNaN(createdDate.getTime()) ? createdDate.toLocaleDateString('en-GB', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' }) : '' %>
-                      </div>
+                    <div class="feedback-to">
+                      To: <strong><%= row.coach_name || 'Coach' %></strong>
                     </div>
                   </div>
-
-                  <div class="rating">
+                  <div class="feedback-session">
+                    <div class="feedback-title"><%= row.listing_title || 'Coaching Session' %></div>
+                    <div class="feedback-date">
+                      <% const createdDate = row.created_at ? new Date(row.created_at) : null; %>
+                      <%= createdDate && !Number.isNaN(createdDate.getTime()) ? createdDate.toLocaleDateString('en-GB', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' }) : '' %>
+                    </div>
+                  </div>
+                  <div class="feedback-rating">
                     <% const rating = Math.round(Number(row.rating || 0)); %>
                     <% for (let i = 1; i <= 5; i += 1) { %>
-                      <span class="<%= i <= rating ? 'star filled' : 'star' %>">&#9733;</span>
+                      <span class="star <%= i <= rating ? 'filled' : '' %>">&#9733;</span>
                     <% } %>
                     <span class="score"><%= Number(row.rating || 0).toFixed(1) %></span>
                   </div>
-
-                  <p class="comment"><%= row.comment || 'No comment provided.' %></p>
-
+                  <p class="feedback-comment"><%= row.comment || 'No comment provided.' %></p>
                   <div class="feedback-actions">
-                    <span class="status <%= row.review_status %>"><%= String(row.review_status || 'pending').toUpperCase() %></span>
+                    <span class="pill pill--<%= row.review_status %>"><%= String(row.review_status || 'pending').toUpperCase() %></span>
                     <div class="buttons">
                       <form method="post" action="/adminfeedback/<%= row.id %>/approve">
                         <button class="btn approve" type="submit">Approve</button>
@@ -129,23 +143,23 @@
             </div>
           <% } %>
 
-          <div class="pager">
+          <div class="card__foot">
             <% const startIndex = pager.totalReviews ? ((pager.page - 1) * pager.perPage + 1) : 0; %>
             <% const endIndex = Math.min(pager.page * pager.perPage, pager.totalReviews || 0); %>
-            <div>Showing <%= startIndex %> to <%= endIndex %> of <%= pager.totalReviews %> reviews</div>
-            <div class="pages">
+            <div class="hint">Showing <%= startIndex %> to <%= endIndex %> of <%= pager.totalReviews %> reviews</div>
+            <div class="pager">
               <% if (pager.totalPages > 1) { %>
                 <% if (pager.page > 1) { %>
-                  <a class="page" href="/adminfeedback?<%= buildQuery(pager.page - 1) %>">&lt;</a>
+                  <a class="pager__btn" href="/adminfeedback?<%= buildQuery(pager.page - 1) %>"><i class="fa-solid fa-chevron-left"></i></a>
                 <% } %>
                 <% for (let p = 1; p <= pager.totalPages; p += 1) { %>
-                  <a class="page <%= p === pager.page ? 'active' : '' %>" href="/adminfeedback?<%= buildQuery(p) %>"><%= p %></a>
+                  <a class="pager__num <%= p === pager.page ? 'pager__num--active' : '' %>" href="/adminfeedback?<%= buildQuery(p) %>"><%= p %></a>
                 <% } %>
                 <% if (pager.page < pager.totalPages) { %>
-                  <a class="page" href="/adminfeedback?<%= buildQuery(pager.page + 1) %>">&gt;</a>
+                  <a class="pager__btn" href="/adminfeedback?<%= buildQuery(pager.page + 1) %>"><i class="fa-solid fa-chevron-right"></i></a>
                 <% } %>
               <% } else { %>
-                <div class="page active">1</div>
+                <span class="pager__num pager__num--active">1</span>
               <% } %>
             </div>
           </div>
