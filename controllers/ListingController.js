@@ -107,6 +107,13 @@ const ListingController = {
     const listingTitle = req.body.listing_title ? String(req.body.listing_title).trim() : '';
     const description = req.body.description ? String(req.body.description).trim() : '';
     const durationMinutes = req.body.duration_minutes ? Number(req.body.duration_minutes) : null;
+    const price = req.body.price !== undefined && req.body.price !== ''
+      ? Number(req.body.price)
+      : null;
+    const isActiveRaw = typeof req.body.is_active !== 'undefined'
+      ? String(req.body.is_active).trim()
+      : '1';
+    const isActive = isActiveRaw === '0' ? 0 : isActiveRaw === '1' ? 1 : null;
     if (!description) {
       req.flash('error', 'Description is required');
       return res.redirect('/addListing');
@@ -117,6 +124,14 @@ const ListingController = {
     }
     if (!Number.isFinite(durationMinutes) || durationMinutes <= 0) {
       req.flash('error', 'Session duration must be a positive number');
+      return res.redirect('/addListing');
+    }
+    if (price === null || !Number.isFinite(price) || price < 0) {
+      req.flash('error', 'Price per session must be a valid amount');
+      return res.redirect('/addListing');
+    }
+    if (isActive === null) {
+      req.flash('error', 'Listing status is required');
       return res.redirect('/addListing');
     }
     const sessionUser = req.session && req.session.user;
@@ -134,12 +149,12 @@ const ListingController = {
       session_location: sessionLocation || null,
       duration_minutes: durationMinutes,
       available_slots: 1,
-      price: 0,
+      price: price,
       image: (file && file.filename) || req.body.image || null,
       discount_percentage: 0,
       offer_message: null,
       sport: null,
-      is_active: 1
+      is_active: isActive
     };
     if (!product.listing_title) {
       req.flash('error', 'Listing title required');
@@ -206,6 +221,13 @@ const ListingController = {
     const listingTitle = req.body.listing_title ? String(req.body.listing_title).trim() : '';
     const description = req.body.description ? String(req.body.description).trim() : '';
     const durationMinutes = req.body.duration_minutes ? Number(req.body.duration_minutes) : null;
+    const price = req.body.price !== undefined && req.body.price !== ''
+      ? Number(req.body.price)
+      : null;
+    const isActiveRaw = typeof req.body.is_active !== 'undefined'
+      ? String(req.body.is_active).trim()
+      : String(current.is_active ?? '1');
+    const isActive = isActiveRaw === '0' ? 0 : isActiveRaw === '1' ? 1 : null;
     if (!description) {
       req.flash('error', 'Description is required');
       return res.redirect(`/updateListing/${id}`);
@@ -218,6 +240,14 @@ const ListingController = {
       req.flash('error', 'Session duration must be a positive number');
       return res.redirect(`/updateListing/${id}`);
     }
+    if (price === null || !Number.isFinite(price) || price < 0) {
+      req.flash('error', 'Price per session must be a valid amount');
+      return res.redirect(`/updateListing/${id}`);
+    }
+    if (isActive === null) {
+      req.flash('error', 'Listing status is required');
+      return res.redirect(`/updateListing/${id}`);
+    }
     const updatedSessionLocation = typeof req.body.session_location !== 'undefined'
       ? String(req.body.session_location).trim()
       : null;
@@ -225,6 +255,9 @@ const ListingController = {
       req.flash('error', 'Location is required');
       return res.redirect(`/updateListing/${id}`);
     }
+    const updatedImage = (file && file.filename)
+      ? file.filename
+      : (req.body.current_image ? String(req.body.current_image).trim() : current.image);
     const updated = {
       listing_title: listingTitle,
       description: description || current.description,
@@ -234,12 +267,12 @@ const ListingController = {
         : current.session_location,
       duration_minutes: durationMinutes,
       available_slots: current.available_slots,
-      price: current.price,
-      image: current.image,
+      price: price,
+      image: updatedImage || null,
       discount_percentage: current.discount_percentage,
       offer_message: current.offer_message,
       sport: current.sport,
-      is_active: current.is_active
+      is_active: isActive
     };
     if (!updated.listing_title) {
       req.flash('error', 'Listing title required');

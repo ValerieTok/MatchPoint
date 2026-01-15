@@ -1,0 +1,113 @@
+<%- include('partials/head', {
+  title: 'Coach Profile',
+  extraHead: `
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+    <link rel="stylesheet" href="/css/user-common.css">
+    <link rel="stylesheet" href="/css/coach-dashboard.css">
+  `
+}) %>
+
+<%
+  const displayName = profile && profile.full_name ? profile.full_name : (profile && profile.username ? profile.username : '');
+  const certFile = profile && profile.coach_cert_file ? `/certifications/${profile.coach_cert_file}` : null;
+%>
+
+<div class="app">
+  <%- include("partials/coachSidebar", {
+    active: "profile"
+  }) %>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="crumb">PROFILE</div>
+      <div class="topbar__pill"><i class="fa-solid fa-user"></i></div>
+    </header>
+
+    <section class="profile-hero">
+      <div>
+        <h1>Hello Coach! <span class="hero__name"><%= displayName %></span></h1>
+        <p>Manage your profile details and certifications.</p>
+      </div>
+    </section>
+
+    <%- include('partials/flashMessages', { messages }) %>
+
+    <section class="profile-grid">
+      <div class="profile-card">
+        <div class="profile-card__head">
+          <div class="profile-card__title">Coach Details</div>
+          <div class="profile-card__subtitle">Update your personal information.</div>
+        </div>
+
+        <form action="/coachProfile" method="post" class="profile-form">
+          <div class="profile-field">
+            <label for="full_name">Full name</label>
+            <input type="text" id="full_name" name="full_name" value="<%= profile.full_name || '' %>" required>
+          </div>
+          <div class="profile-field">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" value="<%= profile.email || '' %>" required>
+          </div>
+          <div class="profile-field">
+            <label for="contact">Phone number</label>
+            <input type="text" id="contact" name="contact" value="<%= profile.contact || '' %>">
+          </div>
+          <div class="profile-actions">
+            <button class="btn btn--primary" type="submit">Save changes</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="profile-card">
+        <div class="profile-card__head">
+          <div class="profile-card__title">Reset Password</div>
+          <div class="profile-card__subtitle">Use a strong password.</div>
+        </div>
+
+        <form action="/coachProfile/password" method="post" class="profile-form">
+          <div class="profile-field">
+            <label for="current_password">Current password</label>
+            <input type="password" id="current_password" name="current_password" required>
+          </div>
+          <div class="profile-field">
+            <label for="new_password">New password</label>
+            <input type="password" id="new_password" name="new_password" minlength="8" required>
+          </div>
+          <div class="profile-field">
+            <label for="confirm_password">Confirm new password</label>
+            <input type="password" id="confirm_password" name="confirm_password" minlength="8" required>
+          </div>
+          <div class="profile-actions">
+            <button class="btn btn--ghost" type="submit">Reset password</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="profile-card profile-card--wide">
+        <div class="profile-card__head">
+          <div class="profile-card__title">Sports Certification</div>
+          <div class="profile-card__subtitle">Upload your latest certification.</div>
+        </div>
+
+        <form action="/coachProfile/certification" method="post" enctype="multipart/form-data" class="profile-form">
+          <div class="profile-field">
+            <label for="cert_title">Certification title</label>
+            <input type="text" id="cert_title" name="cert_title" value="<%= profile.coach_cert_title || '' %>" required>
+          </div>
+          <div class="profile-field">
+            <label for="cert_file">Upload certification</label>
+            <input type="file" id="cert_file" name="cert_file" accept=".jpg,.jpeg,.png,.webp,.gif,.pdf" required>
+            <% if (certFile) { %>
+              <small class="text-muted">Current: <a href="<%= certFile %>" target="_blank" rel="noreferrer">View certificate</a></small>
+            <% } %>
+          </div>
+          <div class="profile-actions">
+            <button class="btn btn--primary" type="submit">Submit certification</button>
+          </div>
+        </form>
+      </div>
+    </section>
+  </main>
+</div>
+
+<%- include('partials/footer') %>

@@ -5,7 +5,7 @@
       <div class="bg-white rounded-4 shadow-sm p-4 p-md-5">
         <h2 class="mb-4 text-center">Create account</h2>
         <%- include('partials/flashMessages', { messages }) %>
-        <form action="/register" method="post" class="d-grid gap-3">
+        <form action="/register" method="post" enctype="multipart/form-data" class="d-grid gap-3">
           <div>
             <label class="form-label">Full name</label>
             <input class="form-control" type="text" name="username" value="<%= (formData && formData.username) || '' %>" required>
@@ -34,6 +34,15 @@
               <option value="admin" <%= (formData && formData.role) === 'admin' ? 'selected' : '' %>>Admin</option>
             </select>
           </div>
+          <div class="cert-fields d-none">
+            <label class="form-label">Certification title</label>
+            <input class="form-control" type="text" name="cert_title" value="<%= (formData && formData.cert_title) || '' %>">
+            <small class="text-muted">Required for coach accounts.</small>
+          </div>
+          <div class="cert-fields d-none">
+            <label class="form-label">Upload certification (JPG/PNG/PDF)</label>
+            <input class="form-control" type="file" name="cert_file" accept=".jpg,.jpeg,.png,.webp,.gif,.pdf">
+          </div>
           <button class="btn btn-danger w-100 py-2" type="submit">Create account</button>
           <div class="text-center">
             <small class="text-muted">Already have an account? <a href="/login">Log in</a></small>
@@ -43,6 +52,24 @@
     </div>
   </div>
 <%- include('partials/showPasswordToggle') %>
+<script>
+  (function () {
+    const roleSelect = document.querySelector('select[name="role"]');
+    const certFields = document.querySelectorAll('.cert-fields');
+    if (!roleSelect || !certFields.length) return;
+    const updateVisibility = () => {
+      const isCoach = roleSelect.value === 'coach';
+      certFields.forEach((el) => {
+        el.classList.toggle('d-none', !isCoach);
+        const input = el.querySelector('input');
+        if (input) {
+          input.required = isCoach && input.type !== 'file';
+        }
+      });
+    };
+    roleSelect.addEventListener('change', updateVisibility);
+    updateVisibility();
+  })();
+</script>
 <%- include('partials/footer') %>
-
 

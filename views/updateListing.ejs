@@ -1,63 +1,101 @@
-<%- include('partials/head', { title: 'Update Listing', bodyClass: 'bg-light' }) %>
-<%- include('partials/navbar', { user, activePage: 'listingsManage' }) %>
+<%- include('partials/head', {
+  title: 'Update Listing',
+  extraHead: `
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+    <link rel="stylesheet" href="/css/user-common.css">
+    <link rel="stylesheet" href="/css/coach-dashboard.css">
+  `
+}) %>
 
-  <!-- Main content -->
-  <div class="container mt-4">
-    <h2 class="text-center mb-4">Update Coaching Listing</h2>
-    
+<div class="app">
+  <%- include("partials/coachSidebar", {
+    active: "listings"
+  }) %>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="crumb">EDIT LISTING</div>
+      <div class="topbar__pill"><i class="fa-solid fa-pen"></i></div>
+    </header>
+
     <% if (product) { %>
-      <form action="/updateListing/<%= product.id %>" method="POST" enctype="multipart/form-data" class="mx-auto" style="max-width: 500px;">
-        
-        <div class="mb-3">
-          <label for="listing_title" class="form-label">Sport Type</label>
-          <input type="text" class="form-control" id="listing_title" name="listing_title" value="<%= product.listing_title %>" required>
+      <section class="form-card mx-auto">
+        <div class="form-card__head">
+          <div>
+            <div class="form-card__title">Update Coaching Listing</div>
+            <div class="form-card__subtitle">Adjust your session details for athletes.</div>
+          </div>
         </div>
 
-        <div class="mb-3">
-          <label for="description" class="form-label">Description</label>
-          <textarea class="form-control" id="description" name="description" rows="3" required><%= product.description || '' %></textarea>
-        </div>
+        <%- include('partials/flashMessages', { messages }) %>
 
-        <div class="mb-3">
-          <label for="skill_level" class="form-label">Skill Level</label>
-          <select class="form-select" id="skill_level" name="skill_level" required>
-            <option value="beginner" <%= (product.skill_level || 'beginner') === 'beginner' ? 'selected' : '' %>>Beginner</option>
-            <option value="intermediate" <%= (product.skill_level || 'beginner') === 'intermediate' ? 'selected' : '' %>>Intermediate</option>
-            <option value="advanced" <%= (product.skill_level || 'beginner') === 'advanced' ? 'selected' : '' %>>Advanced</option>
-            <option value="expert" <%= (product.skill_level || 'beginner') === 'expert' ? 'selected' : '' %>>Expert</option>
-          </select>
-        </div>
+        <form action="/updateListing/<%= product.id %>" method="POST" enctype="multipart/form-data" class="form-grid">
+          <div class="form-row">
+            <label for="listing_title" class="form-label">Sport Type</label>
+            <input type="text" class="form-control" id="listing_title" name="listing_title" value="<%= product.listing_title %>" required>
+          </div>
 
-        <div class="mb-3">
-          <label for="duration_minutes" class="form-label">Session Duration (minutes)</label>
-          <input type="number" class="form-control" id="duration_minutes" name="duration_minutes" min="15" step="5" value="<%= product.duration_minutes || '' %>" required>
-        </div>
+          <div class="form-row">
+            <label for="description" class="form-label">Description</label>
+            <textarea class="form-control" id="description" name="description" rows="3" required><%= product.description || '' %></textarea>
+          </div>
 
-        <div class="mb-3">
-          <label for="session_location" class="form-label">Location</label>
-          <input type="text" class="form-control" id="session_location" name="session_location" value="<%= product.session_location || '' %>" required>
-        </div>
+          <div class="form-row">
+            <label for="skill_level" class="form-label">Skill Level</label>
+            <select class="form-select" id="skill_level" name="skill_level" required>
+              <option value="beginner" <%= (product.skill_level || 'beginner') === 'beginner' ? 'selected' : '' %>>Beginner</option>
+              <option value="intermediate" <%= (product.skill_level || 'beginner') === 'intermediate' ? 'selected' : '' %>>Intermediate</option>
+              <option value="advanced" <%= (product.skill_level || 'beginner') === 'advanced' ? 'selected' : '' %>>Advanced</option>
+              <option value="expert" <%= (product.skill_level || 'beginner') === 'expert' ? 'selected' : '' %>>Expert</option>
+            </select>
+          </div>
 
-        <div class="mb-3">
-          <label class="form-label">Current Image</label>
-          <input type="text" class="form-control" name="current_image" value="<%= product.image || '' %>" readonly>
-          <% if (product.image) { %>
-            <img src="/images/<%= product.image %>" class="img-thumbnail mt-2" style="width: 150px;">
-          <% } %>
-        </div>
+          <div class="form-row">
+            <label for="duration_minutes" class="form-label">Session Duration (minutes)</label>
+            <input type="number" class="form-control" id="duration_minutes" name="duration_minutes" min="15" step="5" value="<%= product.duration_minutes || '' %>" required>
+          </div>
 
-        <div class="mb-4">
-          <label for="image" class="form-label">Upload New Image</label>
-          <input class="form-control" type="file" id="image" name="image" accept="image/*">
-        </div>
+          <div class="form-row">
+            <label for="price" class="form-label">Price per Session</label>
+            <input type="number" class="form-control" id="price" name="price" min="0" step="0.01" value="<%= typeof product.price !== 'undefined' ? product.price : '' %>" required>
+          </div>
 
-        <div class="d-grid gap-2">
-          <button type="submit" class="btn btn-primary">Update Listing</button>
-          <a href="/listingsManage" class="btn btn-secondary">Back to Listings</a>
-        </div>
-      </form>
+          <div class="form-row">
+            <label for="is_active" class="form-label">Listing Status</label>
+            <select class="form-select" id="is_active" name="is_active" required>
+              <option value="1" <%= product.is_active ? 'selected' : '' %>>Active</option>
+              <option value="0" <%= product.is_active ? '' : 'selected' %>>Inactive</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <label for="session_location" class="form-label">Location</label>
+            <input type="text" class="form-control" id="session_location" name="session_location" value="<%= product.session_location || '' %>" required>
+          </div>
+
+          <div class="form-row">
+            <label class="form-label">Current Image</label>
+            <input type="text" class="form-control" name="current_image" value="<%= product.image || '' %>" readonly>
+            <% if (product.image) { %>
+              <img src="/images/<%= product.image %>" class="img-thumbnail mt-2" style="width: 150px;">
+            <% } %>
+          </div>
+
+          <div class="form-row">
+            <label for="image" class="form-label">Upload New Image</label>
+            <input class="form-control" type="file" id="image" name="image" accept="image/*">
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn btn--primary">Update Listing</button>
+            <a href="/listingsManage" class="btn btn--ghost">Back to Listings</a>
+          </div>
+        </form>
+      </section>
     <% } else { %>
       <p class="text-center">No listing found.</p>
     <% } %>
-  </div>
+  </main>
+</div>
+
 <%- include('partials/footer') %>

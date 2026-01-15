@@ -71,11 +71,14 @@
               const hasDiscount = discountPercentage > 0 && listPrice > price;
               const subtotal = price * qty;
               const imageSrc = it.image ? '/images/' + it.image : null;
+              const sessionDateLabel = it.session_date ? new Date(it.session_date).toLocaleDateString() : 'TBC';
+              const sessionTimeLabel = it.session_time ? String(it.session_time).slice(0, 5) : 'TBC';
             %>
               <tr>
                 <td>
                   <div class="fw-semibold text-dark"><%= it.listing_title %></div>
                   <small class="text-muted d-block"><%= it.username %><% if (it.sport) { %> • <%= it.sport %><% } %></small>
+                  <small class="text-muted d-block">Session: <%= sessionDateLabel %> ƒ?› <%= sessionTimeLabel %></small>
                   <% if (it.offerMessage) { %>
                     <small class="text-info"><%= it.offerMessage %></small>
                   <% } %>

@@ -1,6 +1,6 @@
 const db = require('../db');
 
-const addOrIncrement = (userId, listingId, quantity, callback) => {
+const addOrIncrement = (userId, listingId, quantity, sessionDate, sessionTime, callback) => {
   const qty = Number(quantity);
   if (!Number.isFinite(qty) || qty <= 0) {
     return callback(new Error('Invalid quantity.'));
@@ -14,12 +14,12 @@ const addOrIncrement = (userId, listingId, quantity, callback) => {
 
     if (rows.length) {
       const currentQty = Number(rows[0].quantity) || 0;
-      const updateSql = 'UPDATE booking_cart_items SET quantity = ? WHERE id = ?';
-      return db.query(updateSql, [currentQty + qty, rows[0].id], callback);
+      const updateSql = 'UPDATE booking_cart_items SET quantity = ?, session_date = ?, session_time = ? WHERE id = ?';
+      return db.query(updateSql, [currentQty + qty, sessionDate || null, sessionTime || null, rows[0].id], callback);
     }
 
-    const insertSql = 'INSERT INTO booking_cart_items (user_id, listing_id, quantity) VALUES (?, ?, ?)';
-    return db.query(insertSql, [userId, listingId, qty], callback);
+    const insertSql = 'INSERT INTO booking_cart_items (user_id, listing_id, quantity, session_date, session_time) VALUES (?, ?, ?, ?, ?)';
+    return db.query(insertSql, [userId, listingId, qty, sessionDate || null, sessionTime || null], callback);
   });
 };
 
@@ -35,11 +35,13 @@ const getCart = (userId, callback) => {
             l.image,
             l.available_slots,
             l.coach_id,
-            u.username,
+            COALESCE(u.full_name, u.username) AS username,
             l.duration_minutes,
             l.sport,
             l.skill_level,
-            l.session_location
+            l.session_location,
+            c.session_date,
+            c.session_time
         FROM booking_cart_items c
         JOIN coach_listings l ON l.id = c.listing_id
         JOIN users u ON u.id = l.coach_id
@@ -65,7 +67,9 @@ const getCart = (userId, callback) => {
       duration_minutes: row.duration_minutes,
       sport: row.sport,
       skill_level: row.skill_level,
-      session_location: row.session_location
+      session_location: row.session_location,
+      session_date: row.session_date,
+      session_time: row.session_time
     }));
     return callback(null, items);
   });

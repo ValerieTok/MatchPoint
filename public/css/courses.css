@@ -171,6 +171,12 @@
   color: var(--muted);
 }
 
+.course-card__desc {
+  font-size: 13px;
+  color: #4b5565;
+  margin: 0;
+}
+
 .detail {
   display: flex;
   align-items: center;

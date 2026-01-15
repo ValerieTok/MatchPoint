@@ -1,144 +1,203 @@
-<%- include('partials/head', { title: 'Bookings', bodyClass: 'bg-light' }) %>
-<%- include('partials/navbar', { user, activePage: 'orders' }) %>
+<%- include('partials/head', {
+  title: 'Bookings',
+  extraHead: `
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+    <link rel="stylesheet" href="/css/user-common.css">
+    <link rel="stylesheet" href="/css/coach-dashboard.css">
+  `
+}) %>
 
-  <% const safeSearchTerm = typeof searchTerm !== 'undefined' ? searchTerm : ''; %>
-  <div class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <div>
-        <p class="text-muted mb-1"><%= user.role === 'coach' ? 'Coach' : 'Admin' %></p>
-        <h3 class="mb-0"><%= user.role === 'coach' ? 'My Bookings' : 'All Bookings' %></h3>
-      </div>
-      <button class="btn btn-outline-secondary" onclick="window.print()">Print page</button>
-    </div>
-    <form class="row g-2 align-items-center mb-4" method="get" action="/bookingsManage">
-      <div class="col-auto">
-        <label class="visually-hidden" for="order-search">Search client</label>
-        <input id="order-search" name="search" class="form-control" type="search" placeholder="Search by client" value="<%= safeSearchTerm %>">
-      </div>
-      <div class="col-auto">
-        <button class="btn btn-primary" type="submit">Filter</button>
-        <% if (safeSearchTerm) { %>
-          <a class="btn btn-outline-secondary" href="/bookingsManage">Reset</a>
-        <% } %>
-      </div>
-    </form>
+<%
+  const safeSearchTerm = typeof searchTerm !== 'undefined' ? searchTerm : '';
+  const formatSgDateTime = (value) => {
+    if (!value) return '—';
+    return new Date(value).toLocaleString('en-SG', { timeZone: 'Asia/Singapore' });
+  };
+  const formatSessionDate = (value) => {
+    if (!value) return 'TBC';
+    const iso = String(value).split('T')[0];
+    const date = new Date(`${iso}T00:00:00+08:00`);
+    return date.toLocaleDateString('en-SG');
+  };
+  const formatSessionTime = (value) => (value ? String(value).slice(0, 5) : 'TBC');
+  const formatStatus = (value) => {
+    const status = (value || 'pending').toString().toLowerCase();
+    if (status === 'accepted') return { label: 'Accepted', class: 'bg-success' };
+    if (status === 'rejected') return { label: 'Rejected', class: 'bg-danger' };
+    return { label: 'Pending', class: 'bg-warning text-dark' };
+  };
+%>
+<div class="app">
+  <%- include("partials/coachSidebar", {
+    active: "bookings"
+  }) %>
 
-    <%- include('partials/flashMessages', { messages }) %>
+  <main class="main">
+    <header class="topbar">
+      <div class="crumb">BOOKINGS</div>
+      <div class="topbar__pill"><i class="fa-solid fa-calendar-check"></i></div>
+    </header>
 
-    <% if (!orders || !orders.length) { %>
-      <div class="alert alert-info">No bookings found.</div>
-    <% } else { %>
-      <div class="accordion" id="orders-accordion">
-        <% orders.forEach((o, idx) => { %>
-          <div class="accordion-item">
-            <h2 class="accordion-header" id="heading-<%= o.id %>">
-              <button class="accordion-button <%= idx ? 'collapsed' : '' %>" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-<%= o.id %>">
-                  <div class="w-100 d-flex justify-content-between align-items-center">
-                    <div>
-                      <div class="fw-semibold">Booking #<%= o.id %> &middot; <%= o.username %></div>
-                      <div class="text-muted small"><%= new Date(o.created_at).toLocaleString() %></div>
+    <section class="content-card">
+      <div class="content-card__head">
+        <div>
+          <div class="content-card__title"><%= user.role === 'coach' ? 'My Bookings' : 'All Bookings' %></div>
+          <div class="content-card__subtitle"><%= user.role === 'coach' ? 'Track your coaching sessions.' : 'Manage sessions across the platform.' %></div>
+        </div>
+        <button class="btn btn--ghost" onclick="window.print()">Print page</button>
+      </div>
+
+      <form class="row g-2 align-items-center mb-4" method="get" action="/bookingsManage">
+        <div class="col-auto">
+          <label class="visually-hidden" for="order-search">Search client</label>
+          <input id="order-search" name="search" class="form-control" type="search" placeholder="Search by client" value="<%= safeSearchTerm %>">
+        </div>
+        <div class="col-auto">
+          <button class="btn btn--primary" type="submit">Filter</button>
+          <% if (safeSearchTerm) { %>
+            <a class="btn btn--ghost" href="/bookingsManage">Reset</a>
+          <% } %>
+        </div>
+      </form>
+
+      <%- include('partials/flashMessages', { messages }) %>
+
+      <% if (!orders || !orders.length) { %>
+        <div class="alert alert-info">No bookings found.</div>
+      <% } else { %>
+        <div class="accordion" id="orders-accordion">
+          <% orders.forEach((o, idx) => { %>
+            <div class="accordion-item">
+              <% const statusMeta = formatStatus(o.status); %>
+              <h2 class="accordion-header" id="heading-<%= o.id %>">
+                <button class="accordion-button <%= idx ? 'collapsed' : '' %>" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-<%= o.id %>">
+                    <div class="w-100 d-flex justify-content-between align-items-center">
+                      <div>
+                        <div class="fw-semibold">Booking #<%= o.id %> &middot; <%= o.username %></div>
+                        <div class="text-muted small">Booked: <%= formatSgDateTime(o.created_at) %></div>
+                      </div>
+                      <div class="text-end">
+                        <div class="fw-semibold">$<%= Number(o.total || 0).toFixed(2) %></div>
+                        <div class="text-muted small"><%= o.session_location || 'No location' %></div>
+                        <span class="badge <%= statusMeta.class %>"><%= statusMeta.label %></span>
+                        <% if (o.review) { %>
+                          <div class="text-warning small">
+                            <% for (let i = 0; i < o.review.rating; i++) { %>&#9733;<% } %>
+                            <% for (let i = o.review.rating; i < 5; i++) { %>&#9734;<% } %>
+                          </div>
+                        <% } %>
+                      </div>
                     </div>
-                    <div class="text-end">
-                      <div class="fw-semibold">$<%= Number(o.total || 0).toFixed(2) %></div>
-                      <div class="text-muted small"><%= o.session_location || 'No location' %></div>
-                      <% if (o.review) { %>
-                        <div class="text-warning small">
-                          <% for (let i = 0; i < o.review.rating; i++) { %>&#9733;<% } %>
-                          <% for (let i = o.review.rating; i < 5; i++) { %>&#9734;<% } %>
-                        </div>
+                </button>
+              </h2>
+              <div id="collapse-<%= o.id %>" class="accordion-collapse collapse <%= idx ? '' : 'show' %>" data-bs-parent="#orders-accordion">
+                <div class="accordion-body">
+                  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                    <div class="d-flex gap-2 align-items-center">
+                      <% if ((o.status || 'pending').toLowerCase() === 'pending') { %>
+                        <form action="/bookingsManage/<%= o.id %>/status" method="post">
+                          <input type="hidden" name="status" value="accepted">
+                          <button class="btn btn-sm btn-success" type="submit">Accept</button>
+                        </form>
+                        <form action="/bookingsManage/<%= o.id %>/status" method="post">
+                          <input type="hidden" name="status" value="rejected">
+                          <button class="btn btn-sm btn-outline-danger" type="submit">Reject</button>
+                        </form>
+                      <% } else { %>
+                        <span class="text-muted small">Status locked after decision.</span>
                       <% } %>
                     </div>
+                    <button class="btn btn-sm btn-outline-secondary" type="button" onclick="printOrder('order-admin-<%= o.id %>', 'Booking #<%= o.id %>')">Print this booking</button>
                   </div>
-              </button>
-            </h2>
-            <div id="collapse-<%= o.id %>" class="accordion-collapse collapse <%= idx ? '' : 'show' %>" data-bs-parent="#orders-accordion">
-              <div class="accordion-body">
-                <div class="d-flex justify-content-end mb-2">
-                  <button class="btn btn-sm btn-outline-secondary" type="button" onclick="printOrder('order-admin-<%= o.id %>', 'Booking #<%= o.id %>')">Print this booking</button>
-                </div>
-                <div id="order-admin-<%= o.id %>">
+                  <div id="order-admin-<%= o.id %>">
                 <div class="mb-3">
                   <div><strong>Booked by:</strong> <%= o.username %></div>
-                  <div><strong>Booked on:</strong> <%= new Date(o.created_at).toLocaleString() %></div>
+                  <div><strong>Booked on:</strong> <%= formatSgDateTime(o.created_at) %></div>
                   <div><strong>Session location:</strong> <%= o.session_location || 'No location' %></div>
                 </div>
-                <% if (!o.items || !o.items.length) { %>
-                  <div class="alert alert-light mb-0">No listings recorded.</div>
-                <% } else { %>
-                  <div class="table-responsive">
-                    <table class="table align-middle">
-                      <thead>
-                        <tr>
-                          <th>Sport Type</th>
-                          <th class="text-center">Image</th>
-                          <th>Level</th>
-                          <th>Duration</th>
-                          <th>Location</th>
-                          <th class="text-end">Slots</th>
-                        </tr>
-                      </thead>
-                      <tbody>
+                  <% if (!o.items || !o.items.length) { %>
+                    <div class="alert alert-light mb-0">No listings recorded.</div>
+                  <% } else { %>
+                    <div class="table-responsive">
+                      <table class="table align-middle">
+                        <thead>
+                          <tr>
+                            <th>Sport Type</th>
+                            <th class="text-center">Image</th>
+                            <th>Level</th>
+                            <th>Duration</th>
+                            <th>Location</th>
+                            <th class="text-end">Slots</th>
+                          </tr>
+                        </thead>
+                        <tbody>
                         <% o.items.forEach(it => {
                           const qty = Number(it.quantity || 0);
                           const imageSrc = it.image ? '/images/' + it.image : '/images/placeholder.png';
                           const durationLabel = it.duration_minutes ? (it.duration_minutes + ' mins') : '-';
                           const levelLabel = it.skill_level ? it.skill_level.toUpperCase() : '-';
                           const locationLabel = it.session_location || o.session_location || 'No location';
+                          const sessionDateLabel = formatSessionDate(it.session_date);
+                          const sessionTimeLabel = formatSessionTime(it.session_time);
                         %>
                           <tr>
                             <td>
                               <div class="fw-semibold"><%= it.listing_title %></div>
                               <div class="text-muted small">Coach: <%= it.username %></div>
+                              <div class="text-muted small">Session: <%= sessionDateLabel %> ƒ?› <%= sessionTimeLabel %></div>
                             </td>
-                            <td class="text-center">
-                              <img src="<%= imageSrc %>" alt="<%= it.listing_title %>" class="d-block mx-auto" style="max-height:70px;">
-                            </td>
-                            <td><%= levelLabel %></td>
-                            <td><%= durationLabel %></td>
-                            <td><%= locationLabel %></td>
-                            <td class="text-end"><%= qty %></td>
-                          </tr>
-                        <% }) %>
-                      </tbody>
-                    </table>
-                  </div>
-                <% } %>
-                <div class="mt-3">
+                              <td class="text-center">
+                                <img src="<%= imageSrc %>" alt="<%= it.listing_title %>" class="d-block mx-auto" style="max-height:70px;">
+                              </td>
+                              <td><%= levelLabel %></td>
+                              <td><%= durationLabel %></td>
+                              <td><%= locationLabel %></td>
+                              <td class="text-end"><%= qty %></td>
+                            </tr>
+                          <% }) %>
+                        </tbody>
+                      </table>
+                    </div>
+                  <% } %>
+                  <div class="mt-3">
                   <% if (o.completed_at) { %>
                     <div class="alert alert-success py-2">
-                      Session completed at <strong><%= new Date(o.completed_at).toLocaleString() %></strong>
+                      Session completed at <strong><%= formatSgDateTime(o.completed_at) %></strong>
+                    </div>
+                    <% } else { %>
+                      <div class="alert alert-secondary py-2">
+                        Session not yet confirmed complete.
+                      </div>
+                    <% } %>
+                  <% if (o.review) { %>
+                    <div class="border rounded-3 p-3 bg-light">
+                      <div class="fw-semibold mb-1">Athlete review</div>
+                      <div class="text-warning mb-1">
+                        <% for (let i = 0; i < o.review.rating; i++) { %>&#9733;<% } %>
+                        <% for (let i = o.review.rating; i < 5; i++) { %>&#9734;<% } %>
+                      </div>
+                      <p class="mb-0 text-muted"><%= o.review.comment || 'No comment provided.' %></p>
+                      <% if (user && user.role === 'admin') { %>
+                        <form class="mt-2" action="/bookingsManage/<%= o.id %>/review/delete" method="post">
+                          <button class="btn btn-outline-danger btn-sm" type="submit">Delete review</button>
+                        </form>
+                      <% } %>
                     </div>
                   <% } else { %>
-                    <div class="alert alert-secondary py-2">
-                      Session not yet confirmed complete.
-                    </div>
-                  <% } %>
-                <% if (o.review) { %>
-                  <div class="border rounded-3 p-3 bg-light">
-                    <div class="fw-semibold mb-1">Athlete review</div>
-                    <div class="text-warning mb-1">
-                      <% for (let i = 0; i < o.review.rating; i++) { %>&#9733;<% } %>
-                      <% for (let i = o.review.rating; i < 5; i++) { %>&#9734;<% } %>
-                    </div>
-                    <p class="mb-0 text-muted"><%= o.review.comment || 'No comment provided.' %></p>
-                    <% if (user && user.role === 'admin') { %>
-                      <form class="mt-2" action="/bookingsManage/<%= o.id %>/review/delete" method="post">
-                        <button class="btn btn-outline-danger btn-sm" type="submit">Delete review</button>
-                      </form>
+                    <div class="text-muted small mt-2"><%= o.completed_at ? 'Awaiting athlete review.' : 'Review available after session completion.' %></div>
                     <% } %>
                   </div>
-                <% } else { %>
-                  <div class="text-muted small mt-2"><%= o.completed_at ? 'Awaiting athlete review.' : 'Review available after session completion.' %></div>
-                  <% } %>
                 </div>
               </div>
+              </div>
             </div>
-            </div>
-          </div>
-        <% }) %>
-      </div>
-    <% } %>
-  </div>
+          <% }) %>
+        </div>
+      <% } %>
+    </section>
+  </main>
+</div>
+
 <%- include('partials/footer', { extraScripts: `<script>
     function printOrder(elementId, title) {
       var el = document.getElementById(elementId);

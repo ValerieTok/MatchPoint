@@ -1,0 +1,39 @@
+<aside class="sidebar">
+  <div class="brand">
+    <div class="brand__dot"><i class="fa-solid fa-dumbbell"></i></div>
+    <span class="brand__name">MatchPoint</span>
+  </div>
+
+  <nav class="nav">
+    <a class="nav__item <%= active === 'profile' ? 'nav__item--active' : '' %>" href="/coachProfile">
+      <i class="fa-regular fa-user"></i>
+      <span>Profile</span>
+    </a>
+
+    <a class="nav__item <%= active === 'listings' ? 'nav__item--active' : '' %>" href="/listingsManage">
+      <i class="fa-solid fa-layer-group"></i>
+      <span>Listings</span>
+      <% if (typeof listingCount !== "undefined") { %>
+        <span class="nav__badge"><%= listingCount %></span>
+      <% } %>
+    </a>
+
+    <a class="nav__item <%= active === 'bookings' ? 'nav__item--active' : '' %>" href="/bookingsManage">
+      <i class="fa-solid fa-calendar-check"></i>
+      <span>Bookings</span>
+    </a>
+
+    <a class="nav__item <%= active === 'security' ? 'nav__item--active' : '' %>" href="/2FASetup">
+      <i class="fa-solid fa-shield-halved"></i>
+      <span>Security / 2FA</span>
+    </a>
+
+  </nav>
+
+  <div class="sidebar__footer">
+    <a class="logout" href="/logout">
+      <i class="fa-solid fa-right-from-bracket"></i>
+      Logout
+    </a>
+  </div>
+</aside>

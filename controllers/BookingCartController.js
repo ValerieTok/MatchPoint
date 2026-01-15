@@ -57,11 +57,6 @@ const addOrUpdateQuantity = (userId, productId, quantity) =>
     BookingCart.updateQuantity(userId, productId, quantity, (err) => (err ? reject(err) : resolve()));
   });
 
-const addOrIncrementItem = (userId, productId, qty) =>
-  new Promise((resolve, reject) => {
-    BookingCart.addOrIncrement(userId, productId, qty, (err) => (err ? reject(err) : resolve()));
-  });
-
 module.exports = {
   async addToCart(req, res) {
     if (!ensureShopperRole(req, res)) return;
@@ -77,6 +72,12 @@ module.exports = {
       if (Number.isNaN(productId)) {
         req.flash('error', 'Invalid listing selected.');
         return res.redirect('/userdashboard');
+      }
+      const sessionDate = req.body.session_date ? String(req.body.session_date).trim() : '';
+      const sessionTime = req.body.session_time ? String(req.body.session_time).trim() : '';
+      if (!sessionDate || !sessionTime) {
+        req.flash('error', 'Please select a session date and time.');
+        return res.redirect(`/listingDetail/${productId}`);
       }
 
       const product = await getProductByIdAsync(productId);
@@ -103,7 +104,16 @@ module.exports = {
         return res.redirect('/userdashboard');
       }
 
-      await addOrIncrementItem(userId, productId, qty);
+      await new Promise((resolve, reject) => {
+        BookingCart.addOrIncrement(
+          userId,
+          productId,
+          qty,
+          sessionDate,
+          sessionTime,
+          (err) => (err ? reject(err) : resolve())
+        );
+      });
       await syncCartToSession(req);
 
       const pricing = calculatePricing(product);

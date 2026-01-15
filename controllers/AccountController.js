@@ -24,7 +24,8 @@ const ensureAdminOnly = (req, res) => {
 function buildSafeUser(user) {
   return {
     id: user.id,
-    username: user.username,
+    username: user.full_name || user.username,
+    full_name: user.full_name || null,
     email: user.email,
     contact: user.contact,
     role: user.role,
@@ -39,16 +40,28 @@ const AccountController = {
   },
 
   async registerUser(req, res) {
-    const { username, email, password, contact, role } = req.body || {};
+    const { username, email, password, contact, role, cert_title: certTitle } = req.body || {};
     if (!email || !password) {
       req.flash('error', 'Email and password required');
-      req.flash('formData', { username, email, contact, role });
+      req.flash('formData', { username, email, contact, role, cert_title: certTitle });
       return res.redirect('/register');
     }
     if (password.length < 8) {
       req.flash('error', 'Password must be at least 8 characters');
-      req.flash('formData', { username, email, contact, role });
+      req.flash('formData', { username, email, contact, role, cert_title: certTitle });
       return res.redirect('/register');
+    }
+    if (role === 'coach') {
+      if (!certTitle || !String(certTitle).trim()) {
+        req.flash('error', 'Certification title is required for coaches');
+        req.flash('formData', { username, email, contact, role, cert_title: certTitle });
+        return res.redirect('/register');
+      }
+      if (!req.file || !req.file.filename) {
+        req.flash('error', 'Certification file is required for coaches');
+        req.flash('formData', { username, email, contact, role, cert_title: certTitle });
+        return res.redirect('/register');
+      }
     }
     try {
       const existing = await new Promise((resolve, reject) => {
@@ -56,11 +69,20 @@ const AccountController = {
       });
       if (existing) {
         req.flash('error', 'Email already registered');
-        req.flash('formData', { username, email, contact, role });
+        req.flash('formData', { username, email, contact, role, cert_title: certTitle });
         return res.redirect('/register');
       }
       await new Promise((resolve, reject) => {
-        userModel.addUser({ username, email, password, contact, role }, (err) => (err ? reject(err) : resolve()));
+        userModel.addUser({
+          username,
+          full_name: username,
+          email,
+          password,
+          contact,
+          role,
+          coach_cert_title: certTitle || null,
+          coach_cert_file: req.file && req.file.filename ? req.file.filename : null
+        }, (err) => (err ? reject(err) : resolve()));
       });
       req.flash('success', 'Registration successful. Log in.');
       return res.redirect('/login');

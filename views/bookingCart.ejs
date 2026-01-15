@@ -29,6 +29,8 @@
           total += sub;
           if (hasDiscount) { totalSavings += (basePrice - finalPrice) * item.quantity; }
           const stockAvailable = Number.isFinite(Number(item.available_slots)) ? Number(item.available_slots) : null;
+          const sessionDateLabel = item.session_date ? new Date(item.session_date).toLocaleDateString() : 'TBC';
+          const sessionTimeLabel = item.session_time ? String(item.session_time).slice(0, 5) : 'TBC';
         %>
           <div class="d-flex gap-3 align-items-center border rounded-3 p-3 bg-white shadow-sm">
             <div style="width: 90px; height: 90px;" class="d-flex align-items-center justify-content-center bg-light rounded">
@@ -53,6 +55,7 @@
                   <span class="text-muted"> • <%= item.duration_minutes %> mins</span>
                 <% } %>
               </div>
+              <div class="text-muted small mb-1">Session: <%= sessionDateLabel %> ƒ?› <%= sessionTimeLabel %></div>
               <% if (item.offer_message) { %>
                 <div class="alert alert-info py-2 px-3 mb-2">
                   <span class="fw-semibold small text-uppercase d-block mb-1">Promo</span>

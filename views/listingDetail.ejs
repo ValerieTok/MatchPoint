@@ -1,0 +1,89 @@
+<%- include('partials/head', {
+  title: product && product.listing_title ? product.listing_title : 'Listing Detail',
+  extraHead: `
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+    <link rel="stylesheet" href="/css/user-common.css">
+    <link rel="stylesheet" href="/css/listing-detail.css">
+  `
+}) %>
+
+<%
+  const imageRaw = product && product.image ? String(product.image) : '';
+  const imageSrc = imageRaw
+    ? (imageRaw.startsWith('http') || imageRaw.startsWith('/') ? imageRaw : `/images/${imageRaw}`)
+    : '/images/football.jpg';
+  const levelLabel = product && product.skill_level
+    ? String(product.skill_level).toUpperCase()
+    : 'NOT SET';
+  const durationLabel = product && product.duration_minutes
+    ? `${product.duration_minutes} mins`
+    : 'TBC';
+  const locationLabel = product && product.session_location
+    ? product.session_location
+    : 'TBC';
+  const priceLabel = product && product.price != null
+    ? `$${Number(product.price).toFixed(2)}`
+    : '$0.00';
+%>
+
+<div class="app">
+  <%- include("partials/userSidebar", { active: "courses" }) %>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="crumb">LISTING DETAILS</div>
+      <div class="topbar__pill"><i class="fa-solid fa-calendar-check"></i></div>
+    </header>
+
+    <%- include('partials/flashMessages', { messages }) %>
+
+    <section class="detail-card">
+      <div class="detail-media">
+        <img src="<%= imageSrc %>" alt="<%= product.listing_title %>">
+      </div>
+      <div class="detail-body">
+        <div class="detail-header">
+          <div>
+            <h1 class="detail-title"><%= product.listing_title %></h1>
+            <div class="detail-coach">Coach: <%= product.username %></div>
+          </div>
+          <div class="detail-price">
+            <span>Price per session</span>
+            <strong><%= priceLabel %></strong>
+          </div>
+        </div>
+
+        <% if (product.description) { %>
+          <p class="detail-desc"><%= product.description %></p>
+        <% } %>
+
+        <div class="detail-tags">
+          <span class="tag"><%= levelLabel %></span>
+          <span class="tag tag--neutral"><%= durationLabel %></span>
+          <span class="tag tag--neutral"><%= locationLabel %></span>
+          <% if (product.sport) { %>
+            <span class="tag tag--neutral"><%= product.sport %></span>
+          <% } %>
+        </div>
+
+        <form action="/listingDetail/add-to-cart/<%= product.id %>" method="post" class="detail-form">
+          <div class="detail-field">
+            <label for="session_date">Session date</label>
+            <input type="date" id="session_date" name="session_date" required>
+          </div>
+          <div class="detail-field">
+            <label for="session_time">Session time</label>
+            <input type="time" id="session_time" name="session_time" required>
+          </div>
+          <div class="detail-field">
+            <label for="quantity">Slots</label>
+            <input type="number" id="quantity" name="quantity" min="1" value="1" required>
+          </div>
+          <button type="submit" class="detail-btn">Book now</button>
+        </form>
+      </div>
+    </section>
+  </main>
+</div>
+
+<%- include('partials/footer') %>

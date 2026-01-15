@@ -26,11 +26,14 @@
               const listPrice = Number(it.listPrice || it.originalPrice || price);
               const discountApplied = listPrice > price;
               const subtotal = price * qty;
+              const sessionDateLabel = it.session_date ? new Date(it.session_date).toLocaleDateString() : 'TBC';
+              const sessionTimeLabel = it.session_time ? String(it.session_time).slice(0, 5) : 'TBC';
             %>
               <tr>
                 <td>
                   <div class="fw-semibold text-dark"><%= it.listing_title %></div>
                   <div class="text-muted small"><%= it.username %><% if (it.sport) { %> • <%= it.sport %><% } %></div>
+                  <div class="text-muted small">Session: <%= sessionDateLabel %> ƒ?› <%= sessionTimeLabel %></div>
                   <% if (it.offerMessage) { %>
                     <div class="text-info small"><%= it.offerMessage %></div>
                   <% } %>
@@ -80,6 +83,4 @@
     </div>
   </div>
 <%- include('partials/footer') %>
-
-
 

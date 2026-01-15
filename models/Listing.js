@@ -10,7 +10,7 @@ const baseSelect = `
     l.discount_percentage,
     l.offer_message,
     l.coach_id,
-    u.username,
+    COALESCE(u.full_name, u.username) AS username,
     l.sport,
     l.description,
     l.duration_minutes,

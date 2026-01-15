@@ -12,6 +12,7 @@ const ListingController = require('./controllers/ListingController');
 const BookingCartController = require('./controllers/BookingCartController');
 const BookingController = require('./controllers/BookingController');
 const AdminController = require('./controllers/AdminController');
+const CoachProfileController = require('./controllers/CoachProfileController');
 const { attachUser, checkAuthenticated, checkAdmin } = require('./middleware');
 
 const app = express();
@@ -34,6 +35,34 @@ const upload = multer({
   fileFilter: (req, file, cb) => {
     if (!allowedImageTypes.has(file.mimetype)) {
       return cb(new Error('Unsupported image type'));
+    }
+    return cb(null, true);
+  }
+});
+
+const allowedCertTypes = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+  'application/pdf'
+]);
+const allowedCertExts = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif', '.pdf']);
+const certStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, path.join(__dirname, 'public', 'certifications')),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    const safeExt = allowedCertExts.has(ext) ? ext : '';
+    const randomName = crypto.randomBytes(16).toString('hex');
+    cb(null, `${Date.now()}-${randomName}${safeExt}`);
+  }
+});
+const uploadCert = multer({
+  storage: certStorage,
+  limits: { fileSize: 2 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (!allowedCertTypes.has(file.mimetype)) {
+      return cb(new Error('Unsupported certification type'));
     }
     return cb(null, true);
   }
@@ -80,7 +109,7 @@ app.get('/', (req, res) => {
 
 // User routes
 app.get('/register', AccountController.registerPage);
-app.post('/register', AccountController.registerUser);
+app.post('/register', uploadCert.single('cert_file'), AccountController.registerUser);
 app.get('/login', AccountController.loginPage);
 app.post('/login', AccountController.loginUser);
 app.get('/login2FA', AccountController.showTwoFactorLogin);
@@ -130,14 +159,23 @@ app.post('/bookingCart/remove/:id', checkAuthenticated, BookingCartController.re
 app.post('/bookingCheckout', checkAuthenticated, BookingCartController.showCheckoutSummary);
 app.post('/bookingCheckout/confirm', checkAuthenticated, BookingCartController.confirmCheckout);
 app.post('/bookingsManage/:id/review/delete', checkAuthenticated, checkAdmin, BookingController.deleteReview);
+app.post('/bookingsManage/:id/status', checkAuthenticated, checkAdmin, BookingController.updateStatus);
 app.post('/bookingsUser/:id/confirm-delivery', checkAuthenticated, BookingController.confirmDelivery);
 app.get('/reviewBooking/:id', checkAuthenticated, BookingController.reviewOrderPage);
 app.post('/reviewBooking/:id/review', checkAuthenticated, BookingController.submitReview);
+app.get('/coachProfile', checkAuthenticated, checkAdmin, CoachProfileController.showProfile);
+app.post('/coachProfile', checkAuthenticated, checkAdmin, CoachProfileController.updateProfile);
+app.post('/coachProfile/password', checkAuthenticated, checkAdmin, CoachProfileController.updatePassword);
+app.post('/coachProfile/certification', checkAuthenticated, checkAdmin, uploadCert.single('cert_file'), CoachProfileController.updateCertification);
 
 // upload error handling
 app.use((err, req, res, next) => {
   if (err && (err.code === 'LIMIT_FILE_SIZE' || err.message === 'Unsupported image type')) {
     req.flash('error', 'Image upload failed. Use JPG/PNG/WEBP/GIF under 2MB.');
+    return res.redirect('back');
+  }
+  if (err && err.message === 'Unsupported certification type') {
+    req.flash('error', 'Certification upload failed. Use JPG/PNG/WEBP/GIF/PDF under 2MB.');
     return res.redirect('back');
   }
   return next(err);

@@ -8,36 +8,39 @@ const sha1 = (value) => crypto.createHash('sha1').update(value).digest('hex');
 
 module.exports = {
   getAllUsers: function (callback) {
-    const sql = 'SELECT id, username, email, password, contact, role, is_2fa_enabled, twofactor_secret FROM users';
+    const sql = 'SELECT id, username, full_name, email, password, contact, role, is_2fa_enabled, twofactor_secret, coach_cert_title, coach_cert_file FROM users';
     db.query(sql, function (err, results) {
       return callback(err, results);
     });
   },
 
   getUserById: function (id, callback) {
-    const sql = 'SELECT id, username, email, password, contact, role, is_2fa_enabled, twofactor_secret FROM users WHERE id = ? LIMIT 1';
+    const sql = 'SELECT id, username, full_name, email, password, contact, role, is_2fa_enabled, twofactor_secret, coach_cert_title, coach_cert_file FROM users WHERE id = ? LIMIT 1';
     db.query(sql, [id], function (err, results) {
       return callback(err, results && results[0] ? results[0] : null);
     });
   },
 
   getUserByEmail: function (email, callback) {
-    const sql = 'SELECT id, username, email, password, contact, role, is_2fa_enabled, twofactor_secret FROM users WHERE email = ? LIMIT 1';
+    const sql = 'SELECT id, username, full_name, email, password, contact, role, is_2fa_enabled, twofactor_secret, coach_cert_title, coach_cert_file FROM users WHERE email = ? LIMIT 1';
     db.query(sql, [email], function (err, results) {
       return callback(err, results && results[0] ? results[0] : null);
     });
   },
 
   addUser: function (userData, callback) {
-    const sql = 'INSERT INTO users (username, email, password, contact, role) VALUES (?, ?, ?, ?, ?)';
+    const sql = 'INSERT INTO users (username, full_name, email, password, contact, role, coach_cert_title, coach_cert_file) VALUES (?, ?, ?, ?, ?, ?, ?, ?)';
     bcrypt.hash(userData.password, SALT_ROUNDS, (hashErr, hash) => {
       if (hashErr) return callback(hashErr);
       const params = [
         userData.username,
+        userData.full_name || null,
         userData.email,
         hash,
         userData.contact || null,
-        userData.role || 'user'
+        userData.role || 'user',
+        userData.coach_cert_title || null,
+        userData.coach_cert_file || null
       ];
       db.query(sql, params, (err, result) => callback(err, result));
     });
@@ -88,7 +91,7 @@ module.exports = {
   },
 
   authenticate: function (email, password, callback) {
-    const sql = 'SELECT id, username, email, password, contact, role, is_2fa_enabled, twofactor_secret FROM users WHERE email = ? LIMIT 1';
+    const sql = 'SELECT id, username, full_name, email, password, contact, role, is_2fa_enabled, twofactor_secret, coach_cert_title, coach_cert_file FROM users WHERE email = ? LIMIT 1';
     db.query(sql, [email], function (err, results) {
       if (err) return callback(err);
       const user = results && results[0] ? results[0] : null;
@@ -116,6 +119,29 @@ module.exports = {
           return callback(null, user);
         });
       });
+    });
+  },
+
+  updateProfile: function (id, updatedData, callback) {
+    const sql = 'UPDATE users SET full_name = ?, email = ?, contact = ? WHERE id = ?';
+    const params = [
+      updatedData.full_name || null,
+      updatedData.email,
+      updatedData.contact || null,
+      id
+    ];
+    db.query(sql, params, (err, result) => callback(err, result));
+  },
+
+  updateCertification: function (id, title, fileName, callback) {
+    const sql = 'UPDATE users SET coach_cert_title = ?, coach_cert_file = ? WHERE id = ?';
+    db.query(sql, [title || null, fileName || null, id], (err, result) => callback(err, result));
+  },
+
+  updatePassword: function (id, password, callback) {
+    bcrypt.hash(password, SALT_ROUNDS, (hashErr, hash) => {
+      if (hashErr) return callback(hashErr);
+      db.query('UPDATE users SET password = ? WHERE id = ?', [hash, id], (err, result) => callback(err, result));
     });
   },
 

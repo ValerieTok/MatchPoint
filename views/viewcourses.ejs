@@ -151,6 +151,10 @@
                 <% } %>
               </div>
 
+              <% if (p.description) { %>
+                <p class="course-card__desc"><%= p.description %></p>
+              <% } %>
+
               <div class="course-card__details">
                 <div class="detail"><i class="fa-regular fa-clock"></i> <span><%= mins != null ? mins : "TBC" %> Minutes</span></div>
                 <div class="detail"><i class="fa-solid fa-location-dot"></i> <span><%= loc || "TBC" %></span></div>

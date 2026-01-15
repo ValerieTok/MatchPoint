@@ -1,90 +1,125 @@
 <%- include('partials/head', {
-  title: 'Listings | Dashboard',
-  extraHead: `<style>
-    body { background: #f7f7f9; }
-    .welcome-card {
-      background: linear-gradient(135deg, #f9fafb, #eef2ff);
-      border: 1px solid #e5e7eb;
-      border-radius: 18px;
-    }
-    .product-card {
-      border: 1px solid #e5e7eb;
-      border-radius: 14px;
-      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
-      transition: transform 0.1s ease, box-shadow 0.1s ease;
-    }
-    .product-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-    }
-    .product-img {
-      height: 180px;
-      object-fit: contain;
-      padding: 12px;
-    }
-  </style>`
+  title: 'Coach Dashboard',
+  extraHead: `
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+    <link rel="stylesheet" href="/css/user-common.css">
+    <link rel="stylesheet" href="/css/coach-dashboard.css">
+  `
 }) %>
-<%- include('partials/navbar', { user, activePage: 'listingsManage' }) %>
 
-  <div class="container py-4">
-    <div class="welcome-card p-4 mb-4">
-      <div class="d-flex flex-wrap justify-content-between align-items-center">
+<% const totalListings = products ? products.length : 0; %>
+<% const activeListings = (products || []).filter(p => typeof p.is_active === 'undefined' || p.is_active).length; %>
+<% const hiddenListings = totalListings - activeListings; %>
+
+<div class="app">
+  <%- include("partials/coachSidebar", {
+    active: "listings",
+    listingCount: totalListings
+  }) %>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="crumb">COACH DASHBOARD</div>
+      <div class="topbar__pill"><i class="fa-solid fa-dumbbell"></i></div>
+    </header>
+
+    <section class="hero">
+      <div>
+        <h1 class="hero__title">Hi, <%= user.username %>!</h1>
+        <p class="hero__subtitle">
+          <%= user.role === 'coach' ? 'Manage your coaching listings and sessions.' : 'Manage listings across the platform.' %>
+        </p>
+      </div>
+    </section>
+
+    <section class="stats">
+      <div class="stat">
+        <div class="stat__icon"><i class="fa-solid fa-layer-group"></i></div>
         <div>
-          <p class="mb-1 text-muted"><%= user.role === 'coach' ? 'Coach dashboard' : 'Admin dashboard' %></p>
-          <h3 class="mb-1">Hi, <%= user.username %>!</h3>
-          <small class="text-muted"><%= user.role === 'coach' ? 'Manage your coaching listings and sessions.' : 'Manage listings, users, and bookings across the platform.' %></small>
-        </div>
-        <div class="d-flex flex-wrap gap-2 mt-3 mt-sm-0">
-          <span class="badge bg-secondary align-self-center">Total listings: <%= products ? products.length : 0 %></span>
+          <div class="stat__label">Total Listings</div>
+          <div class="stat__value"><%= totalListings %></div>
         </div>
       </div>
-    </div>
+      <div class="stat stat--active">
+        <div class="stat__icon"><i class="fa-solid fa-circle-check"></i></div>
+        <div>
+          <div class="stat__label">Active Listings</div>
+          <div class="stat__value"><%= activeListings %></div>
+        </div>
+      </div>
+      <div class="stat stat--hidden">
+        <div class="stat__icon"><i class="fa-solid fa-eye-slash"></i></div>
+        <div>
+          <div class="stat__label">Hidden Listings</div>
+          <div class="stat__value"><%= hiddenListings %></div>
+        </div>
+      </div>
+    </section>
 
     <%- include('partials/flashMessages', { messages }) %>
 
-    <% if (!products || !products.length) { %>
-      <div class="alert alert-info">No listings found. Add your first listing.</div>
-    <% } else { %>
-      <div class="row g-3">
-        <% products.forEach(p => {
-        %>
-          <div class="col-12 col-sm-6 col-md-4">
-            <div class="product-card h-100 d-flex flex-column bg-white">
-              <img src="/images/<%= p.image || 'placeholder.png' %>" class="card-img-top product-img" alt="<%= p.listing_title %>">
-              <div class="card-body d-flex flex-column">
-                <h6 class="fw-semibold mb-1"><%= p.listing_title %></h6>
-                <div class="small text-muted mb-1"><%= p.username %></div>
+    <section class="section">
+      <div class="section__head">
+        <div class="section__title">Your Listings</div>
+      </div>
+      <div class="section__foot section__foot--top">
+        <a class="btn btn--ghost btn--sm" href="/addListing"><i class="fa-solid fa-circle-plus"></i> Add listing</a>
+      </div>
+
+      <% if (!products || !products.length) { %>
+        <div class="empty">No listings found. Add your first listing to get started.</div>
+      <% } else { %>
+        <div class="listing-grid">
+          <% products.forEach(p => { 
+            const durationLabel = p.duration_minutes ? p.duration_minutes + ' mins' : null;
+            const levelLabel = p.skill_level ? p.skill_level.toUpperCase() : null;
+            const imageSrc = p.image || 'placeholder.png';
+            const isActive = typeof p.is_active !== 'undefined' ? p.is_active : true;
+            const priceLabel = typeof p.price !== 'undefined' && p.price !== null
+              ? '$' + Number(p.price).toFixed(2)
+              : null;
+          %>
+            <div class="listing-card">
+              <div class="listing-card__media">
+                <img src="/images/<%= imageSrc %>" alt="<%= p.listing_title %>">
+              </div>
+              <div class="listing-card__body">
+                <div class="listing-card__title"><%= p.listing_title %></div>
+                <div class="listing-card__meta">Coach: <%= p.username %></div>
+                <% if (priceLabel) { %>
+                  <div class="listing-card__price"><%= priceLabel %> per session</div>
+                <% } %>
                 <% if (p.description) { %>
-                  <p class="small text-muted mb-2"><%= p.description %></p>
+                  <div class="listing-card__desc"><%= p.description %></div>
                 <% } %>
-                <p class="small mb-2">
-                  <% if (p.skill_level) { %>
-                    <span class="badge bg-secondary text-uppercase"><%= p.skill_level %></span>
+                <div class="listing-card__tags">
+                  <% if (levelLabel) { %>
+                    <span class="tag"><%= levelLabel %></span>
                   <% } %>
-                  <% if (p.duration_minutes) { %>
-                    <span class="text-muted"> - <%= p.duration_minutes %> mins</span>
+                  <% if (durationLabel) { %>
+                    <span class="tag tag--neutral"><%= durationLabel %></span>
                   <% } %>
-                </p>
-                <% if (p.session_location) { %>
-                  <div class="small text-muted mb-2">Location: <%= p.session_location %></div>
-                <% } %>
-                <% if (typeof p.is_active !== 'undefined') { %>
-                  <div class="small <%= p.is_active ? 'text-success' : 'text-muted' %> mb-2">
-                    <%= p.is_active ? 'Active listing' : 'Hidden listing' %>
-                  </div>
-                <% } %>
-                <div class="mt-auto d-flex gap-2">
-                  <a class="btn btn-success btn-sm" href="/updateListing/<%= p.id %>">Edit</a>
-                  <form method="post" action="/listingsManage/delete/<%= p.id %>" onsubmit="return confirm('Delete this listing?')" class="d-inline">
-                    <button class="btn btn-danger btn-sm" type="submit">Delete</button>
+                  <% if (p.session_location) { %>
+                    <span class="tag tag--neutral"><%= p.session_location %></span>
+                  <% } %>
+                  <span class="tag <%= isActive ? 'tag--active' : 'tag--inactive' %>">
+                    <%= isActive ? 'Active' : 'Hidden' %>
+                  </span>
+                </div>
+                <div class="listing-card__actions">
+                  <a class="action action--primary" href="/updateListing/<%= p.id %>">Edit</a>
+                  <form method="post" action="/listingsManage/delete/<%= p.id %>" onsubmit="return confirm('Delete this listing?')">
+                    <button class="action action--danger" type="submit">Delete</button>
                   </form>
                 </div>
               </div>
             </div>
-          </div>
-        <% }) %>
-      </div>
-    <% } %>
-  </div>
+          <% }) %>
+        </div>
+      <% } %>
+    </section>
+  </main>
+</div>
+
 <%- include('partials/footer') %>
 

@@ -19,6 +19,8 @@ const getOrderByIdAsync = (id) =>
     Booking.getOrderById(id, (err, order) => (err ? reject(err) : resolve(order)));
   });
 
+const allowedStatuses = new Set(['pending', 'accepted', 'rejected']);
+
 module.exports = {
   listAllOrders(req, res) {
     const searchTerm = req.query && req.query.search ? String(req.query.search) : '';
@@ -93,6 +95,10 @@ module.exports = {
       const order = await getOrderByIdAsync(orderId);
       if (!order || order.user_id !== userId) {
         req.flash('error', 'Booking not found');
+        return res.redirect('/bookingsUser');
+      }
+      if (order.status && String(order.status).toLowerCase() !== 'accepted') {
+        req.flash('error', 'Booking must be accepted before confirmation.');
         return res.redirect('/bookingsUser');
       }
       if (!order.completed_at) {
@@ -228,6 +234,44 @@ module.exports = {
       req.flash('error', 'Unable to delete review');
       return res.redirect('/bookingsManage');
     }
+  },
+
+  async updateStatus(req, res) {
+    const user = req.session && req.session.user;
+    if (!user || (user.role !== 'admin' && user.role !== 'coach')) {
+      req.flash('error', 'Access denied');
+      return res.redirect('/bookingsManage');
+    }
+    const orderId = parseInt(req.params.id, 10);
+    const status = req.body && req.body.status ? String(req.body.status).trim().toLowerCase() : '';
+    if (Number.isNaN(orderId) || !allowedStatuses.has(status)) {
+      req.flash('error', 'Invalid booking status update');
+      return res.redirect('/bookingsManage');
+    }
+    try {
+      const order = await getOrderByIdAsync(orderId);
+      if (!order) {
+        req.flash('error', 'Booking not found');
+        return res.redirect('/bookingsManage');
+      }
+      if (user.role === 'coach') {
+        const items = await new Promise((resolve, reject) => {
+          Booking.getOrderItems(orderId, user.id, (err, rows) => (err ? reject(err) : resolve(rows || [])));
+        });
+        if (!items.length) {
+          req.flash('error', 'Access denied');
+          return res.redirect('/bookingsManage');
+        }
+      }
+      await new Promise((resolve, reject) => {
+        Booking.updateOrderStatus(orderId, status, (err) => (err ? reject(err) : resolve()));
+      });
+      req.flash('success', `Booking marked as ${status}.`);
+      return res.redirect('/bookingsManage');
+    } catch (err) {
+      console.error(err);
+      req.flash('error', 'Unable to update booking status');
+      return res.redirect('/bookingsManage');
+    }
   }
 };
-

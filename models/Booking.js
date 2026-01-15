@@ -12,16 +12,16 @@ const Booking = {
       return sum + price * qty;
     }, 0);
 
-    const orderSql = 'INSERT INTO bookings (user_id, session_location, total) VALUES (?, ?, ?)';
+    const orderSql = 'INSERT INTO bookings (user_id, session_location, total, status) VALUES (?, ?, ?, ?)';
     db.beginTransaction((txErr) => {
       if (txErr) return callback(txErr);
-      db.query(orderSql, [userId, address || null, total], (orderErr, result) => {
+      db.query(orderSql, [userId, address || null, total, 'pending'], (orderErr, result) => {
         if (orderErr) {
           return db.rollback(() => callback(orderErr));
         }
         const orderId = result.insertId;
         const itemSql = `
-          INSERT INTO booking_items (booking_id, listing_id, coach_id, listing_title, sport, price, listPrice, discountPercentage, offerMessage, image, duration_minutes, skill_level, session_location, quantity)
+          INSERT INTO booking_items (booking_id, listing_id, coach_id, listing_title, sport, price, listPrice, discountPercentage, offerMessage, image, duration_minutes, skill_level, session_location, session_date, session_time, quantity)
           VALUES ?
         `;
     const values = items.map((item) => [
@@ -38,6 +38,8 @@ const Booking = {
       Number(item.duration_minutes || 0),
       item.skill_level || null,
       item.session_location || null,
+      item.session_date || null,
+      item.session_time || null,
       Number(item.quantity || 0)
     ]);
         db.query(itemSql, [values], (itemsErr) => {
@@ -57,7 +59,7 @@ const Booking = {
 
   getOrdersByUser(userId, callback) {
     const sql = `
-      SELECT b.id, b.total, b.session_location, b.created_at, b.completed_at, u.username
+      SELECT b.id, b.total, b.session_location, b.created_at, b.completed_at, b.status, u.username
       FROM bookings b
       JOIN users u ON u.id = b.user_id
       WHERE b.user_id = ?
@@ -68,7 +70,7 @@ const Booking = {
 
   getAllOrders(searchTerm, callback) {
     let sql = `
-      SELECT b.id, b.total, b.session_location, b.created_at, b.completed_at, u.username
+      SELECT b.id, b.total, b.session_location, b.created_at, b.completed_at, b.status, u.username
       FROM bookings b
       JOIN users u ON u.id = b.user_id
     `;
@@ -83,7 +85,7 @@ const Booking = {
 
   getBookingsByCoach(coachId, searchTerm, callback) {
     let sql = `
-      SELECT DISTINCT b.id, b.total, b.session_location, b.created_at, b.completed_at, u.username
+      SELECT DISTINCT b.id, b.total, b.session_location, b.created_at, b.completed_at, b.status, u.username
       FROM bookings b
       JOIN booking_items bi ON bi.booking_id = b.id
       JOIN users u ON u.id = b.user_id
@@ -112,8 +114,10 @@ const Booking = {
           bi.duration_minutes,
           bi.skill_level,
           bi.session_location,
+          bi.session_date,
+          bi.session_time,
           bi.coach_id,
-          u.username,
+          COALESCE(u.full_name, u.username) AS username,
           bi.sport
         FROM booking_items bi
         JOIN users u ON u.id = bi.coach_id
@@ -130,7 +134,7 @@ const Booking = {
 
   getOrderById(orderId, callback) {
     const sql = `
-      SELECT id, user_id, total, session_location, created_at, completed_at
+      SELECT id, user_id, total, session_location, created_at, completed_at, status
       FROM bookings
       WHERE id = ?
       LIMIT 1
@@ -141,6 +145,11 @@ const Booking = {
   markOrderDelivered(orderId, callback) {
     const sql = 'UPDATE bookings SET completed_at = CURRENT_TIMESTAMP WHERE id = ?';
     db.query(sql, [orderId], (err, result) => callback(err, result));
+  },
+
+  updateOrderStatus(orderId, status, callback) {
+    const sql = 'UPDATE bookings SET status = ? WHERE id = ?';
+    db.query(sql, [status, orderId], (err, result) => callback(err, result));
   },
 
   createReview(reviewData, callback) {
