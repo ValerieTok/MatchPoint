@@ -113,7 +113,9 @@ const AccountController = {
       req.session.cart = [];
       req.flash('success', 'Login successful');
       return req.session.save(function () {
-        return res.redirect(safeUser.role === 'admin' || safeUser.role === 'coach' ? '/listingsManage' : '/userdashboard');
+        if (safeUser.role === 'admin') return res.redirect('/admindashboard');
+        if (safeUser.role === 'coach') return res.redirect('/listingsManage');
+        return res.redirect('/userdashboard');
       });
     } catch (err) {
       console.error(err);
@@ -433,7 +435,9 @@ const AccountController = {
     req.session.cart = [];
     req.flash('success', 'Login successful');
     return req.session.save(function () {
-      return res.redirect(safeUser.role === 'admin' || safeUser.role === 'coach' ? '/listingsManage' : '/listingsBrowse');
+      if (safeUser.role === 'admin') return res.redirect('/admindashboard');
+      if (safeUser.role === 'coach') return res.redirect('/listingsManage');
+      return res.redirect('/listingsBrowse');
     });
   }
 };

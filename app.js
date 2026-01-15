@@ -11,6 +11,7 @@ const PasswordResetController = require('./controllers/PasswordResetController')
 const ListingController = require('./controllers/ListingController');
 const BookingCartController = require('./controllers/BookingCartController');
 const BookingController = require('./controllers/BookingController');
+const AdminController = require('./controllers/AdminController');
 const { attachUser, checkAuthenticated, checkAdmin } = require('./middleware');
 
 const app = express();
@@ -72,7 +73,7 @@ app.use(attachUser);
 // Home: route admins to inventory, users to shopping, guests see landing
 app.get('/', (req, res) => {
   const user = req.session.user;
-  if (user && user.role === 'admin') return res.redirect('/listingsManage');
+  if (user && user.role === 'admin') return res.redirect('/admindashboard');
   if (user && user.role !== 'admin') return res.redirect('/userdashboard');
   return res.render('index', { user });
 });
@@ -105,6 +106,8 @@ app.get('/viewcourses', checkAuthenticated, ListingController.listAllProducts);
 app.get('/listingDetail/:id', checkAuthenticated, ListingController.getProductById);
 
 // Admin/coach listing pages
+app.get('/admindashboard', checkAuthenticated, checkAdmin, AdminController.dashboard);
+app.get('/admincoaches', checkAuthenticated, checkAdmin, AdminController.coaches);
 app.get('/listingsManage', checkAuthenticated, checkAdmin, ListingController.listAllProducts);
 app.get('/addListing', checkAuthenticated, checkAdmin, ListingController.showAddProductPage);
 app.get('/updateListing/:id', checkAuthenticated, checkAdmin, ListingController.showUpdateProductPage);

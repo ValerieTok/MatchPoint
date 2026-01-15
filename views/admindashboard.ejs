@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Dashboard - MatchPoint</title>
+    <link rel="stylesheet" href="/css/admin-dashboard.css" />
+  </head>
+  <body class="admin-dashboard">
+    <div class="admin-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark"><span></span></div>
+          <div>MatchPoint</div>
+        </div>
+        <nav class="nav">
+          <a class="active" href="/admindashboard"><span class="dot"></span>Overview</a>
+          <a href="/admincoaches"><span class="dot"></span>Coaches</a>
+          <a href="/accounts"><span class="dot"></span>Students</a>
+          <a href="/bookingsManage"><span class="dot"></span>Services</a>
+          <a href="/bookingsManage"><span class="dot"></span>Feedback</a>
+        </nav>
+      </aside>
+
+      <main class="main">
+        <section class="welcome">
+          <div>
+            <h1>
+              Hello <%= user?.username || (user?.email ? user.email.split('@')[0] : 'Admin') %>,
+            </h1>
+            <p>Here is the latest snapshot for MatchPoint today.</p>
+          </div>
+          <div class="welcome-badge">Admin Dashboard</div>
+        </section>
+
+        <% const safeStats = stats || {}; %>
+        <section class="stats">
+          <div class="stat-card">
+            <div class="stat-icon">S</div>
+            <div>
+              <span>Total Students</span>
+              <h3><%= (safeStats.totalStudents || 0).toLocaleString('en-US') %></h3>
+              <div class="delta up">Active accounts</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">C</div>
+            <div>
+              <span>Total Coaches</span>
+              <h3><%= (safeStats.totalCoaches || 0).toLocaleString('en-US') %></h3>
+              <div class="delta up">Verified providers</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">$</div>
+            <div>
+              <span>Revenue</span>
+              <h3><%= Number(safeStats.totalRevenue || 0).toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }) %></h3>
+              <div class="delta up">All-time bookings</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="activity">
+          <% const rows = Array.isArray(activity) ? activity : []; %>
+          <% const knownActions = ['Booked session', 'Session completed', 'Left a coach review', 'New listing posted']; %>
+          <% const optionPool = Array.isArray(actionOptions) ? actionOptions : []; %>
+          <% const combinedOptions = Array.from(new Set([...knownActions, ...optionPool])).filter(Boolean); %>
+          <% const activeFilters = filters || {}; %>
+          <% const pager = pagination || { page: 1, perPage: 5, totalActivities: rows.length, totalPages: 1 }; %>
+          <% const buildQuery = (pageNum) => { %>
+            <% const params = []; %>
+            <% if (activeFilters.search) params.push(`search=${encodeURIComponent(activeFilters.search)}`); %>
+            <% if (activeFilters.action) params.push(`action=${encodeURIComponent(activeFilters.action)}`); %>
+            <% if (activeFilters.sort) params.push(`sort=${encodeURIComponent(activeFilters.sort)}`); %>
+            <% params.push(`page=${pageNum}`); %>
+            <% return params.join('&'); %>
+          <% }; %>
+          <div class="activity-head">
+            <h2>Recent Activity</h2>
+            <div class="activity-tools">
+              <input class="input" id="activitySearch" type="search" placeholder="Search user" value="<%= activeFilters.search || '' %>" />
+              <select class="select" id="activityFilter">
+                <option value="">Filter: All</option>
+                <% combinedOptions.forEach(action => { %>
+                  <option value="<%= action %>" <%= activeFilters.action === action ? 'selected' : '' %>><%= action %></option>
+                <% }) %>
+              </select>
+              <select class="select" id="activitySort">
+                <option value="newest" <%= activeFilters.sort !== 'oldest' ? 'selected' : '' %>>Sort: Newest</option>
+                <option value="oldest" <%= activeFilters.sort === 'oldest' ? 'selected' : '' %>>Sort: Oldest</option>
+              </select>
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Action</th>
+                <th>Time</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% if (!rows.length) { %>
+                <tr>
+                  <td colspan="4">No recent activity yet.</td>
+                </tr>
+              <% } else { %>
+                <% rows.forEach(row => { %>
+                  <tr data-action="<%= row.action %>" data-user="<%= (row.user || '').toLowerCase() %>" data-time="<%= row.eventTime %>">
+                    <td><%= row.user %></td>
+                    <td><%= row.action %></td>
+                    <td><%= row.time %></td>
+                    <td><span class="status <%= row.status %>"><%= row.status.toUpperCase() %></span></td>
+                  </tr>
+                <% }) %>
+                <tr id="activityNoMatch" style="display:none;">
+                  <td colspan="4">No matching activity found.</td>
+                </tr>
+              <% } %>
+            </tbody>
+          </table>
+
+          <div class="mobile-list">
+            <% if (!rows.length) { %>
+              <div class="mobile-card">
+                <h4>No recent activity</h4>
+                <p>New activity will show up here.</p>
+              </div>
+            <% } else { %>
+              <% rows.forEach(row => { %>
+                <div class="mobile-card" data-action="<%= row.action %>" data-user="<%= (row.user || '').toLowerCase() %>" data-time="<%= row.eventTime %>">
+                  <h4><%= row.user %></h4>
+                  <p><%= row.action %></p>
+                  <div><span class="status <%= row.status %>"><%= row.status.toUpperCase() %></span> · <%= row.time %></div>
+                </div>
+              <% }) %>
+              <div class="mobile-card" id="activityNoMatchMobile" style="display:none;">
+                <h4>No matching activity</h4>
+                <p>Try another name or filter.</p>
+              </div>
+            <% } %>
+          </div>
+
+          <div class="pager">
+            <% const startIndex = pager.totalActivities ? ((pager.page - 1) * pager.perPage + 1) : 0; %>
+            <% const endIndex = Math.min(pager.page * pager.perPage, pager.totalActivities || 0); %>
+            <div>Showing <%= startIndex %> to <%= endIndex %> of <%= pager.totalActivities %> activities</div>
+            <div class="pages">
+              <% if (pager.totalPages > 1) { %>
+                <% if (pager.page > 1) { %>
+                  <a class="page" href="/admindashboard?<%= buildQuery(pager.page - 1) %>">&lt;</a>
+                <% } %>
+                <% for (let p = 1; p <= pager.totalPages; p += 1) { %>
+                  <a class="page <%= p === pager.page ? 'active' : '' %>" href="/admindashboard?<%= buildQuery(p) %>"><%= p %></a>
+                <% } %>
+                <% if (pager.page < pager.totalPages) { %>
+                  <a class="page" href="/admindashboard?<%= buildQuery(pager.page + 1) %>">&gt;</a>
+                <% } %>
+              <% } else { %>
+                <div class="page active">1</div>
+              <% } %>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+    <script>
+      const filter = document.getElementById('activityFilter');
+      const sort = document.getElementById('activitySort');
+      const search = document.getElementById('activitySearch');
+
+      const buildUrl = (params) => {
+        const url = new URL(window.location.href);
+        Object.keys(params).forEach((key) => {
+          if (params[key]) {
+            url.searchParams.set(key, params[key]);
+          } else {
+            url.searchParams.delete(key);
+          }
+        });
+        return url.toString();
+      };
+
+      filter?.addEventListener('change', () => {
+        window.location.href = buildUrl({ action: filter.value, page: 1 });
+      });
+
+      sort?.addEventListener('change', () => {
+        window.location.href = buildUrl({ sort: sort.value, page: 1 });
+      });
+
+      search?.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+          const value = (search.value || '').trim().toLowerCase();
+          window.location.href = buildUrl({ search: value, page: 1 });
+        }
+      });
+    </script>
+  </body>
+</html>

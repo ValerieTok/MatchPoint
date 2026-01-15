@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Coaches - MatchPoint</title>
+    <link rel="stylesheet" href="/css/admin-coaches.css" />
+  </head>
+  <body class="admin-coaches">
+    <div class="admin-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark"><span></span></div>
+          <div>MatchPoint</div>
+        </div>
+        <nav class="nav">
+          <a href="/admindashboard"><span class="dot"></span>Overview</a>
+          <a class="active" href="/admincoaches"><span class="dot"></span>Coaches</a>
+          <a href="/accounts"><span class="dot"></span>Students</a>
+          <a href="/bookingsManage"><span class="dot"></span>Services</a>
+          <a href="/bookingsManage"><span class="dot"></span>Feedback</a>
+        </nav>
+      </aside>
+
+      <main class="main">
+        <section class="welcome">
+          <div>
+            <h1>
+              Hello <%= user?.username || (user?.email ? user.email.split('@')[0] : 'Admin') %>,
+            </h1>
+            <p>Review coach performance and session history.</p>
+          </div>
+          <div class="welcome-badge">Admin Coaches</div>
+        </section>
+
+        <% const safeStats = stats || {}; %>
+        <section class="stats">
+          <div class="stat-card">
+            <div class="stat-icon">C</div>
+            <div>
+              <span>Total Coaches</span>
+              <h3><%= (safeStats.totalCoaches || 0).toLocaleString('en-US') %></h3>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">S</div>
+            <div>
+              <span>Total Completed Sessions</span>
+              <h3><%= (safeStats.completedSessions || 0).toLocaleString('en-US') %></h3>
+            </div>
+          </div>
+        </section>
+
+        <section class="activity">
+          <% const rows = Array.isArray(coaches) ? coaches : []; %>
+          <% const activeFilters = filters || {}; %>
+          <% const pager = pagination || { page: 1, perPage: 8, totalCoaches: rows.length, totalPages: 1 }; %>
+          <% const buildQuery = (pageNum) => { %>
+            <% const params = []; %>
+            <% if (activeFilters.search) params.push(`search=${encodeURIComponent(activeFilters.search)}`); %>
+            <% if (activeFilters.sort) params.push(`sort=${encodeURIComponent(activeFilters.sort)}`); %>
+            <% params.push(`page=${pageNum}`); %>
+            <% return params.join('&'); %>
+          <% }; %>
+
+          <div class="activity-head">
+            <h2>All Coaches</h2>
+            <div class="activity-tools">
+              <input class="input" id="coachSearch" type="search" placeholder="Search" value="<%= activeFilters.search || '' %>" />
+              <select class="select" id="coachSort">
+                <option value="newest" <%= activeFilters.sort !== 'oldest' ? 'selected' : '' %>>Sort by: Newest</option>
+                <option value="oldest" <%= activeFilters.sort === 'oldest' ? 'selected' : '' %>>Sort by: Oldest</option>
+              </select>
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Coach Name</th>
+                <th>Sport</th>
+                <th>Sessions</th>
+                <th>Rating</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% if (!rows.length) { %>
+                <tr>
+                  <td colspan="5">No coaches found.</td>
+                </tr>
+              <% } else { %>
+                <% rows.forEach(row => { %>
+                  <tr>
+                    <td><%= row.username %></td>
+                    <td><%= row.sport || row.contact || '-' %></td>
+                    <td><%= Number(row.sessions || 0).toLocaleString('en-US') %></td>
+                    <td>
+                      <% if (row.rating) { %>
+                        <span class="rating">&#9733; <%= row.rating %></span>
+                      <% } else { %>
+                        <span class="rating muted">No reviews</span>
+                      <% } %>
+                    </td>
+                    <td class="actions">
+                      <button class="btn warn" type="button">Issue Warning</button>
+                      <button class="btn danger" type="button">Ban Coach</button>
+                    </td>
+                  </tr>
+                <% }) %>
+              <% } %>
+            </tbody>
+          </table>
+
+          <div class="pager">
+            <% const startIndex = pager.totalCoaches ? ((pager.page - 1) * pager.perPage + 1) : 0; %>
+            <% const endIndex = Math.min(pager.page * pager.perPage, pager.totalCoaches || 0); %>
+            <div>Showing <%= startIndex %> to <%= endIndex %> of <%= pager.totalCoaches %> coaches</div>
+            <div class="pages">
+              <% if (pager.totalPages > 1) { %>
+                <% if (pager.page > 1) { %>
+                  <a class="page" href="/admincoaches?<%= buildQuery(pager.page - 1) %>">&lt;</a>
+                <% } %>
+                <% for (let p = 1; p <= pager.totalPages; p += 1) { %>
+                  <a class="page <%= p === pager.page ? 'active' : '' %>" href="/admincoaches?<%= buildQuery(p) %>"><%= p %></a>
+                <% } %>
+                <% if (pager.page < pager.totalPages) { %>
+                  <a class="page" href="/admincoaches?<%= buildQuery(pager.page + 1) %>">&gt;</a>
+                <% } %>
+              <% } else { %>
+                <div class="page active">1</div>
+              <% } %>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+    <script>
+      const search = document.getElementById('coachSearch');
+      const sort = document.getElementById('coachSort');
+
+      const buildUrl = (params) => {
+        const url = new URL(window.location.href);
+        Object.keys(params).forEach((key) => {
+          if (params[key]) {
+            url.searchParams.set(key, params[key]);
+          } else {
+            url.searchParams.delete(key);
+          }
+        });
+        return url.toString();
+      };
+
+      sort?.addEventListener('change', () => {
+        window.location.href = buildUrl({ sort: sort.value, page: 1 });
+      });
+
+      search?.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+          const value = (search.value || '').trim().toLowerCase();
+          window.location.href = buildUrl({ search: value, page: 1 });
+        }
+      });
+    </script>
+  </body>
+</html>
