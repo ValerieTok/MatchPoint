@@ -1,37 +1,63 @@
-<%- include('partials/head', { title: 'MatchPoint Coaching', bodyClass: 'bg-light' }) %>
+<%- include('partials/head', {
+  title: 'MatchPoint',
+  bodyClass: 'landing-page',
+  extraHead: `
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/auth.css">
+  `
+}) %>
 <%- include('partials/navbar', { user, activePage: '' }) %>
-    <div class="container py-5">
-      <div class="row align-items-center bg-white rounded-4 shadow-sm p-4">
-        <div class="col-lg-6">
-          <p class="text-uppercase text-muted mb-2 small fw-semibold">Train smarter</p>
-          <h1 class="display-5 mb-3">Welcome to MatchPoint Coaching</h1>
-          <p class="lead text-muted">Book certified coaches, manage listings, and track your sessions in one place.</p>
+    <section class="landing-hero">
+      <div class="landing-hero__layout">
+        <div class="landing-hero__content">
+          <div class="landing-tag">MatchPoint</div>
+          <h1 class="landing-title">Own your next session</h1>
+          <p class="landing-subtitle">Book certified coaches, build your schedule, and stay locked in on your training goals.</p>
           <% if (!user) { %>
-            <div class="d-flex gap-2 flex-wrap mt-3">
-              <a class="btn btn-danger btn-lg px-4" href="/register">Create account</a>
-              <a class="btn btn-outline-secondary btn-lg px-4" href="/login">Log in</a>
+            <div class="landing-actions">
+              <a class="landing-btn landing-btn--primary" href="/register">Create account</a>
+              <a class="landing-btn landing-btn--ghost" href="/login">Log in</a>
             </div>
           <% } else { %>
             <% if (user.role === 'admin') { %>
-              <div class="d-flex flex-wrap gap-2 mt-3">
-                <a class="btn btn-primary btn-lg px-4" href="/listingsManage">Manage Listings</a>
-                <a class="btn btn-outline-primary btn-lg px-4" href="/accounts">Manage Users</a>
-                <a class="btn btn-outline-primary btn-lg px-4" href="/bookingsManage">Manage Bookings</a>
+              <div class="landing-actions">
+                <a class="landing-btn landing-btn--primary" href="/listingsManage">Manage Listings</a>
+                <a class="landing-btn landing-btn--ghost" href="/accounts">Manage Users</a>
+                <a class="landing-btn landing-btn--ghost" href="/bookingsManage">Manage Bookings</a>
               </div>
             <% } else if (user.role === 'coach') { %>
-              <div class="d-flex flex-wrap gap-2 mt-3">
-                <a class="btn btn-primary btn-lg px-4" href="/listingsManage">Manage My Listings</a>
-                <a class="btn btn-outline-primary btn-lg px-4" href="/bookingsManage">View My Bookings</a>
+              <div class="landing-actions">
+                <a class="landing-btn landing-btn--primary" href="/listingsManage">Manage My Listings</a>
+                <a class="landing-btn landing-btn--ghost" href="/bookingsManage">View My Bookings</a>
               </div>
             <% } else { %>
-              <a class="btn btn-primary btn-lg px-4 mt-3" href="/listingsBrowse">Find a Coach</a>
+              <div class="landing-actions">
+                <a class="landing-btn landing-btn--primary" href="/listingsBrowse">Find a Coach</a>
+              </div>
             <% } %>
           <% } %>
+          <div class="landing-stats">
+            <div class="landing-stat">
+              <strong>Sport-first training</strong>
+              <span>Sessions that scale</span>
+            </div>
+            <div class="landing-stat">
+              <strong>Coach matching</strong>
+              <span>Skill-level alignment</span>
+            </div>
+          </div>
         </div>
-        <div class="col-lg-6 text-center mt-4 mt-lg-0">
-          <img src="https://images.unsplash.com/photo-1502904550040-7534597429ae?auto=format&fit=crop&w=1000&q=80" class="img-fluid rounded-4 shadow" alt="Coach training an athlete">
+        <div class="landing-hero__visual">
+          <div class="landing-highlight">
+            <strong>Next session</strong>
+            <p>Set the pace with a coach who matches your goals.</p>
+          </div>
+          <div class="landing-photo">
+            <img src="https://img.freepik.com/free-photo/side-view-football-trainer-helping-kids_23-2149742054.jpg?semt=ais_hybrid&w=740&q=80" alt="Football coach training kids">
+          </div>
         </div>
       </div>
-    </div>
+    </section>
 <%- include('partials/footer') %>
-

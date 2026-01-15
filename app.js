@@ -101,10 +101,7 @@ app.use(attachUser);
 
 // Home: route admins to inventory, users to shopping, guests see landing
 app.get('/', (req, res) => {
-  const user = req.session.user;
-  if (user && user.role === 'admin') return res.redirect('/admindashboard');
-  if (user && user.role !== 'admin') return res.redirect('/userdashboard');
-  return res.render('index', { user });
+  return res.render('index', { user: req.session.user });
 });
 
 // User routes

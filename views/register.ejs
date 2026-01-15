@@ -1,56 +1,90 @@
-<%- include('partials/head', { title: 'Create account', bodyClass: 'bg-light' }) %>
+<%- include('partials/head', {
+  title: 'Create account',
+  bodyClass: 'entry-page',
+  extraHead: `
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/auth.css">
+  `
+}) %>
 <%- include('partials/navbar', { user, activePage: '' }) %>
-  <div class="container d-flex justify-content-center align-items-center" style="min-height: calc(100vh - 68px);">
-    <div class="col-lg-5 col-md-7">
-      <div class="bg-white rounded-4 shadow-sm p-4 p-md-5">
-        <h2 class="mb-4 text-center">Create account</h2>
-        <%- include('partials/flashMessages', { messages }) %>
-        <form action="/register" method="post" enctype="multipart/form-data" class="d-grid gap-3">
-          <div>
-            <label class="form-label">Full name</label>
-            <input class="form-control" type="text" name="username" value="<%= (formData && formData.username) || '' %>" required>
-          </div>
-          <div>
-            <label class="form-label">Email</label>
-            <input class="form-control" type="email" name="email" value="<%= (formData && formData.email) || '' %>" required>
-          </div>
-          <div>
-            <label class="form-label">Password</label>
-            <input class="form-control register-password-input" type="password" name="password" minlength="8" required>
-          </div>
-          <div>
-            <input class="form-check-input" type="checkbox" id="show-password-register" data-show-password-target=".register-password-input">
-            <label class="form-check-label" for="show-password-register">Show password</label>
-          </div>
-          <div>
-            <label class="form-label">Phone number</label>
-            <input class="form-control" type="tel" name="contact" value="<%= (formData && formData.contact) || '' %>">
-          </div>
-          <div>
-            <label class="form-label">Account type</label>
-            <select class="form-select" name="role">
-              <option value="user" <%= (formData && formData.role) === 'user' ? 'selected' : '' %>>Athlete</option>
-              <option value="coach" <%= (formData && formData.role) === 'coach' ? 'selected' : '' %>>Coach</option>
-              <option value="admin" <%= (formData && formData.role) === 'admin' ? 'selected' : '' %>>Admin</option>
-            </select>
-          </div>
-          <div class="cert-fields d-none">
-            <label class="form-label">Certification title</label>
-            <input class="form-control" type="text" name="cert_title" value="<%= (formData && formData.cert_title) || '' %>">
-            <small class="text-muted">Required for coach accounts.</small>
-          </div>
-          <div class="cert-fields d-none">
-            <label class="form-label">Upload certification (JPG/PNG/PDF)</label>
-            <input class="form-control" type="file" name="cert_file" accept=".jpg,.jpeg,.png,.webp,.gif,.pdf">
-          </div>
-          <button class="btn btn-danger w-100 py-2" type="submit">Create account</button>
-          <div class="text-center">
-            <small class="text-muted">Already have an account? <a href="/login">Log in</a></small>
-          </div>
-        </form>
+<section class="entry-shell">
+  <div class="entry-layout">
+    <div class="entry-card">
+      <div class="entry-eyebrow">MatchPoint</div>
+      <h1 class="entry-title">Create account</h1>
+      <p class="entry-subtitle">Join the training floor and book sessions with coaches that fit your game.</p>
+
+      <%- include('partials/flashMessages', { messages }) %>
+
+      <form action="/register" method="post" enctype="multipart/form-data" class="entry-form d-grid gap-3">
+        <div>
+          <label class="form-label">Full name</label>
+          <input class="form-control" type="text" name="username" value="<%= (formData && formData.username) || '' %>" required>
+        </div>
+        <div>
+          <label class="form-label">Email</label>
+          <input class="form-control" type="email" name="email" value="<%= (formData && formData.email) || '' %>" required>
+        </div>
+        <div>
+          <label class="form-label">Password</label>
+          <input class="form-control register-password-input" type="password" name="password" minlength="8" required>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="show-password-register" data-show-password-target=".register-password-input">
+          <label class="form-check-label" for="show-password-register">Show password</label>
+        </div>
+        <div>
+          <label class="form-label">Phone number</label>
+          <input class="form-control" type="tel" name="contact" value="<%= (formData && formData.contact) || '' %>">
+        </div>
+        <div>
+          <label class="form-label">Account type</label>
+          <select class="form-select" name="role">
+            <option value="user" <%= (formData && formData.role) === 'user' ? 'selected' : '' %>>Athlete</option>
+            <option value="coach" <%= (formData && formData.role) === 'coach' ? 'selected' : '' %>>Coach</option>
+            <option value="admin" <%= (formData && formData.role) === 'admin' ? 'selected' : '' %>>Admin</option>
+          </select>
+        </div>
+        <div class="cert-fields d-none">
+          <label class="form-label">Certification title</label>
+          <input class="form-control" type="text" name="cert_title" value="<%= (formData && formData.cert_title) || '' %>">
+          <small class="text-muted">Required for coach accounts.</small>
+        </div>
+        <div class="cert-fields d-none">
+          <label class="form-label">Upload certification (JPG/PNG/PDF)</label>
+          <input class="form-control" type="file" name="cert_file" accept=".jpg,.jpeg,.png,.webp,.gif,.pdf">
+        </div>
+        <button class="entry-btn w-100" type="submit">Create account</button>
+        <div class="entry-footer">
+          Already have an account? <a class="entry-link" href="/login">Log in</a>
+        </div>
+      </form>
+    </div>
+
+    <div class="entry-hero">
+      <div>
+        <h3>Built for athletes.</h3>
+        <p>Pick your sport, choose your coach, and keep every session organized.</p>
+      </div>
+      <div class="entry-hero__stats">
+        <div class="entry-stat">
+          <strong>Flexible scheduling</strong>
+          <span>Any time, any place</span>
+        </div>
+        <div class="entry-stat">
+          <strong>Coach ratings</strong>
+          <span>Train with the best</span>
+        </div>
+        <div class="entry-stat">
+          <strong>Performance focus</strong>
+          <span>Skill-based sessions</span>
+        </div>
       </div>
     </div>
   </div>
+</section>
 <%- include('partials/showPasswordToggle') %>
 <script>
   (function () {

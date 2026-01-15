@@ -166,6 +166,7 @@ const ListingController = {
     const product = {
       coach_id: coachId,
       listing_title: listingTitle,
+      sport: listingTitle,
       description: description || null,
       skill_level: skillLevel,
       session_location: sessionLocation || null,
@@ -281,6 +282,7 @@ const ListingController = {
       : (req.body.current_image ? String(req.body.current_image).trim() : current.image);
     const updated = {
       listing_title: listingTitle,
+      sport: listingTitle,
       description: description || current.description,
       skill_level: skillLevel,
       session_location: updatedSessionLocation !== null

@@ -48,7 +48,7 @@
               <%
                 const sports = Array.from(
                   new Set((products || [])
-                    .map(p => String(p.sport || "").trim())
+                    .map(p => String(p.sport || p.listing_title || "").trim())
                     .filter(Boolean)
                   )
                 ).sort((a, b) => a.localeCompare(b));
@@ -92,7 +92,7 @@
           const level = levelRaw ? levelRaw.toLowerCase() : "";
           const mins = (p.duration_minutes != null ? Number(p.duration_minutes) : null);
           const loc = (p.session_location != null ? String(p.session_location).trim() : "");
-          const sportRaw = (p.sport != null ? p.sport : "");
+          const sportRaw = (p.sport != null ? p.sport : (p.listing_title != null ? p.listing_title : ""));
           const sportName = String(sportRaw).trim();                // for display
           const sportKey  = String(sportRaw).trim().toLowerCase();  // for logic/filtering
 
