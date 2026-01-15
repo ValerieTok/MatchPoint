@@ -77,11 +77,11 @@
             <thead>
               <tr>
                 <th>Coach Name</th>
-                <th>Date</th>
+                <th>Date &amp; Time</th>
                 <th>Phone Number</th>
                 <th>Email</th>
                 <th>Sport</th>
-                <th>Package</th>
+                <th>Location</th>
                 <th>Status</th>
               </tr>
             </thead>
@@ -101,7 +101,12 @@
               <% } else { %>
                 <% rows.forEach(r => { %>
                   <tr>
-                    <td><%= r.coach || '-' %></td>
+                    <td>
+                      <div><%= r.coach || '-' %></div>
+                      <% if (r.sport) { %>
+                        <div class="cell-sub"><%= r.sport %></div>
+                      <% } %>
+                    </td>
                     <td>
                       <% const dateLabel = formatSessionDate(r.date); %>
                       <% const timeLabel = formatSessionTime(r.time); %>
@@ -110,7 +115,7 @@
                     <td><%= r.phone || '-' %></td>
                     <td><%= r.email || '-' %></td>
                     <td><%= r.sport || '-' %></td>
-                    <td><%= r.pkg || '-' %></td>
+                    <td><%= r.location || '-' %></td>
                     <td>
                       <% if ((r.status || "").toUpperCase() === "UPCOMING") { %>
                         <span class="pill pill--upcoming">UPCOMING</span>

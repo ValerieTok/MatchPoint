@@ -71,8 +71,8 @@ const ListingController = {
           time: row.session_time || null,
           phone: row.coach_contact || '',
           email: row.coach_email || '',
-          sport: row.sport || '',
-          pkg: row.listing_title || row.sport || 'Session',
+          sport: row.sport || row.listing_title || '',
+          location: row.session_location || row.booking_location || '',
           status: row.session_completed ? 'COMPLETED' : 'UPCOMING'
         }));
       }
@@ -175,7 +175,6 @@ const ListingController = {
       image: (file && file.filename) || req.body.image || null,
       discount_percentage: 0,
       offer_message: null,
-      sport: null,
       is_active: isActive
     };
     if (!product.listing_title) {
@@ -293,7 +292,6 @@ const ListingController = {
       image: updatedImage || null,
       discount_percentage: current.discount_percentage,
       offer_message: current.offer_message,
-      sport: current.sport,
       is_active: isActive
     };
     if (!updated.listing_title) {

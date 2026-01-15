@@ -107,6 +107,7 @@ const Booking = {
         bi.sport,
         bi.listing_title,
         bi.session_location,
+        b.session_location AS booking_location,
         COALESCE(u.full_name, u.username) AS coach_name,
         u.email AS coach_email,
         u.contact AS coach_contact,
