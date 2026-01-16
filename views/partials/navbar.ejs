@@ -1,31 +1,33 @@
-<nav class="navbar navbar-expand-sm mp-navbar mb-3">
-  <div class="container">
-    <a class="navbar-brand fw-semibold" href="/"><span>MatchPoint</span> Coaching</a>
-    <div class="ms-auto d-flex align-items-center gap-2">
+<nav class="navbar navbar-expand-sm mp-navbar">
+  <div class="container-fluid px-4">
+    <a class="navbar-brand fw-bold" href="/">
+      <span class="brand-match">MatchPoint</span> <span class="brand-coaching">Coaching</span>
+    </a>
+    <div class="ms-auto d-flex align-items-center gap-3">
       <% if (user) { %>
         <% if (user.role === 'admin') { %>
-          <a class="btn btn-outline-primary btn-sm <%= activePage === 'listingsManage' ? 'active' : '' %>" href="/listingsManage">All Listings</a>
-          <a class="btn btn-outline-primary btn-sm <%= activePage === 'addProduct' ? 'active' : '' %>" href="/addListing">Add Listing</a>
-          <a class="btn btn-outline-primary btn-sm <%= activePage === 'users' ? 'active' : '' %>" href="/accounts">Manage Users</a>
-          <a class="btn btn-outline-primary btn-sm <%= activePage === 'orders' ? 'active' : '' %>" href="/bookingsManage">Manage Bookings</a>
-          <a class="btn btn-outline-secondary btn-sm" href="/2FASetup">Security / 2FA</a>
-          <a class="btn btn-outline-secondary btn-sm" href="/logout">Logout</a>
+          <a class="nav-link <%= activePage === 'listingsManage' ? 'active' : '' %>" href="/listingsManage">All Listings</a>
+          <a class="nav-link <%= activePage === 'addProduct' ? 'active' : '' %>" href="/addListing">Add Listing</a>
+          <a class="nav-link <%= activePage === 'users' ? 'active' : '' %>" href="/accounts">Manage Users</a>
+          <a class="nav-link <%= activePage === 'orders' ? 'active' : '' %>" href="/bookingsManage">Manage Bookings</a>
+          <div class="nav-divider"></div>
+          <a class="btn btn-logout" href="/logout">Logout</a>
         <% } else if (user.role === 'coach') { %>
-          <a class="btn btn-outline-primary btn-sm <%= activePage === 'listingsManage' ? 'active' : '' %>" href="/listingsManage">My Listings</a>
-          <a class="btn btn-outline-primary btn-sm <%= activePage === 'addProduct' ? 'active' : '' %>" href="/addListing">Add Listing</a>
-          <a class="btn btn-outline-primary btn-sm <%= activePage === 'orders' ? 'active' : '' %>" href="/bookingsManage">My Bookings</a>
-          <a class="btn btn-outline-secondary btn-sm" href="/2FASetup">Security / 2FA</a>
-          <a class="btn btn-outline-secondary btn-sm" href="/logout">Logout</a>
+          <a class="nav-link <%= activePage === 'listingsManage' ? 'active' : '' %>" href="/listingsManage">My Listings</a>
+          <a class="nav-link <%= activePage === 'addProduct' ? 'active' : '' %>" href="/addListing">Add Listing</a>
+          <a class="nav-link <%= activePage === 'orders' ? 'active' : '' %>" href="/bookingsManage">My Bookings</a>
+          <div class="nav-divider"></div>
+          <a class="btn btn-logout" href="/logout">Logout</a>
         <% } else { %>
-          <a class="btn btn-outline-primary btn-sm <%= activePage === 'shopping' ? 'active' : '' %>" href="/listingsBrowse">Find Coaches</a>
-          <a class="btn btn-outline-primary btn-sm <%= activePage === 'cart' ? 'active' : '' %>" href="/bookingCart">Booking Cart</a>
-          <a class="btn btn-outline-primary btn-sm <%= activePage === 'orderUser' ? 'active' : '' %>" href="/bookingsUser">My Bookings</a>
-          <a class="btn btn-outline-secondary btn-sm" href="/2FASetup">Security / 2FA</a>
-          <a class="btn btn-outline-secondary btn-sm" href="/logout">Logout</a>
+          <a class="nav-link <%= activePage === 'shopping' ? 'active' : '' %>" href="/listingsBrowse">Find Coaches</a>
+          <a class="nav-link <%= activePage === 'cart' ? 'active' : '' %>" href="/bookingCart">Booking Cart</a>
+          <a class="nav-link <%= activePage === 'orderUser' ? 'active' : '' %>" href="/bookingsUser">My Bookings</a>
+          <div class="nav-divider"></div>
+          <a class="btn btn-logout" href="/logout">Logout</a>
         <% } %>
       <% } else { %>
-        <a class="btn btn-outline-primary btn-sm" href="/login">Login</a>
-        <a class="btn btn-primary btn-sm" href="/register">Sign up</a>
+        <a class="btn btn-outline-red" href="/login">Login</a>
+        <a class="btn btn-red" href="/register">Sign up</a>
       <% } %>
     </div>
   </div>

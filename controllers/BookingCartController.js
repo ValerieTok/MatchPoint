@@ -262,39 +262,43 @@ module.exports = {
         req.flash('deliveryAddress', deliveryAddress);
         return res.redirect('/bookingCart');
       }
-      await new Promise((resolve, reject) => {
-        Listing.deductStock(cart, (err) => (err ? reject(err) : resolve()));
-      });
+
+      // Calculate pricing for cart items
       const pricedCart = cart.map((item) => {
         const pricing = calculatePricing(item);
+        
+        // Convert session_date to DATE format (YYYY-MM-DD) if it's a timestamp
+        let sessionDate = item.session_date || null;
+        if (sessionDate) {
+          if (sessionDate instanceof Date) {
+            sessionDate = sessionDate.toISOString().split('T')[0];
+          } else if (typeof sessionDate === 'string' && sessionDate.includes('T')) {
+            sessionDate = sessionDate.split('T')[0];
+          }
+        }
+        
         return {
           ...item,
           price: pricing.finalPrice,
           listPrice: pricing.basePrice,
           discountPercentage: pricing.discountPercentage,
-          offerMessage: item.offer_message
+          offerMessage: item.offer_message,
+          session_date: sessionDate
         };
       });
-      const { orderId, total } = await new Promise((resolve, reject) => {
-        Booking.createOrder(
-          userId,
-          pricedCart,
-          deliveryAddress || null,
-          (err, result) => (err ? reject(err) : resolve(result))
-        );
-      });
-      await new Promise((resolve, reject) => {
-        BookingCart.clearCart(userId, (err) => (err ? reject(err) : resolve()));
-      });
-      req.session.cart = [];
-      return res.render('bookingReceipt', {
+
+      const total = pricedCart.reduce((sum, item) => {
+        return sum + Number(item.price) * Number(item.quantity || 0);
+      }, 0);
+
+      // Store in session for payment page
+      req.session.pendingPayment = {
         cart: pricedCart,
-        user: req.session && req.session.user,
         deliveryAddress,
-        total: total || 0,
-        orderId,
-        mode: 'receipt'
-      });
+        total
+      };
+
+      return res.redirect('/payment');
     } catch (err) {
       console.error(err);
       if (err && err.code === 'PRODUCT_NOT_FOUND') {

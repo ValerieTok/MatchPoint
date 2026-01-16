@@ -11,6 +11,7 @@ const PasswordResetController = require('./controllers/PasswordResetController')
 const ListingController = require('./controllers/ListingController');
 const BookingCartController = require('./controllers/BookingCartController');
 const BookingController = require('./controllers/BookingController');
+const PaymentController = require('./controllers/PaymentController');
 const AdminController = require('./controllers/AdminController');
 const CoachProfileController = require('./controllers/CoachProfileController');
 const UserProfileController = require('./controllers/UserProfileController');
@@ -158,6 +159,11 @@ app.post('/bookingCart/update/:id', checkAuthenticated, BookingCartController.up
 app.post('/bookingCart/remove/:id', checkAuthenticated, BookingCartController.removeFromCart);
 app.post('/bookingCheckout', checkAuthenticated, BookingCartController.showCheckoutSummary);
 app.post('/bookingCheckout/confirm', checkAuthenticated, BookingCartController.confirmCheckout);
+
+// Payment routes
+app.get('/payment', checkAuthenticated, PaymentController.showPaymentPage);
+app.post('/payment/confirm', checkAuthenticated, PaymentController.confirmPayment);
+
 app.post('/bookingsManage/:id/review/delete', checkAuthenticated, checkAdmin, BookingController.deleteReview);
 app.post('/bookingsManage/:id/status', checkAuthenticated, checkAdmin, BookingController.updateStatus);
 app.post('/bookingsUser/:id/confirm-delivery', checkAuthenticated, BookingController.confirmDelivery);

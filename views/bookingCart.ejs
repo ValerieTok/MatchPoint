@@ -1,114 +1,192 @@
-<%- include('partials/head', { title: 'Booking Cart', bodyClass: 'bg-light' }) %>
-<%- include('partials/navbar', { user, activePage: 'cart' }) %>
 
-<div class="container mb-5">
-  <div class="bg-white rounded-4 shadow-sm p-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <div>
-        <p class="mb-1 text-muted">Booking cart</p>
-        <h4 class="mb-0"><%= cart && cart.length ? cart.length : 0 %> item(s)</h4>
-      </div>
-    </div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MatchPoint • Booking Cart</title>
 
-    <%- include('partials/flashMessages', { messages }) %>
+  <!-- Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <link rel="stylesheet" href="/css/user-common.css">
+  <link rel="stylesheet" href="/css/user-dashboard.css">
+  <link rel="stylesheet" href="/css/admin-dashboard.css" />
+</head>
+<body class="admin-dashboard">
+  <div class="app">
 
-    <% if (!cart || cart.length === 0) { %>
-      <div class="alert alert-info mb-0">Your booking cart is empty.</div>
-    <% } else { %>
-      <% let total = 0; %>
-      <% let totalSavings = 0; %>
-      <div class="d-flex flex-column gap-3">
-        <% cart.forEach(item => { 
-          const basePrice = Number(item.price || 0);
-          const discountPercentage = Math.min(100, Math.max(0, Number(item.discount_percentage) || 0));
-          const hasDiscount = discountPercentage > 0;
-          const finalPrice = hasDiscount
-            ? Number((basePrice * (1 - discountPercentage / 100)).toFixed(2))
-            : basePrice;
-          const sub = finalPrice * item.quantity;
-          total += sub;
-          if (hasDiscount) { totalSavings += (basePrice - finalPrice) * item.quantity; }
-          const sessionDateLabel = item.session_date ? new Date(item.session_date).toLocaleDateString() : 'TBC';
-          const sessionTimeLabel = item.session_time ? String(item.session_time).slice(0, 5) : 'TBC';
-        %>
-          <div class="d-flex gap-3 align-items-center border rounded-3 p-3 bg-white shadow-sm">
-            <div style="width: 90px; height: 90px;" class="d-flex align-items-center justify-content-center bg-light rounded">
-              <% if (item.image) { %>
-                <img src="/images/<%= item.image %>" alt="<%= item.listing_title %>" class="img-fluid" style="max-height: 80px; object-fit: contain;">
-              <% } else { %>
-                <span class="text-muted small">No image</span>
-              <% } %>
-            </div>
-            <div class="flex-grow-1">
-              <div class="fw-semibold"><%= item.listing_title %></div>
-              <div class="text-muted small mb-1"><%= item.username %><% if (item.sport) { %> • <%= item.sport %><% } %></div>
-              <% if (hasDiscount) { %>
-                <div class="text-muted small text-decoration-line-through mb-0">Rate: $<%= basePrice.toFixed(2) %></div>
-                <div class="text-success small fw-semibold mb-1">$<%= finalPrice.toFixed(2) %> (<%= discountPercentage.toFixed(0) %>% off)</div>
-              <% } else { %>
-                <div class="text-muted small mb-1">Rate: $<%= basePrice.toFixed(2) %></div>
-              <% } %>
-              <div class="text-muted small mb-1"><% if (item.duration_minutes) { %><span class="text-muted"><%= item.duration_minutes %> mins</span><% } %></div>
-              <div class="text-muted small mb-1">Session: <%= sessionDateLabel %> ƒ?› <%= sessionTimeLabel %></div>
-              <% if (item.offer_message) { %>
-                <div class="alert alert-info py-2 px-3 mb-2">
-                  <span class="fw-semibold small text-uppercase d-block mb-1">Promo</span>
-                  <div class="small mb-0"><%= item.offer_message %></div>
+    <!-- SIDEBAR -->
+    <%- include("partials/userSidebar", {
+      active: "cart",
+      courseCount: undefined
+    }) %>
+
+    <!-- MAIN -->
+    <main class="main">
+      <header class="topbar">
+        <div class="crumb">BOOKING CART</div>
+        <div class="topbar__pill"><i class="fa-solid fa-cart-shopping"></i></div>
+      </header>
+
+      <section class="hero">
+        <div class="hero__left">
+          <h1>Shopping <span class="hero__name">Cart</span> 🛒</h1>
+          <p style="color: #666; margin-top: 0.5rem;"><%= cart && cart.length ? cart.length : 0 %> item(s) in your cart</p>
+        </div>
+      </section>
+
+      <%- include('partials/flashMessages', { messages }) %>
+
+      <%- include('partials/flashMessages', { messages }) %>
+
+      <% if (!cart || cart.length === 0) { %>
+        <section class="card" style="text-align: center; padding: 3rem;">
+          <div style="font-size: 4rem; margin-bottom: 1rem;">🛒</div>
+          <h3 style="margin-bottom: 0.5rem;">Your cart is empty</h3>
+          <p style="color: #666; margin-bottom: 2rem;">Start adding coaching sessions to your cart</p>
+          <a href="/userdashboard" style="display: inline-block; background: linear-gradient(135deg, #ef4444, #dc2626); color: white; padding: 0.75rem 2rem; border-radius: 8px; text-decoration: none; font-weight: 600;">Browse Coaches</a>
+        </section>
+      <% } else { %>
+        <% let total = 0; %>
+        <% let totalSavings = 0; %>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem; max-width: 1400px;">
+          <div>
+            <% cart.forEach(item => { 
+              const basePrice = Number(item.price || 0);
+              const discountPercentage = Math.min(100, Math.max(0, Number(item.discount_percentage) || 0));
+              const hasDiscount = discountPercentage > 0;
+              const finalPrice = hasDiscount
+                ? Number((basePrice * (1 - discountPercentage / 100)).toFixed(2))
+                : basePrice;
+              const sub = finalPrice * item.quantity;
+              total += sub;
+              if (hasDiscount) { totalSavings += (basePrice - finalPrice) * item.quantity; }
+              const sessionDateLabel = item.session_date ? new Date(item.session_date).toLocaleDateString() : 'TBC';
+              const sessionTimeLabel = item.session_time ? String(item.session_time).slice(0, 5) : 'TBC';
+            %>
+              <section class="card" style="margin-bottom: 1rem; padding: 2rem;">
+                <div style="display: flex; gap: 2rem; margin-bottom: 1.5rem;">
+                  <div style="width: 140px; height: 140px; border-radius: 16px; background: #f3f4f6; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0;">
+                    <% if (item.image) { %>
+                      <img src="/images/<%= item.image %>" alt="<%= item.listing_title %>" style="width: 100%; height: 100%; object-fit: cover;">
+                    <% } else { %>
+                      <span style="color: #999; font-size: 0.9rem;">No image</span>
+                    <% } %>
+                  </div>
+                  
+                  <div style="flex: 1;">
+                    <h3 style="margin: 0 0 0.5rem 0; font-size: 1.5rem; font-weight: 700; color: #1a1a1a;"><%= item.listing_title %></h3>
+                    <p style="color: #6b7280; font-size: 1rem; margin: 0 0 1rem 0;">Coach: <%= item.username %><% if (item.sport) { %> • <%= item.sport %><% } %></p>
+                    
+                    <% if (hasDiscount) { %>
+                      <div style="margin-bottom: 0.5rem;">
+                        <span style="color: #9ca3af; text-decoration: line-through; font-size: 1rem; margin-right: 0.75rem;">$<%= basePrice.toFixed(2) %></span>
+                        <span style="color: #22c55e; font-weight: 700; font-size: 1.25rem;">$<%= finalPrice.toFixed(2) %></span>
+                        <span style="background: #22c55e; color: white; padding: 0.25rem 0.75rem; border-radius: 6px; font-size: 0.8rem; margin-left: 0.75rem; font-weight: 600;"><%= discountPercentage.toFixed(0) %>% off</span>
+                      </div>
+                    <% } else { %>
+                      <div style="font-weight: 700; margin-bottom: 1rem; font-size: 1.75rem; color: #1a1a1a;">$<%= basePrice.toFixed(2) %></div>
+                    <% } %>
+                  </div>
+                </div>
+                
+                <div style="display: flex; align-items: center; gap: 1.5rem; color: #6b7280; font-size: 0.95rem; margin-bottom: 1.5rem; padding: 1rem; background: #f9fafb; border-radius: 12px;">
+                  <% if (item.duration_minutes) { %>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                      <span style="font-size: 1.25rem;">⏱️</span>
+                      <span style="font-weight: 500;"><%= item.duration_minutes %> mins</span>
+                    </div>
+                  <% } %>
+                  <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <span style="font-size: 1.25rem;">📅</span>
+                    <span style="font-weight: 500;"><%= sessionDateLabel %></span>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <span style="font-size: 1.25rem;">🕐</span>
+                    <span style="font-weight: 500;"><%= sessionTimeLabel %></span>
+                  </div>
+                </div>
+                
+                <% if (item.offer_message) { %>
+                  <div style="background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); border-left: 4px solid #3b82f6; padding: 0.75rem 1rem; font-size: 0.9rem; border-radius: 8px; margin-bottom: 1.5rem;">
+                    <strong style="color: #1e40af;">Promo:</strong> <span style="color: #1e3a8a;"><%= item.offer_message %></span>
+                  </div>
+                <% } %>
+                
+                <div style="display: flex; gap: 1rem; align-items: center; justify-content: space-between;">
+                  <form style="display: flex; align-items: center; gap: 0.75rem;" action="/bookingCart/update/<%= item.listing_id %>" method="POST">
+                    <label style="font-size: 0.95rem; color: #6b7280; font-weight: 500;">Slots:</label>
+                    <input
+                      type="number"
+                      style="width: 90px; padding: 0.6rem 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1rem; font-weight: 500; text-align: center;"
+                      name="quantity"
+                      min="1"
+                      value="<%= item.quantity %>"
+                      required>
+                    <button type="submit" style="background: #3b82f6; color: white; border: none; padding: 0.6rem 1.5rem; border-radius: 8px; cursor: pointer; font-size: 0.95rem; font-weight: 600; transition: all 0.2s;">Update</button>
+                  </form>
+                  
+                  <form action="/bookingCart/remove/<%= item.listing_id %>" method="POST">
+                    <button type="submit" style="background: #ef4444; color: white; border: none; padding: 0.6rem 1.5rem; border-radius: 8px; cursor: pointer; font-size: 0.95rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; transition: all 0.2s;">
+                      <span style="font-size: 1.1rem;">🗑️</span> Remove
+                    </button>
+                  </form>
+                </div>
+                
+                <div style="text-align: right; padding-top: 1.5rem; margin-top: 1.5rem; border-top: 2px solid #e5e7eb;">
+                  <p style="color: #6b7280; font-size: 0.9rem; margin: 0 0 0.5rem 0; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Subtotal</p>
+                  <h2 style="margin: 0; font-size: 2rem; font-weight: 800; color: #1a1a1a;">$<%= sub.toFixed(2) %></h2>
+                </div>
+              </section>
+            <% }) %>
+          </div>
+          
+          <div>
+            <section class="card" style="position: sticky; top: 2rem; padding: 1.5rem;">
+              <h3 style="margin: 0 0 1.5rem 0;">Order Summary</h3>
+              
+              <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem;">
+                <span style="color: #666;">Subtotal</span>
+                <span style="font-weight: 600;">$<%= total.toFixed(2) %></span>
+              </div>
+              
+              <% if (totalSavings > 0) { %>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem; color: #22c55e;">
+                  <span>Savings</span>
+                  <span style="font-weight: 600;">-$<%= totalSavings.toFixed(2) %></span>
                 </div>
               <% } %>
-              <form class="d-flex align-items-center gap-2" action="/bookingCart/update/<%= item.listing_id %>" method="POST">
-                <label class="small text-muted mb-0" for="cart-qty-<%= item.listing_id %>">Slots</label>
-                <input
-                  type="number"
-                  class="form-control form-control-sm"
-                  style="max-width: 90px;"
-                  id="cart-qty-<%= item.listing_id %>"
-                  name="quantity"
-                  min="1"
-                  
-                  value="<%= item.quantity %>"
-                  required>
-                <button type="submit" class="btn btn-sm btn-outline-primary">Update</button>
+              
+              <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 1rem 0;">
+              
+              <div style="display: flex; justify-content: space-between; margin-bottom: 1.5rem;">
+                <span style="font-weight: 600;">Total</span>
+                <span style="font-weight: 600; color: #22c55e; font-size: 1.3rem;">$<%= total.toFixed(2) %></span>
+              </div>
+              
+              <form action="/bookingCheckout" method="post">
+                <div style="margin-bottom: 1rem;">
+                  <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.9rem;">Session Location</label>
+                  <textarea
+                    style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 8px; font-family: inherit; font-size: 0.9rem; resize: vertical;"
+                    name="deliveryAddress"
+                    rows="3"
+                    placeholder="Enter training location or online meeting link..."
+                    required><%= deliveryAddress || '' %></textarea>
+                  <div style="color: #666; font-size: 0.75rem; margin-top: 0.25rem;">This will be used for all sessions in your cart</div>
+                </div>
+                
+                <button type="submit" style="width: 100%; background: linear-gradient(135deg, #ef4444, #dc2626); color: white; border: none; padding: 1rem; border-radius: 8px; font-weight: 600; font-size: 1rem; cursor: pointer; margin-bottom: 0.75rem;">Proceed to Checkout</button>
+                <a href="/userdashboard" style="display: block; width: 100%; text-align: center; background: white; color: #666; border: 1px solid #ddd; padding: 0.75rem; border-radius: 8px; text-decoration: none; font-weight: 500;">Continue Shopping</a>
               </form>
-            </div>
-            <div class="text-end">
-              <div class="text-muted small">Subtotal</div>
-              <div class="fw-semibold">$<%= sub.toFixed(2) %></div>
-              <form class="mt-2" action="/bookingCart/remove/<%= item.listing_id %>" method="POST">
-                <button class="btn btn-sm btn-outline-danger" type="submit">Remove</button>
-              </form>
-            </div>
+            </section>
           </div>
-        <% }) %>
-      </div>
-      <div class="d-flex justify-content-between align-items-center mt-4">
-        <div>
-          <h5 class="mb-1">Total: $<%= total.toFixed(2) %></h5>
-          <% if (totalSavings > 0) { %>
-            <div class="text-success small">You save $<%= totalSavings.toFixed(2) %> on this booking.</div>
-          <% } %>
         </div>
-      </div>
-      <form action="/bookingCheckout" method="post" class="mt-3">
-        <div class="mb-3">
-          <label class="form-label fw-semibold">Session location</label>
-          <textarea
-            class="form-control"
-            name="deliveryAddress"
-            rows="2"
-            placeholder="Enter training location or online meeting link"
-            required><%= deliveryAddress || '' %></textarea>
-        </div>
-        <div class="d-flex flex-wrap gap-2 justify-content-end">
-          <a class="btn btn-outline-secondary" href="/userdashboard">Browse listings</a>
-          <button class="btn btn-success" type="submit">Confirm booking</button>
-        </div>
-      </form>
-    <% } %>
+      <% } %>
+
+    </main>
   </div>
-</div>
-<%- include('partials/footer') %>
-
-
-
+</body>
+</html>
 

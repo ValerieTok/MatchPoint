@@ -24,24 +24,32 @@ const Booking = {
           INSERT INTO booking_items (booking_id, listing_id, coach_id, listing_title, sport, price, listPrice, discountPercentage, offerMessage, image, duration_minutes, skill_level, session_location, session_date, session_time, quantity)
           VALUES ?
         `;
-    const values = items.map((item) => [
-      orderId,
-      item.listing_id,
-      item.coach_id,
-      item.listing_title,
-      item.sport || null,
-      Number(item.price || 0),
-      Number(item.listPrice || item.price || 0),
-      Number(item.discountPercentage || 0),
-      item.offerMessage || null,
-      item.image || null,
-      Number(item.duration_minutes || 0),
-      item.skill_level || null,
-      item.session_location || null,
-      item.session_date || null,
-      item.session_time || null,
-      Number(item.quantity || 0)
-    ]);
+    const values = items.map((item) => {
+      // Convert session_date to DATE format (YYYY-MM-DD) if it's a timestamp
+      let sessionDate = item.session_date || null;
+      if (sessionDate && typeof sessionDate === 'string' && sessionDate.includes('T')) {
+        sessionDate = sessionDate.split('T')[0]; // Extract only the date part
+      }
+      
+      return [
+        orderId,
+        item.listing_id,
+        item.coach_id,
+        item.listing_title,
+        item.sport || null,
+        Number(item.price || 0),
+        Number(item.listPrice || item.price || 0),
+        Number(item.discountPercentage || 0),
+        item.offerMessage || null,
+        item.image || null,
+        Number(item.duration_minutes || 0),
+        item.skill_level || null,
+        item.session_location || null,
+        sessionDate,
+        item.session_time || null,
+        Number(item.quantity || 0)
+      ];
+    });
         db.query(itemSql, [values], (itemsErr) => {
           if (itemsErr) {
             return db.rollback(() => callback(itemsErr));
