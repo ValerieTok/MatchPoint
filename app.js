@@ -13,6 +13,8 @@ const BookingCartController = require('./controllers/BookingCartController');
 const BookingController = require('./controllers/BookingController');
 const AdminController = require('./controllers/AdminController');
 const CoachProfileController = require('./controllers/CoachProfileController');
+const UserProfileController = require('./controllers/UserProfileController');
+const FeedbackController = require('./controllers/FeedbackController');
 const { attachUser, checkAuthenticated, checkAdmin } = require('./middleware');
 
 const app = express();
@@ -165,6 +167,14 @@ app.get('/coachProfile', checkAuthenticated, checkAdmin, CoachProfileController.
 app.post('/coachProfile', checkAuthenticated, checkAdmin, CoachProfileController.updateProfile);
 app.post('/coachProfile/password', checkAuthenticated, checkAdmin, CoachProfileController.updatePassword);
 app.post('/coachProfile/certification', checkAuthenticated, checkAdmin, uploadCert.single('cert_file'), CoachProfileController.updateCertification);
+app.get('/prof', checkAuthenticated, UserProfileController.showProfile);
+app.post('/prof', checkAuthenticated, UserProfileController.updateProfile);
+app.post('/prof/password', checkAuthenticated, UserProfileController.updatePassword);
+app.post('/prof/photo', checkAuthenticated, upload.single('photo'), UserProfileController.updatePhoto);
+
+// Feedback routes
+app.get('/feedback', checkAuthenticated, FeedbackController.showFeedbackForm);
+app.post('/feedback', checkAuthenticated, FeedbackController.submitFeedback);
 
 // upload error handling
 app.use((err, req, res, next) => {

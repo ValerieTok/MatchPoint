@@ -102,6 +102,7 @@ const Booking = {
   getUserDashboardSessions(userId, callback) {
     const sql = `
       SELECT
+        b.id,
         bi.session_date,
         bi.session_time,
         bi.sport,
@@ -133,6 +134,33 @@ const Booking = {
         session_at DESC,
         b.created_at DESC,
         b.id DESC
+    `;
+    db.query(sql, [userId], (err, rows) => callback(err, rows || []));
+  },
+
+  getAllUserSessions(userId, callback) {
+    const sql = `
+      SELECT
+        b.id,
+        bi.session_date,
+        bi.session_time,
+        bi.sport,
+        bi.listing_title,
+        bi.session_location,
+        b.session_location AS booking_location,
+        COALESCE(u.full_name, u.username) AS coach_name,
+        u.email AS coach_email,
+        u.contact AS coach_contact,
+        b.completed_at,
+        b.status AS booking_status,
+        b.created_at
+      FROM bookings b
+      JOIN booking_items bi ON bi.booking_id = b.id
+      JOIN users u ON u.id = bi.coach_id
+      WHERE b.user_id = ?
+        AND bi.session_date IS NOT NULL
+        AND TIMESTAMP(bi.session_date, IFNULL(bi.session_time, '00:00:00')) <= NOW()
+      ORDER BY bi.session_date DESC, bi.session_time DESC, b.created_at DESC, b.id DESC
     `;
     db.query(sql, [userId], (err, rows) => callback(err, rows || []));
   },

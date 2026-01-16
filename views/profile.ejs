@@ -1,0 +1,171 @@
+<%- include('partials/head', {
+  title: 'User Profile',
+  extraHead: `
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+    <link rel="stylesheet" href="/css/user-common.css">
+    <link rel="stylesheet" href="/css/user-profile.css">
+  `
+}) %>
+
+<%
+  const baseName = account && account.full_name ? account.full_name : (account && account.username ? account.username : '');
+  const nameParts = baseName ? baseName.split(' ') : [];
+  const firstName = profile && profile.first_name ? profile.first_name : (nameParts[0] || '');
+  const lastName = profile && profile.last_name ? profile.last_name : (nameParts.slice(1).join(' ') || '');
+  const emailValue = account && account.email ? account.email : '';
+  const phoneValue = profile && profile.phone ? profile.phone : (account && account.contact ? account.contact : '');
+  const bioValue = profile && profile.bio ? profile.bio : '';
+  const photoPath = profile && profile.photo ? `/images/${profile.photo}` : '';
+  const sessionsList = Array.isArray(sessions) ? sessions : [];
+  const formatDate = (value) => value ? new Date(value).toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric'
+  }) : 'TBC';
+  const formatTime = (value) => value ? String(value).slice(0, 5) : '';
+%>
+
+<div class="app">
+  <%- include("partials/userSidebar", {
+    active: "profile",
+    courseCount: undefined
+  }) %>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="crumb">USER PROFILE PAGE</div>
+      <div class="topbar__pill"><i class="fa-solid fa-user"></i></div>
+    </header>
+
+    <section class="profile-hero">
+      <div>
+        <h1>Hello <span class="hero__name"><%= firstName || 'there' %></span>,</h1>
+        <p>Update your personal details and manage your account.</p>
+      </div>
+    </section>
+
+    <%- include('partials/flashMessages', { messages }) %>
+
+    <section class="profile-layout">
+      <div class="profile-left">
+        <div class="profile-card profile-card--photo">
+          <div class="profile-card__head">
+            <div class="profile-card__title">Profile Photo</div>
+            <div class="profile-card__subtitle">Upload a JPG, PNG, or WEBP under 2MB.</div>
+          </div>
+          <div class="profile-photo">
+            <% if (photoPath) { %>
+              <img src="<%= photoPath %>" alt="Profile photo">
+            <% } else { %>
+              <div class="profile-photo__placeholder">
+                <i class="fa-solid fa-user"></i>
+              </div>
+            <% } %>
+            <form action="/prof/photo" method="post" enctype="multipart/form-data" class="profile-photo__form">
+              <label class="file-label" for="photo">
+                <i class="fa-solid fa-arrow-up-from-bracket"></i>
+                Upload Photo
+              </label>
+              <input type="file" id="photo" name="photo" accept=".jpg,.jpeg,.png,.webp,.gif">
+              <button class="btn btn--primary" type="submit">Save Photo</button>
+            </form>
+          </div>
+        </div>
+
+        <div class="profile-card">
+          <div class="profile-card__head">
+            <div class="profile-card__title">Profile Details</div>
+            <div class="profile-card__subtitle">Keep your account info up to date.</div>
+          </div>
+
+          <form action="/prof" method="post" class="profile-form">
+            <div class="profile-field">
+              <label for="first_name">First name</label>
+              <input type="text" id="first_name" name="first_name" value="<%= firstName %>" required>
+            </div>
+            <div class="profile-field">
+              <label for="last_name">Last name</label>
+              <input type="text" id="last_name" name="last_name" value="<%= lastName %>">
+            </div>
+            <div class="profile-field">
+              <label for="email">Email</label>
+              <input type="email" id="email" name="email" value="<%= emailValue %>" required>
+            </div>
+            <div class="profile-field">
+              <label for="phone">Phone number</label>
+              <input type="text" id="phone" name="phone" value="<%= phoneValue %>">
+            </div>
+            <div class="profile-field">
+              <label for="bio">Bio</label>
+              <textarea id="bio" name="bio" rows="4" placeholder="Tell us about your training goals."><%= bioValue %></textarea>
+            </div>
+            <div class="profile-actions">
+              <button class="btn btn--primary" type="submit">Save Changes</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="profile-right">
+        <div class="profile-card">
+          <div class="profile-card__head">
+            <div class="profile-card__title">Reset Password</div>
+            <div class="profile-card__subtitle">Use a strong password.</div>
+          </div>
+
+          <form action="/prof/password" method="post" class="profile-form">
+            <div class="profile-field">
+              <label for="current_password">Current password</label>
+              <input type="password" id="current_password" name="current_password" required>
+            </div>
+            <div class="profile-field">
+              <label for="new_password">New password</label>
+              <input type="password" id="new_password" name="new_password" minlength="8" required>
+            </div>
+            <div class="profile-field">
+              <label for="confirm_password">Confirm new password</label>
+              <input type="password" id="confirm_password" name="confirm_password" minlength="8" required>
+            </div>
+            <div class="profile-actions">
+              <button class="btn btn--ghost" type="submit">Reset Password</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="profile-card">
+          <div class="profile-card__head">
+            <div class="profile-card__title">Past Sessions</div>
+            <div class="profile-card__subtitle">Recent sessions from your bookings.</div>
+          </div>
+
+          <div class="sessions-list">
+            <% if (!sessionsList.length) { %>
+              <div class="session-empty">No past sessions yet.</div>
+            <% } else { %>
+              <% sessionsList.forEach(session => { %>
+                <div class="session-item">
+                  <div class="session-meta">
+                    <div class="session-title"><%= session.listing_title || session.sport || 'Session' %></div>
+                    <div class="session-sub">
+                      <i class="fa-regular fa-calendar"></i>
+                      <span><%= formatDate(session.session_date) %></span>
+                    </div>
+                    <% if (session.session_time) { %>
+                      <div class="session-sub">
+                        <i class="fa-regular fa-clock"></i>
+                        <span><%= formatTime(session.session_time) %></span>
+                      </div>
+                    <% } %>
+                  </div>
+                  <a class="btn btn--accent" href="/feedback">Write Review</a>
+                </div>
+              <% }) %>
+            <% } %>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<%- include('partials/footer') %>

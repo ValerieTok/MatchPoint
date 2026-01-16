@@ -1,0 +1,121 @@
+<%- include('partials/head', {
+  title: 'Write Review - Feedback',
+  extraHead: `
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+    <link rel="stylesheet" href="/css/user-common.css">
+    <link rel="stylesheet" href="/css/user-profile.css">
+  `
+}) %>
+
+<div class="app">
+  <%- include("partials/userSidebar", {
+    active: "profile",
+    courseCount: undefined
+  }) %>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="crumb">FEEDBACK FORM</div>
+      <div class="topbar__pill"><i class="fa-solid fa-message"></i></div>
+    </header>
+
+    <section class="profile-hero">
+      <div>
+        <h1>Write Your Review</h1>
+        <p>Share your feedback and help us improve our services.</p>
+      </div>
+    </section>
+
+    <%- include('partials/flashMessages', { messages }) %>
+
+    <section class="profile-layout">
+      <div class="profile-left">
+        <div class="profile-card">
+          <div class="profile-card__head">
+            <div class="profile-card__title">Submit Feedback</div>
+            <div class="profile-card__subtitle">Tell us about your experience</div>
+          </div>
+
+          <form action="/feedback" method="post" class="profile-form">
+            <div class="profile-field">
+              <label for="booking_id">Select Session <span style="color: red;">*</span></label>
+              <select id="booking_id" name="booking_id" required>
+                <option value="">-- Choose a session to review --</option>
+                <% 
+                  const sessionsList = Array.isArray(sessions) ? sessions : [];
+                  sessionsList.forEach((session) => {
+                    const date = session.session_date ? new Date(session.session_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'TBC';
+                    const time = session.session_time ? String(session.session_time).slice(0, 5) : '';
+                    const label = `${session.coach_name || 'Coach'} - ${session.sport || 'Session'} (${date} ${time})`;
+                %>
+                  <option value="<%= session.id %>"><%= label %></option>
+                <% }); %>
+              </select>
+            </div>
+
+            <div class="profile-field">
+              <label for="message">Your Review <span style="color: red;">*</span></label>
+              <textarea 
+                id="message" 
+                name="message" 
+                rows="6" 
+                placeholder="Share your detailed feedback here..." 
+                required
+                maxlength="1000"
+              ></textarea>
+            </div>
+
+            <div class="profile-field">
+              <label for="rating">Rating (Optional)</label>
+              <select id="rating" name="rating">
+                <option value="">-- Select a rating --</option>
+                <option value="1">⭐ Poor</option>
+                <option value="2">⭐⭐ Fair</option>
+                <option value="3">⭐⭐⭐ Good</option>
+                <option value="4">⭐⭐⭐⭐ Very Good</option>
+                <option value="5">⭐⭐⭐⭐⭐ Excellent</option>
+              </select>
+            </div>
+
+            <div class="profile-form__actions">
+              <button class="btn btn--primary" type="submit">Submit Feedback</button>
+              <a href="/prof" class="btn btn--secondary">Cancel</a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<%- include('partials/footer') %>
+
+<style>
+  .profile-form__actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
+  }
+
+  .profile-form__actions .btn {
+    flex: 1;
+  }
+
+  #rating {
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+  }
+
+  #rating:focus {
+    outline: none;
+    border-color: #ff4757;
+    box-shadow: 0 0 0 3px rgba(255, 71, 87, 0.1);
+  }
+
+  textarea {
+    resize: vertical;
+    min-height: 120px;
+  }
+</style>
