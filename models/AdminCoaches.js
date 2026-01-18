@@ -60,6 +60,7 @@ const AdminCoaches = {
             FROM booking_items bi2
             WHERE bi2.coach_id = u.id
           )
+            AND r.review_status = 'approved'
         ) AS rating,
         (
           SELECT l.sport
