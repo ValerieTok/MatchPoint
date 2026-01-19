@@ -301,6 +301,34 @@ const AdminController = {
       req.flash('error', 'Failed to update feedback.');
     }
     return res.redirect('/adminfeedback');
+  },
+
+  approveCoach: async function (req, res) {
+    try {
+      const id = req.params.id;
+      await new Promise((resolve, reject) => {
+        AdminCoaches.setCoachStatus(id, 'approved', (err) => (err ? reject(err) : resolve()));
+      });
+      req.flash('success', 'Coach approved.');
+    } catch (err) {
+      console.error(err);
+      req.flash('error', 'Failed to approve coach.');
+    }
+    return res.redirect('/admincoaches');
+  },
+
+  rejectCoach: async function (req, res) {
+    try {
+      const id = req.params.id;
+      await new Promise((resolve, reject) => {
+        AdminCoaches.setCoachStatus(id, 'rejected', (err) => (err ? reject(err) : resolve()));
+      });
+      req.flash('success', 'Coach rejected.');
+    } catch (err) {
+      console.error(err);
+      req.flash('error', 'Failed to reject coach.');
+    }
+    return res.redirect('/admincoaches');
   }
 };
 

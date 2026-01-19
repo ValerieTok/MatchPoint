@@ -1,114 +1,12 @@
 <%- include('partials/head', {
   title: 'Payment',
-  bodyClass: 'bg-light',
-  extraHead: `<style>
-    body {
-      background: #f8f9fa;
-      min-height: 100vh;
-    }
-    .payment-container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 2rem;
-    }
-    .payment-card {
-      background: #fff;
-      border-radius: 16px;
-      padding: 2rem;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    }
-    .summary-card {
-      background: #fff;
-      border-radius: 16px;
-      padding: 2rem;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-      position: sticky;
-      top: 2rem;
-    }
-    .payment-method {
-      border: 2px solid #e5e7eb;
-      border-radius: 12px;
-      padding: 1rem;
-      cursor: pointer;
-      transition: all 0.2s;
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      margin-bottom: 0.75rem;
-    }
-    .payment-method:hover {
-      border-color: #dc3545;
-    }
-    .payment-method.active {
-      border-color: #dc3545;
-      background: #fff5f5;
-    }
-    .payment-method input[type="radio"] {
-      display: none;
-    }
-    .payment-icon {
-      font-size: 1.5rem;
-    }
-    .card-logos {
-      display: flex;
-      gap: 0.5rem;
-      margin-left: auto;
-    }
-    .card-logo {
-      height: 20px;
-    }
-    .form-control {
-      border-radius: 8px;
-      border: 1px solid #e5e7eb;
-      padding: 0.75rem;
-    }
-    .form-control:focus {
-      border-color: #dc3545;
-      box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.1);
-    }
-    .summary-item {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      padding: 0.75rem 0;
-      border-bottom: 1px solid #f3f4f6;
-    }
-    .summary-item:last-child {
-      border-bottom: none;
-    }
-    .summary-total {
-      border-top: 2px solid #e5e7eb;
-      padding-top: 1rem;
-      margin-top: 1rem;
-      font-size: 1.125rem;
-      font-weight: 600;
-    }
-    .btn-payment {
-      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-      border: none;
-      border-radius: 12px;
-      padding: 1rem;
-      font-weight: 600;
-      font-size: 1rem;
-      transition: transform 0.2s;
-    }
-    .btn-payment:hover {
-      transform: translateY(-2px);
-      background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-    }
-    .icon-circle {
-      width: 24px;
-      height: 24px;
-      background: #f3f4f6;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.875rem;
-    }
-  </style>`
+  bodyClass: 'admin-page',
+  extraHead: `
+    <link rel="stylesheet" href="/css/user-common.css">
+    <link rel="stylesheet" href="/css/admin-common.css">
+    <link rel="stylesheet" href="/css/user-dashboard.css">
+  `
 }) %>
-<%- include('partials/navbar', { user, activePage: 'cart' }) %>
 
 <div class="payment-container">
   <div class="row g-4">
@@ -209,7 +107,7 @@
             
             <div class="summary-item small">
               <div class="icon-circle">📍</div>
-              <span class="text-muted"><%= deliveryAddress || 'TBC' %></span>
+              <span class="text-muted"><%= item.session_location || 'TBC' %></span>
             </div>
           </div>
 

@@ -1,16 +1,22 @@
 :root {
-  --entry-red: #ef4444;
+  --entry-red: var(--accent, #ef4444);
   --entry-red-dark: #b91c1c;
-  --entry-ink: #1a1110;
-  --entry-muted: #6b5f5a;
-  --entry-sand: #f8f4f0;
-  --entry-card: #ffffff;
-  --entry-line: rgba(26, 17, 16, 0.12);
-  --entry-shadow: 0 18px 45px rgba(26, 17, 16, 0.16);
-  --entry-radius: 26px;
+  --entry-ink: var(--text, #111827);
+  --entry-muted: var(--muted, #6b7280);
+  --entry-sand: var(--bg, #f5f5f5);
+  --entry-card: var(--panel, #ffffff);
+  --entry-line: var(--line, #e5e7eb);
+  --entry-shadow: var(--shadow, 0 10px 28px rgba(30, 41, 59, 0.08));
+  --entry-radius: var(--radius, 18px);
 }
 
-body.entry-page,
+body.entry-page {
+  background: var(--entry-sand);
+  color: var(--entry-ink);
+  font-family: "Sora", "Segoe UI", sans-serif;
+  min-height: 100vh;
+}
+
 body.landing-page {
   background:
     radial-gradient(circle at top left, rgba(239, 68, 68, 0.18), transparent 55%),
@@ -18,36 +24,55 @@ body.landing-page {
     repeating-linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0 10px, rgba(255, 255, 255, 0) 10px 24px),
     var(--entry-sand);
   color: var(--entry-ink);
-  font-family: "Archivo", "Segoe UI", sans-serif;
+  font-family: "Sora", "Segoe UI", sans-serif;
   min-height: 100vh;
-}
-
-body.landing-page {
   overflow: hidden;
 }
 
 .entry-shell {
   position: relative;
-  padding: 54px 16px 80px;
+  padding: 48px 16px 72px;
   min-height: calc(100vh - 68px);
 }
 
-.entry-shell::before {
-  content: "";
-  position: absolute;
-  inset: 26px;
-  border-radius: 36px;
-  background: linear-gradient(150deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.15));
-  border: 1px solid rgba(26, 17, 16, 0.08);
-  pointer-events: none;
+.entry-topbar {
+  max-width: 1080px;
+  margin: 0 auto 24px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.entry-topbar__actions {
+  display: flex;
+  gap: 10px;
+}
+
+.entry-nav {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--entry-line);
+  color: var(--entry-ink);
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 13px;
+  background: #fff;
+}
+
+.entry-nav--active {
+  background: var(--entry-red);
+  color: #fff;
+  border-color: var(--entry-red);
 }
 
 .entry-layout {
   position: relative;
   display: grid;
-  gap: 28px;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 0.95fr);
-  max-width: 1100px;
+  gap: 24px;
+  grid-template-columns: 1fr;
+  max-width: 720px;
   margin: 0 auto;
   align-items: start;
 }
@@ -56,35 +81,14 @@ body.landing-page {
   background: var(--entry-card);
   color: var(--entry-ink);
   border-radius: var(--entry-radius);
-  padding: 34px 32px;
+  padding: 36px 34px;
   box-shadow: var(--entry-shadow);
   border: 1px solid var(--entry-line);
-  animation: liftIn 0.6s ease;
+  animation: liftIn 0.5s ease;
 }
 
 .entry-hero {
-  background: linear-gradient(160deg, #1a1416, #2a1b1f);
-  border-radius: var(--entry-radius);
-  padding: 32px;
-  color: #fdf5f7;
-  display: grid;
-  gap: 18px;
-  align-content: start;
-  box-shadow: var(--entry-shadow);
-  position: relative;
-  overflow: hidden;
-  animation: slideIn 0.8s ease;
-}
-
-.entry-hero::after {
-  content: "";
-  position: absolute;
-  inset: -40% -10% auto auto;
-  width: 220px;
-  height: 220px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(225, 29, 72, 0.7), transparent 65%);
-  opacity: 0.7;
+  display: none;
 }
 
 .entry-eyebrow {
@@ -96,27 +100,27 @@ body.landing-page {
 }
 
 .entry-title {
-  font-family: "Bebas Neue", "Impact", sans-serif;
-  font-size: 42px;
-  letter-spacing: 0.04em;
-  margin: 8px 0 4px;
+  font-size: 32px;
+  letter-spacing: 0.02em;
+  margin: 8px 0 6px;
   color: var(--entry-ink);
+  font-weight: 800;
 }
 
 .entry-subtitle {
   color: var(--entry-muted);
-  font-size: 15px;
+  font-size: 14px;
   margin-bottom: 18px;
 }
 
 .entry-form .form-label {
-  font-weight: 600;
+  font-weight: 700;
   color: var(--entry-ink);
 }
 
 .entry-form .form-control,
 .entry-form .form-select {
-  border-radius: 14px;
+  border-radius: 12px;
   border: 1px solid var(--entry-line);
   padding: 12px 14px;
   background: #fff;
@@ -133,61 +137,22 @@ body.landing-page {
   background: var(--entry-red);
   border: none;
   color: #fff;
-  font-weight: 600;
+  font-weight: 700;
   padding: 12px 16px;
-  border-radius: 16px;
+  border-radius: 12px;
   transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
 .entry-btn:hover {
   background: var(--entry-red-dark);
   transform: translateY(-1px);
-  box-shadow: 0 12px 24px rgba(225, 29, 72, 0.35);
+  box-shadow: 0 8px 20px rgba(239, 68, 68, 0.3);
 }
 
 .entry-link {
   color: var(--entry-red-dark);
-  font-weight: 600;
+  font-weight: 700;
   text-decoration: none;
-}
-
-.entry-hero h3 {
-  font-family: "Bebas Neue", "Impact", sans-serif;
-  font-size: 30px;
-  margin: 0;
-  letter-spacing: 0.04em;
-}
-
-.entry-hero p {
-  color: rgba(255, 255, 255, 0.75);
-  line-height: 1.6;
-  margin: 0;
-}
-
-.entry-hero__stats {
-  display: grid;
-  gap: 12px;
-  position: relative;
-  z-index: 1;
-}
-
-.entry-stat {
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
-  padding: 14px 16px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-}
-
-.entry-stat strong {
-  display: block;
-  font-size: 18px;
-}
-
-.entry-stat span {
-  font-size: 12px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.7);
 }
 
 .entry-footer {
@@ -377,10 +342,6 @@ body.landing-page {
   .entry-layout,
   .landing-hero__layout {
     grid-template-columns: 1fr;
-  }
-
-  .entry-hero {
-    order: -1;
   }
 
   .landing-title {

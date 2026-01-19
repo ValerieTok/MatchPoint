@@ -8,28 +8,28 @@ const sha1 = (value) => crypto.createHash('sha1').update(value).digest('hex');
 
 module.exports = {
   getAllUsers: function (callback) {
-    const sql = 'SELECT id, username, full_name, email, password, contact, role, is_2fa_enabled, twofactor_secret, coach_cert_title, coach_cert_file FROM users';
+    const sql = 'SELECT id, username, full_name, email, password, contact, role, coach_status, is_2fa_enabled, twofactor_secret, coach_cert_title, coach_cert_file FROM users';
     db.query(sql, function (err, results) {
       return callback(err, results);
     });
   },
 
   getUserById: function (id, callback) {
-    const sql = 'SELECT id, username, full_name, email, password, contact, role, is_2fa_enabled, twofactor_secret, coach_cert_title, coach_cert_file FROM users WHERE id = ? LIMIT 1';
+    const sql = 'SELECT id, username, full_name, email, password, contact, role, coach_status, is_2fa_enabled, twofactor_secret, coach_cert_title, coach_cert_file FROM users WHERE id = ? LIMIT 1';
     db.query(sql, [id], function (err, results) {
       return callback(err, results && results[0] ? results[0] : null);
     });
   },
 
   getUserByEmail: function (email, callback) {
-    const sql = 'SELECT id, username, full_name, email, password, contact, role, is_2fa_enabled, twofactor_secret, coach_cert_title, coach_cert_file FROM users WHERE email = ? LIMIT 1';
+    const sql = 'SELECT id, username, full_name, email, password, contact, role, coach_status, is_2fa_enabled, twofactor_secret, coach_cert_title, coach_cert_file FROM users WHERE email = ? LIMIT 1';
     db.query(sql, [email], function (err, results) {
       return callback(err, results && results[0] ? results[0] : null);
     });
   },
 
   addUser: function (userData, callback) {
-    const sql = 'INSERT INTO users (username, full_name, email, password, contact, role, coach_cert_title, coach_cert_file) VALUES (?, ?, ?, ?, ?, ?, ?, ?)';
+    const sql = 'INSERT INTO users (username, full_name, email, password, contact, role, coach_status, coach_cert_title, coach_cert_file) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)';
     bcrypt.hash(userData.password, SALT_ROUNDS, (hashErr, hash) => {
       if (hashErr) return callback(hashErr);
       const params = [
@@ -39,6 +39,7 @@ module.exports = {
         hash,
         userData.contact || null,
         userData.role || 'user',
+        userData.coach_status || (userData.role === 'coach' ? 'pending' : 'approved'),
         userData.coach_cert_title || null,
         userData.coach_cert_file || null
       ];
@@ -91,7 +92,7 @@ module.exports = {
   },
 
   authenticate: function (email, password, callback) {
-    const sql = 'SELECT id, username, full_name, email, password, contact, role, is_2fa_enabled, twofactor_secret, coach_cert_title, coach_cert_file FROM users WHERE email = ? LIMIT 1';
+    const sql = 'SELECT id, username, full_name, email, password, contact, role, coach_status, is_2fa_enabled, twofactor_secret, coach_cert_title, coach_cert_file FROM users WHERE email = ? LIMIT 1';
     db.query(sql, [email], function (err, results) {
       if (err) return callback(err);
       const user = results && results[0] ? results[0] : null;
@@ -159,4 +160,3 @@ module.exports = {
 };
 
 // alias for backward compatibility
-module.exports.authenticateUser = module.exports.authenticate;

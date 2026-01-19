@@ -1,0 +1,150 @@
+<%- include('partials/head', {
+  title: 'Ratings',
+  bodyClass: 'admin-page admin-dashboard user-dashboard',
+  extraHead: `
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/user-common.css">
+    <link rel="stylesheet" href="/css/user-dashboard.css">
+    <link rel="stylesheet" href="/css/admin-common.css">
+    <link rel="stylesheet" href="/css/admin-dashboard.css">
+  `
+}) %>
+
+<div class="app">
+  <%- include("partials/userSidebar", {
+    active: "ratings",
+    courseCount: undefined
+  }) %>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="crumb">USER RATINGS PAGE</div>
+    </header>
+
+    <section class="card">
+      <div class="card__head">
+        <div class="card__title">Approved Sessions</div>
+        <div class="cell-sub">Confirm a session first, then leave your review.</div>
+      </div>
+
+      <div class="tableWrap">
+        <table class="table" id="ratingsTable">
+          <thead>
+            <tr>
+              <th>Coach Name</th>
+              <th>Date &amp; Time</th>
+              <th>Sport</th>
+              <th>Location</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <%
+              const formatSessionDate = (value) =>
+                value ? new Date(value).toLocaleDateString('en-GB') : 'TBC';
+              const formatSessionTime = (value) => (value ? String(value).slice(0, 5) : '');
+              const upcomingRows = Array.isArray(upcomingSessions) ? upcomingSessions : [];
+            %>
+
+            <% if (!upcomingRows.length) { %>
+              <tr>
+                <td colspan="6">No upcoming approved sessions yet.</td>
+              </tr>
+            <% } else { %>
+              <% upcomingRows.forEach(r => { %>
+                <tr>
+                  <td>
+                    <div><%= r.coach || '-' %></div>
+                    <% if (r.sport) { %>
+                      <div class="cell-sub"><%= r.sport %></div>
+                    <% } %>
+                  </td>
+                  <td>
+                    <% const dateLabel = formatSessionDate(r.date); %>
+                    <% const timeLabel = formatSessionTime(r.time); %>
+                    <%= timeLabel ? `${dateLabel} ${timeLabel}` : dateLabel %>
+                  </td>
+                  <td><%= r.sport || '-' %></td>
+                  <td><%= r.location || '-' %></td>
+                  <td>
+                    <span class="pill pill--upcoming">UPCOMING</span>
+                  </td>
+                  <td>
+                    <form method="post" action="/bookingsUser/<%= r.bookingId %>/confirm-delivery">
+                      <button class="btn btn--primary btn--sm" type="submit">Complete Session</button>
+                    </form>
+                  </td>
+                </tr>
+              <% }) %>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card__head">
+        <div class="card__title">Completed Sessions</div>
+        <div class="cell-sub">Your submitted reviews are shown here.</div>
+      </div>
+
+      <div class="tableWrap">
+        <table class="table" id="completedTable">
+          <thead>
+            <tr>
+              <th>Coach Name</th>
+              <th>Date &amp; Time</th>
+              <th>Sport</th>
+              <th>Location</th>
+              <th>Rating</th>
+              <th>Review</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <%
+              const completedRows = Array.isArray(completedSessions) ? completedSessions : [];
+            %>
+
+            <% if (!completedRows.length) { %>
+              <tr>
+                <td colspan="6">No completed reviews yet.</td>
+              </tr>
+            <% } else { %>
+              <% completedRows.forEach(r => { %>
+                <tr>
+                  <td>
+                    <div><%= r.coach || '-' %></div>
+                    <% if (r.sport) { %>
+                      <div class="cell-sub"><%= r.sport %></div>
+                    <% } %>
+                  </td>
+                  <td>
+                    <% const dateLabel = formatSessionDate(r.date); %>
+                    <% const timeLabel = formatSessionTime(r.time); %>
+                    <%= timeLabel ? `${dateLabel} ${timeLabel}` : dateLabel %>
+                  </td>
+                  <td><%= r.sport || '-' %></td>
+                  <td><%= r.location || '-' %></td>
+                  <td>
+                    <% const rating = r.review && r.review.rating ? r.review.rating : 0; %>
+                    <% if (rating) { %>
+                      <span class="pill pill--review"><%= rating %>/5</span>
+                    <% } else { %>
+                      <span class="cell-sub">No rating</span>
+                    <% } %>
+                  </td>
+                  <td>
+                    <span class="cell-sub"><%= r.review && r.review.comment ? r.review.comment : 'No comment.' %></span>
+                  </td>
+                </tr>
+              <% }) %>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>

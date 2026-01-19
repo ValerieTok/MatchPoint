@@ -110,9 +110,6 @@
   border-color: #cbd5e1;
   color: var(--mp-nav-ink);
 }
-  background: var(--mp-nav-accent);
-  border-color: var(--mp-nav-accent);
-}
 
 .mp-navbar .btn-outline-secondary {
   color: var(--mp-nav-muted);

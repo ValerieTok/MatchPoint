@@ -11,19 +11,24 @@
           <a class="nav-link <%= activePage === 'users' ? 'active' : '' %>" href="/accounts">Manage Users</a>
           <a class="nav-link <%= activePage === 'orders' ? 'active' : '' %>" href="/bookingsManage">Manage Bookings</a>
           <div class="nav-divider"></div>
-          <a class="btn btn-logout" href="/logout">Logout</a>
+          <form action="/logout" method="post">
+            <button class="btn btn-logout" type="submit">Logout</button>
+          </form>
         <% } else if (user.role === 'coach') { %>
           <a class="nav-link <%= activePage === 'listingsManage' ? 'active' : '' %>" href="/listingsManage">My Listings</a>
           <a class="nav-link <%= activePage === 'addProduct' ? 'active' : '' %>" href="/addListing">Add Listing</a>
           <a class="nav-link <%= activePage === 'orders' ? 'active' : '' %>" href="/bookingsManage">My Bookings</a>
           <div class="nav-divider"></div>
-          <a class="btn btn-logout" href="/logout">Logout</a>
+          <form action="/logout" method="post">
+            <button class="btn btn-logout" type="submit">Logout</button>
+          </form>
         <% } else { %>
           <a class="nav-link <%= activePage === 'shopping' ? 'active' : '' %>" href="/listingsBrowse">Find Coaches</a>
           <a class="nav-link <%= activePage === 'cart' ? 'active' : '' %>" href="/bookingCart">Booking Cart</a>
-          <a class="nav-link <%= activePage === 'orderUser' ? 'active' : '' %>" href="/bookingsUser">My Bookings</a>
           <div class="nav-divider"></div>
-          <a class="btn btn-logout" href="/logout">Logout</a>
+          <form action="/logout" method="post">
+            <button class="btn btn-logout" type="submit">Logout</button>
+          </form>
         <% } %>
       <% } else { %>
         <a class="btn btn-outline-red" href="/login">Login</a>

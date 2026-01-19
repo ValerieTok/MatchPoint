@@ -1,8 +1,10 @@
 <%- include('partials/head', {
   title: 'Coach Dashboard',
+  bodyClass: 'admin-page coach-dashboard',
   extraHead: `
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="stylesheet" href="/css/user-common.css">
+    <link rel="stylesheet" href="/css/admin-common.css">
     <link rel="stylesheet" href="/css/coach-dashboard.css">
   `
 }) %>
@@ -20,7 +22,16 @@
   <main class="main">
     <header class="topbar">
       <div class="crumb">COACH DASHBOARD</div>
-      <div class="topbar__pill"><i class="fa-solid fa-dumbbell"></i></div>
+      <div class="topbar__right">
+        <div class="topbar__avatar topbar__avatar--lg">
+          <% if (profilePhoto) { %>
+            <img src="/images/<%= profilePhoto %>" alt="Profile photo">
+          <% } else { %>
+            <i class="fa-regular fa-user"></i>
+          <% } %>
+        </div>
+        <div class="topbar__pill"><i class="fa-solid fa-dumbbell"></i></div>
+      </div>
     </header>
 
     <section class="hero">
@@ -85,7 +96,14 @@
               </div>
               <div class="listing-card__body">
                 <div class="listing-card__title"><%= p.listing_title %></div>
-                <div class="listing-card__meta">Coach: <%= p.username %></div>
+                <div class="listing-card__meta listing-card__meta--coach">
+                  <% if (p.coach_photo) { %>
+                    <img src="/images/<%= p.coach_photo %>" alt="Coach photo">
+                  <% } else { %>
+                    <span class="listing-card__avatar"><i class="fa-regular fa-user"></i></span>
+                  <% } %>
+                  <span>Coach: <%= p.username %></span>
+                </div>
                 <% if (priceLabel) { %>
                   <div class="listing-card__price"><%= priceLabel %> per session</div>
                 <% } %>
@@ -122,4 +140,3 @@
 </div>
 
 <%- include('partials/footer') %>
-

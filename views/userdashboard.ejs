@@ -1,164 +1,182 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MatchPoint • User Dashboard</title>
-
-  <!-- Icons -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
-<link rel="stylesheet" href="/css/user-common.css">
-<link rel="stylesheet" href="/css/user-dashboard.css">
-<link rel="stylesheet" href="/css/admin-dashboard.css" />
-
-
-</head>
-<body class="admin-dashboard">
-  <div class="app">
-
-    <!-- SIDEBAR -->
-<%- include("partials/userSidebar", {
-  active: "dashboard",
-  courseCount: undefined
+<%- include('partials/head', {
+  title: 'User Dashboard',
+  bodyClass: 'admin-page admin-dashboard user-dashboard',
+  extraHead: `
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/user-common.css">
+    <link rel="stylesheet" href="/css/user-dashboard.css">
+    <link rel="stylesheet" href="/css/admin-common.css">
+    <link rel="stylesheet" href="/css/admin-dashboard.css">
+  `
 }) %>
 
-    <!-- MAIN -->
-    <main class="main">
-      <header class="topbar">
-        <div class="crumb">USER DASHBOARD PAGE</div>
-        <div class="topbar__pill"><i class="fa-solid fa-bolt"></i></div>
-      </header>
+<div class="app">
+  <%- include("partials/userSidebar", {
+    active: "dashboard",
+    courseCount: undefined
+  }) %>
 
-      <section class="hero">
-        <div class="hero__left">
-          <h1>Hello <span class="hero__name"><%= user?.username || (user?.email ? user.email.split('@')[0] : '') %></span> <span class="wave">👋</span>,</h1>
+  <main class="main">
+    <header class="topbar">
+      <div class="crumb">USER DASHBOARD PAGE</div>
+    </header>
 
-          <div class="stats">
-            <div class="stat">
-              <div class="stat__icon"><i class="fa-solid fa-user-group"></i></div>
-              <div class="stat__meta">
-                <div class="stat__label">Upcoming Sessions</div>
-                <div class="stat__value"><%= upcomingCount ?? 4 %></div>
-              </div>
+    <section class="hero">
+      <div class="hero__left">
+        <h1>Hello <span class="hero__name"><%= user?.username || (user?.email ? user.email.split('@')[0] : '') %></span> <span class="wave">??</span>,</h1>
+
+        <div class="stats">
+          <div class="stat">
+            <div class="stat__icon"><i class="fa-solid fa-user-group"></i></div>
+            <div class="stat__meta">
+              <div class="stat__label">Upcoming Sessions</div>
+              <div class="stat__value"><%= upcomingCount ?? 0 %></div>
             </div>
+          </div>
 
-            <div class="stat">
-              <div class="stat__icon"><i class="fa-solid fa-award"></i></div>
-              <div class="stat__meta">
-                <div class="stat__label">Completed Sessions</div>
-                <div class="stat__value"><%= completedCount ?? 32 %></div>
-              </div>
+          <div class="stat">
+            <div class="stat__icon"><i class="fa-solid fa-award"></i></div>
+            <div class="stat__meta">
+              <div class="stat__label">Completed Sessions</div>
+              <div class="stat__value"><%= completedCount ?? 0 %></div>
             </div>
           </div>
         </div>
-      </section>
+      </div>
+    </section>
 
-      <section class="card">
-        <div class="card__head">
-          <div class="card__title">All Sessions</div>
+    <section class="card">
+      <div class="card__head">
+        <div class="card__title">All Sessions</div>
 
-          <div class="card__tools">
-            <div class="search">
-              <i class="fa-solid fa-magnifying-glass"></i>
-              <input id="searchInput" type="text" placeholder="Search" />
-            </div>
-
-            <div class="sort">
-              <span class="sort__label">SORT BY:</span>
-              <button class="sort__btn" type="button">
-                Recent <i class="fa-solid fa-chevron-down"></i>
-              </button>
-            </div>
+        <form class="card__tools" method="get" action="/userdashboard">
+          <div class="search search--wide">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input id="searchInput" name="search" type="search" placeholder="Search by coach name or sport" value="<%= filters?.search || '' %>" />
           </div>
-        </div>
 
-        <div class="tableWrap">
-          <table class="table" id="sessionsTable">
-            <thead>
+          <div class="sort">
+            <span class="sort__label">SORT BY:</span>
+            <select class="sort__btn" name="sort">
+              <option value="" <%= !filters?.sort ? 'selected' : '' %>>All</option>
+              <option value="upcoming" <%= filters?.sort === 'upcoming' ? 'selected' : '' %>>Upcoming</option>
+              <option value="pending" <%= filters?.sort === 'pending' ? 'selected' : '' %>>Pending</option>
+              <option value="rejected" <%= filters?.sort === 'rejected' ? 'selected' : '' %>>Rejected</option>
+            </select>
+          </div>
+        </form>
+      </div>
+
+      <div class="tableWrap">
+        <table class="table" id="sessionsTable">
+          <thead>
+            <tr>
+              <th>Coach Name</th>
+              <th>Date &amp; Time</th>
+              <th>Phone Number</th>
+              <th>Email</th>
+              <th>Sport</th>
+              <th>Location</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <%
+              const formatSessionDate = (value) =>
+                value ? new Date(value).toLocaleDateString('en-GB') : 'TBC';
+              const formatSessionTime = (value) => (value ? String(value).slice(0, 5) : '');
+              const rows = Array.isArray(sessions) ? sessions : [];
+            %>
+
+            <% if (!rows.length) { %>
               <tr>
-                <th>Coach Name</th>
-                <th>Date &amp; Time</th>
-                <th>Phone Number</th>
-                <th>Email</th>
-                <th>Sport</th>
-                <th>Location</th>
-                <th>Status</th>
+                <td colspan="7">No sessions yet.</td>
               </tr>
-            </thead>
-
-            <tbody>
-              <%
-                const formatSessionDate = (value) =>
-                  value ? new Date(value).toLocaleDateString('en-GB') : 'TBC';
-                const formatSessionTime = (value) => (value ? String(value).slice(0, 5) : '');
-                const rows = Array.isArray(sessions) ? sessions : [];
-              %>
-
-              <% if (!rows.length) { %>
+            <% } else { %>
+              <% rows.forEach(r => { %>
                 <tr>
-                  <td colspan="7">No sessions yet.</td>
+                  <td>
+                    <div><%= r.coach || '-' %></div>
+                    <% if (r.sport) { %>
+                      <div class="cell-sub"><%= r.sport %></div>
+                    <% } %>
+                  </td>
+                  <td>
+                    <% const dateLabel = formatSessionDate(r.date); %>
+                    <% const timeLabel = formatSessionTime(r.time); %>
+                    <%= timeLabel ? `${dateLabel} ${timeLabel}` : dateLabel %>
+                  </td>
+                  <td><%= r.phone || '-' %></td>
+                  <td><%= r.email || '-' %></td>
+                  <td><%= r.sport || '-' %></td>
+                  <td><%= r.location || '-' %></td>
+                  <td>
+                    <% const statusLabel = (r.status || 'PENDING').toUpperCase(); %>
+                    <% if (statusLabel === 'REJECTED') { %>
+                      <span class="pill pill--rejected">REJECTED</span>
+                    <% } else if (statusLabel === 'PENDING') { %>
+                      <span class="pill pill--pending">PENDING</span>
+                    <% } else if (statusLabel === 'COMPLETED') { %>
+                      <span class="pill pill--review">COMPLETED</span>
+                    <% } else { %>
+                      <span class="pill pill--upcoming">UPCOMING</span>
+                    <% } %>
+                  </td>
                 </tr>
-              <% } else { %>
-                <% rows.forEach(r => { %>
-                  <tr>
-                    <td>
-                      <div><%= r.coach || '-' %></div>
-                      <% if (r.sport) { %>
-                        <div class="cell-sub"><%= r.sport %></div>
-                      <% } %>
-                    </td>
-                    <td>
-                      <% const dateLabel = formatSessionDate(r.date); %>
-                      <% const timeLabel = formatSessionTime(r.time); %>
-                      <%= timeLabel ? `${dateLabel} ${timeLabel}` : dateLabel %>
-                    </td>
-                    <td><%= r.phone || '-' %></td>
-                    <td><%= r.email || '-' %></td>
-                    <td><%= r.sport || '-' %></td>
-                    <td><%= r.location || '-' %></td>
-                    <td>
-                      <% if ((r.status || "").toUpperCase() === "UPCOMING") { %>
-                        <span class="pill pill--upcoming">UPCOMING</span>
-                      <% } else { %>
-                        <span class="pill pill--review">COMPLETED</span>
-                      <% } %>
-                    </td>
-                  </tr>
-                <% }) %>
-              <% } %>
-            </tbody>
-          </table>
+              <% }) %>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card__foot">
+        <% const pager = pagination || { page: 1, perPage: 10, totalSessions: 0, totalPages: 1 }; %>
+        <% const startIndex = pager.totalSessions ? ((pager.page - 1) * pager.perPage + 1) : 0; %>
+        <% const endIndex = Math.min(pager.page * pager.perPage, pager.totalSessions || 0); %>
+        <div class="hint">Showing <%= startIndex %> to <%= endIndex %> of <%= pager.totalSessions %> entries</div>
+
+        <div class="pager">
+          <% const buildQuery = (pageNum) => { %>
+            <% const params = []; %>
+            <% if (filters && filters.search) params.push(`search=${encodeURIComponent(filters.search)}`); %>
+            <% if (filters && filters.sort) params.push(`sort=${encodeURIComponent(filters.sort)}`); %>
+            <% params.push(`page=${pageNum}`); %>
+            <% return params.join('&'); %>
+          <% }; %>
+          <% if (pager.totalPages > 1) { %>
+            <% if (pager.page > 1) { %>
+              <a class="pager__btn" href="/userdashboard?<%= buildQuery(pager.page - 1) %>"><i class="fa-solid fa-chevron-left"></i></a>
+            <% } %>
+            <% for (let p = 1; p <= pager.totalPages; p += 1) { %>
+              <a class="pager__num <%= p === pager.page ? 'pager__num--active' : '' %>" href="/userdashboard?<%= buildQuery(p) %>"><%= p %></a>
+            <% } %>
+            <% if (pager.page < pager.totalPages) { %>
+              <a class="pager__btn" href="/userdashboard?<%= buildQuery(pager.page + 1) %>"><i class="fa-solid fa-chevron-right"></i></a>
+            <% } %>
+          <% } else { %>
+            <span class="pager__num pager__num--active">1</span>
+          <% } %>
         </div>
+      </div>
+    </section>
+  </main>
+</div>
 
-        <div class="card__foot">
-          <div class="hint">Showing data 1 to 5 of 10 entries</div>
-
-          <div class="pager">
-            <button class="pager__btn" type="button"><i class="fa-solid fa-chevron-left"></i></button>
-            <button class="pager__num pager__num--active" type="button">1</button>
-            <button class="pager__num" type="button">2</button>
-            <button class="pager__num" type="button">3</button>
-            <span class="pager__dots">…</span>
-            <button class="pager__num" type="button">10</button>
-            <button class="pager__btn" type="button"><i class="fa-solid fa-chevron-right"></i></button>
-          </div>
-        </div>
-      </section>
-    </main>
-  </div>
-
-  <script>
-    // Client-side search filter
-    const input = document.getElementById("searchInput");
-    const table = document.getElementById("sessionsTable");
-    input?.addEventListener("input", () => {
-      const q = input.value.toLowerCase().trim();
-      const rows = table.querySelectorAll("tbody tr");
-      rows.forEach(tr => {
-        const text = tr.innerText.toLowerCase();
-        tr.style.display = text.includes(q) ? "" : "none";
-      });
-    });
-  </script>
-</body>
-</html>
+<script>
+  const searchInput = document.getElementById("searchInput");
+  const sortSelect = document.querySelector("select[name='sort']");
+  sortSelect?.addEventListener("change", () => {
+    sortSelect.form?.submit();
+  });
+  searchInput?.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      searchInput.form?.submit();
+    }
+  });
+  searchInput?.addEventListener("input", () => {
+    if (!searchInput.value.trim()) {
+      searchInput.form?.submit();
+    }
+  });
+</script>

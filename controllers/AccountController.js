@@ -1,6 +1,7 @@
 const userModel = require('../models/Account');
 const Listing = require('../models/Listing');
 const BookingCart = require('../models/BookingCart');
+const UserProfile = require('../models/UserProfile');
 const speakeasy = require('speakeasy');
 const QRCode = require('qrcode');
 
@@ -80,6 +81,7 @@ function buildSafeUser(user) {
     email: user.email,
     contact: user.contact,
     role: user.role,
+    coach_status: user.coach_status || (user.role === 'coach' ? 'pending' : 'approved'),
     is_2fa_enabled: user.is_2fa_enabled ? 1 : 0
   };
 }
@@ -92,6 +94,7 @@ const AccountController = {
 
   async registerUser(req, res) {
     const { username, email, password, contact, role, cert_title: certTitle } = req.body || {};
+    const normalizedRole = role === 'coach' ? 'coach' : 'user';
     if (!email || !password) {
       req.flash('error', 'Email and password required');
       req.flash('formData', { username, email, contact, role, cert_title: certTitle });
@@ -102,13 +105,15 @@ const AccountController = {
       req.flash('formData', { username, email, contact, role, cert_title: certTitle });
       return res.redirect('/register');
     }
-    if (role === 'coach') {
+    const uploadedCert = req.files && req.files.cert_file ? req.files.cert_file[0] : null;
+    const uploadedPhoto = req.files && req.files.profile_photo ? req.files.profile_photo[0] : null;
+    if (normalizedRole === 'coach') {
       if (!certTitle || !String(certTitle).trim()) {
         req.flash('error', 'Certification title is required for coaches');
         req.flash('formData', { username, email, contact, role, cert_title: certTitle });
         return res.redirect('/register');
       }
-      if (!req.file || !req.file.filename) {
+      if (!uploadedCert || !uploadedCert.filename) {
         req.flash('error', 'Certification file is required for coaches');
         req.flash('formData', { username, email, contact, role, cert_title: certTitle });
         return res.redirect('/register');
@@ -123,18 +128,25 @@ const AccountController = {
         req.flash('formData', { username, email, contact, role, cert_title: certTitle });
         return res.redirect('/register');
       }
-      await new Promise((resolve, reject) => {
+      const result = await new Promise((resolve, reject) => {
         userModel.addUser({
           username,
           full_name: username,
           email,
           password,
           contact,
-          role,
+          role: normalizedRole,
+          coach_status: normalizedRole === 'coach' ? 'pending' : 'approved',
           coach_cert_title: certTitle || null,
-          coach_cert_file: req.file && req.file.filename ? req.file.filename : null
+          coach_cert_file: uploadedCert && uploadedCert.filename ? uploadedCert.filename : null
         }, (err) => (err ? reject(err) : resolve()));
       });
+      const newUserId = result && result.insertId ? result.insertId : null;
+      if (newUserId && uploadedPhoto && uploadedPhoto.filename) {
+        await new Promise((resolve, reject) => {
+          UserProfile.upsertPhoto(newUserId, uploadedPhoto.filename, (err) => (err ? reject(err) : resolve()));
+        });
+      }
       req.flash('success', 'Registration successful. Log in.');
       return res.redirect('/login');
     } catch (err) {
@@ -155,10 +167,8 @@ const AccountController = {
       return res.redirect('/login');
     }
     try {
-      const authFn = typeof userModel.authenticate === 'function' ? userModel.authenticate : userModel.authenticateUser;
       const user = await new Promise((resolve, reject) => {
-        if (!authFn) return resolve(null);
-        authFn.call(userModel, email, password, (err, u) => (err ? reject(err) : resolve(u)));
+        userModel.authenticate(email, password, (err, u) => (err ? reject(err) : resolve(u)));
       });
       if (!user) {
         req.flash('error', 'Invalid credentials');
@@ -198,7 +208,7 @@ const AccountController = {
         if (safeUser.role === 'admin') return res.redirect('/admindashboard');
         if (safeUser.role === 'coach') return res.redirect('/listingsManage');
         if (pendingRedirect) return res.redirect(pendingRedirect);
-        return res.redirect('/userdashboard');
+        return res.redirect('/viewcourses');
       });
     } catch (err) {
       console.error(err);
@@ -241,7 +251,8 @@ const AccountController = {
       email: req.body.email,
       password: req.body.password,
       contact: req.body.contact || null,
-      role: req.body.role || 'user'
+      role: req.body.role || 'user',
+      coach_status: req.body.role === 'coach' ? 'pending' : 'approved'
     };
     if (payload.password && payload.password.length < 8) {
       req.flash('error', 'Password must be at least 8 characters');
@@ -526,7 +537,7 @@ const AccountController = {
       if (safeUser.role === 'admin') return res.redirect('/admindashboard');
       if (safeUser.role === 'coach') return res.redirect('/listingsManage');
       if (pendingRedirect) return res.redirect(pendingRedirect);
-      return res.redirect('/userdashboard');
+      return res.redirect('/viewcourses');
     });
   }
 };

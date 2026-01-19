@@ -7,7 +7,6 @@ const flash = require('connect-flash');
 const multer = require('multer');
 
 const AccountController = require('./controllers/AccountController');
-const PasswordResetController = require('./controllers/PasswordResetController');
 const ListingController = require('./controllers/ListingController');
 const BookingCartController = require('./controllers/BookingCartController');
 const BookingController = require('./controllers/BookingController');
@@ -16,7 +15,7 @@ const AdminController = require('./controllers/AdminController');
 const CoachProfileController = require('./controllers/CoachProfileController');
 const UserProfileController = require('./controllers/UserProfileController');
 const FeedbackController = require('./controllers/FeedbackController');
-const { attachUser, checkAuthenticated, checkAdmin } = require('./middleware');
+const { attachUser, checkAuthenticated, checkAdmin, checkAdminOrCoach, checkCoachApproved } = require('./middleware');
 
 const app = express();
 
@@ -47,10 +46,9 @@ const allowedCertTypes = new Set([
   'image/jpeg',
   'image/png',
   'image/webp',
-  'image/gif',
-  'application/pdf'
+  'image/gif'
 ]);
-const allowedCertExts = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif', '.pdf']);
+const allowedCertExts = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif']);
 const certStorage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, path.join(__dirname, 'public', 'certifications')),
   filename: (req, file, cb) => {
@@ -66,6 +64,35 @@ const uploadCert = multer({
   fileFilter: (req, file, cb) => {
     if (!allowedCertTypes.has(file.mimetype)) {
       return cb(new Error('Unsupported certification type'));
+    }
+    return cb(null, true);
+  }
+});
+
+const registerStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    if (file.fieldname === 'cert_file') {
+      return cb(null, path.join(__dirname, 'public', 'certifications'));
+    }
+    return cb(null, path.join(__dirname, 'public', 'images'));
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    const allowedExts = file.fieldname === 'cert_file' ? allowedCertExts : allowedImageExts;
+    const safeExt = allowedExts.has(ext) ? ext : '';
+    const randomName = crypto.randomBytes(16).toString('hex');
+    cb(null, `${Date.now()}-${randomName}${safeExt}`);
+  }
+});
+
+const registerUpload = multer({
+  storage: registerStorage,
+  limits: { fileSize: 2 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const isCert = file.fieldname === 'cert_file';
+    const allowedTypes = isCert ? allowedCertTypes : allowedImageTypes;
+    if (!allowedTypes.has(file.mimetype)) {
+      return cb(new Error(isCert ? 'Unsupported certification type' : 'Unsupported image type'));
     }
     return cb(null, true);
   }
@@ -109,14 +136,15 @@ app.get('/', (req, res) => {
 
 // User routes
 app.get('/register', AccountController.registerPage);
-app.post('/register', uploadCert.single('cert_file'), AccountController.registerUser);
+app.post('/register', registerUpload.fields([
+  { name: 'cert_file', maxCount: 1 },
+  { name: 'profile_photo', maxCount: 1 }
+]), AccountController.registerUser);
 app.get('/login', AccountController.loginPage);
 app.post('/login', AccountController.loginUser);
 app.get('/login2FA', AccountController.showTwoFactorLogin);
 app.post('/login2FA', AccountController.verifyTwoFactorLogin);
-app.get('/forgotPassword', checkAuthenticated, PasswordResetController.forgotPasswordPage);
-app.post('/forgotPassword', checkAuthenticated, PasswordResetController.requestPasswordReset);
-app.get('/logout', AccountController.logoutUser);
+app.post('/logout', AccountController.logoutUser);
 app.post('/logout', AccountController.logoutUser);
 app.get('/2FASetup', checkAuthenticated, AccountController.showTwoFactorSetup);
 app.post('/2FASetup/verify-setup', checkAuthenticated, AccountController.verifyTwoFactorSetup);
@@ -127,8 +155,9 @@ app.post('/accounts', checkAuthenticated, checkAdmin, AccountController.addUser)
 app.post('/accounts/:id', checkAuthenticated, checkAdmin, AccountController.updateUser);
 app.post('/accounts/:id/disable-2fa', checkAuthenticated, checkAdmin, AccountController.disableTwoFactor);
 app.post('/accounts/delete/:id', checkAuthenticated, checkAdmin, AccountController.deleteUser);
-app.get('/bookingsManage', checkAuthenticated, checkAdmin, BookingController.listAllOrders);
-app.get('/bookingsUser', checkAuthenticated, BookingController.userOrders);
+app.get('/bookingsManage', checkAuthenticated, checkAdminOrCoach, BookingController.listAllOrders);
+app.get('/coachRatings', checkAuthenticated, checkAdminOrCoach, BookingController.listCoachRatings);
+app.get('/ratingsUser', checkAuthenticated, BookingController.userRatings);
 
 // Listing routes
 app.get('/userdashboard', checkAuthenticated, ListingController.listAllProducts);
@@ -138,18 +167,20 @@ app.get('/listingDetail/:id', checkAuthenticated, ListingController.getProductBy
 // Admin/coach listing pages
 app.get('/admindashboard', checkAuthenticated, checkAdmin, AdminController.dashboard);
 app.get('/admincoaches', checkAuthenticated, checkAdmin, AdminController.coaches);
+app.post('/admincoaches/:id/approve', checkAuthenticated, checkAdmin, AdminController.approveCoach);
+app.post('/admincoaches/:id/reject', checkAuthenticated, checkAdmin, AdminController.rejectCoach);
 app.get('/adminstudents', checkAuthenticated, checkAdmin, AdminController.students);
 app.get('/adminservices', checkAuthenticated, checkAdmin, AdminController.services);
 app.post('/adminservices/:id/toggle', checkAuthenticated, checkAdmin, AdminController.toggleService);
 app.get('/adminfeedback', checkAuthenticated, checkAdmin, AdminController.feedback);
 app.post('/adminfeedback/:id/approve', checkAuthenticated, checkAdmin, AdminController.approveFeedback);
 app.post('/adminfeedback/:id/reject', checkAuthenticated, checkAdmin, AdminController.rejectFeedback);
-app.get('/listingsManage', checkAuthenticated, checkAdmin, ListingController.listAllProducts);
-app.get('/addListing', checkAuthenticated, checkAdmin, ListingController.showAddProductPage);
-app.get('/updateListing/:id', checkAuthenticated, checkAdmin, ListingController.showUpdateProductPage);
-app.post('/addListing', checkAuthenticated, checkAdmin, upload.single('image'), (req, res) => ListingController.addProduct(req, res, req.file));
-app.post('/updateListing/:id', checkAuthenticated, checkAdmin, upload.single('image'), (req, res) => ListingController.updateProduct(req, res, req.file));
-app.post('/listingsManage/delete/:id', checkAuthenticated, checkAdmin, ListingController.deleteProduct);
+app.get('/listingsManage', checkAuthenticated, checkCoachApproved, checkAdminOrCoach, ListingController.listAllProducts);
+app.get('/addListing', checkAuthenticated, checkCoachApproved, checkAdminOrCoach, ListingController.showAddProductPage);
+app.get('/updateListing/:id', checkAuthenticated, checkCoachApproved, checkAdminOrCoach, ListingController.showUpdateProductPage);
+app.post('/addListing', checkAuthenticated, checkCoachApproved, checkAdminOrCoach, upload.single('image'), (req, res) => ListingController.addProduct(req, res, req.file));
+app.post('/updateListing/:id', checkAuthenticated, checkCoachApproved, checkAdminOrCoach, upload.single('image'), (req, res) => ListingController.updateProduct(req, res, req.file));
+app.post('/listingsManage/delete/:id', checkAuthenticated, checkCoachApproved, checkAdminOrCoach, ListingController.deleteProduct);
 
 // Booking cart
 app.get('/bookingCart', checkAuthenticated, BookingCartController.showCart);
@@ -165,18 +196,17 @@ app.get('/payment', checkAuthenticated, PaymentController.showPaymentPage);
 app.post('/payment/confirm', checkAuthenticated, PaymentController.confirmPayment);
 
 app.post('/bookingsManage/:id/review/delete', checkAuthenticated, checkAdmin, BookingController.deleteReview);
-app.post('/bookingsManage/:id/status', checkAuthenticated, checkAdmin, BookingController.updateStatus);
+app.post('/bookingsManage/:id/status', checkAuthenticated, checkAdminOrCoach, BookingController.updateStatus);
 app.post('/bookingsUser/:id/confirm-delivery', checkAuthenticated, BookingController.confirmDelivery);
-app.get('/reviewBooking/:id', checkAuthenticated, BookingController.reviewOrderPage);
-app.post('/reviewBooking/:id/review', checkAuthenticated, BookingController.submitReview);
-app.get('/coachProfile', checkAuthenticated, checkAdmin, CoachProfileController.showProfile);
-app.post('/coachProfile', checkAuthenticated, checkAdmin, CoachProfileController.updateProfile);
-app.post('/coachProfile/password', checkAuthenticated, checkAdmin, CoachProfileController.updatePassword);
-app.post('/coachProfile/certification', checkAuthenticated, checkAdmin, uploadCert.single('cert_file'), CoachProfileController.updateCertification);
-app.get('/prof', checkAuthenticated, UserProfileController.showProfile);
-app.post('/prof', checkAuthenticated, UserProfileController.updateProfile);
-app.post('/prof/password', checkAuthenticated, UserProfileController.updatePassword);
-app.post('/prof/photo', checkAuthenticated, upload.single('photo'), UserProfileController.updatePhoto);
+app.get('/coachProfile', checkAuthenticated, checkAdminOrCoach, CoachProfileController.showProfile);
+app.post('/coachProfile', checkAuthenticated, checkAdminOrCoach, CoachProfileController.updateProfile);
+app.post('/coachProfile/password', checkAuthenticated, checkAdminOrCoach, CoachProfileController.updatePassword);
+app.post('/coachProfile/certification', checkAuthenticated, checkAdminOrCoach, uploadCert.single('cert_file'), CoachProfileController.updateCertification);
+app.post('/coachProfile/photo', checkAuthenticated, checkAdminOrCoach, upload.single('photo'), CoachProfileController.updatePhoto);
+app.get('/profile', checkAuthenticated, UserProfileController.showProfile);
+app.post('/profile', checkAuthenticated, UserProfileController.updateProfile);
+app.post('/profile/password', checkAuthenticated, UserProfileController.updatePassword);
+app.post('/profile/photo', checkAuthenticated, upload.single('photo'), UserProfileController.updatePhoto);
 
 // Feedback routes
 app.get('/feedback', checkAuthenticated, FeedbackController.showFeedbackForm);
@@ -189,7 +219,7 @@ app.use((err, req, res, next) => {
     return res.redirect('back');
   }
   if (err && err.message === 'Unsupported certification type') {
-    req.flash('error', 'Certification upload failed. Use JPG/PNG/WEBP/GIF/PDF under 2MB.');
+    req.flash('error', 'Certification upload failed. Use JPG/PNG/WEBP/GIF under 2MB.');
     return res.redirect('back');
   }
   return next(err);
@@ -200,3 +230,4 @@ app.use((req, res) => res.status(404).type('text').send('Page not found'));
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
+

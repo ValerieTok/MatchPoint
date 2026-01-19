@@ -1,11 +1,6 @@
 const Feedback = require('../models/Feedback');
 const Booking = require('../models/Booking');
 
-const getFeedbackByUserIdAsync = (userId) =>
-  new Promise((resolve, reject) => {
-    Feedback.getByUserId(userId, (err, feedback) => (err ? reject(err) : resolve(feedback)));
-  });
-
 const createFeedbackAsync = (userId, feedbackData) =>
   new Promise((resolve, reject) => {
     Feedback.create(userId, feedbackData, (err, result) => (err ? reject(err) : resolve(result)));
@@ -16,9 +11,14 @@ const getAllFeedbackAsync = () =>
     Feedback.getAll((err, feedback) => (err ? reject(err) : resolve(feedback)));
   });
 
-const getUserSessionsAsync = (userId) =>
+const getOrderByIdAsync = (orderId) =>
   new Promise((resolve, reject) => {
-    Booking.getAllUserSessions(userId, (err, sessions) => (err ? reject(err) : resolve(sessions || [])));
+    Booking.getOrderById(orderId, (err, order) => (err ? reject(err) : resolve(order)));
+  });
+
+const getReviewByOrderIdAsync = (orderId) =>
+  new Promise((resolve, reject) => {
+    Booking.getReviewByOrderId(orderId, (err, review) => (err ? reject(err) : resolve(review)));
   });
 
 module.exports = {
@@ -28,10 +28,28 @@ module.exports = {
       return res.redirect('/login');
     }
     try {
-      const sessions = await getUserSessionsAsync(req.session.user.id);
+      const selectedBookingId = req.query && req.query.booking_id ? parseInt(req.query.booking_id, 10) : null;
+      if (!selectedBookingId || Number.isNaN(selectedBookingId)) {
+        req.flash('error', 'Select a session from the ratings page first.');
+        return res.redirect('/ratingsUser');
+      }
+      const order = await getOrderByIdAsync(selectedBookingId);
+      if (!order || order.user_id !== req.session.user.id) {
+        req.flash('error', 'Booking not found.');
+        return res.redirect('/ratingsUser');
+      }
+      if (!order.completed_at) {
+        req.flash('error', 'Complete the session before leaving feedback.');
+        return res.redirect('/ratingsUser');
+      }
+      const existing = await getReviewByOrderIdAsync(selectedBookingId);
+      if (existing) {
+        req.flash('info', 'Feedback already submitted.');
+        return res.redirect('/ratingsUser');
+      }
       return res.render('feedback', {
         user: req.session.user,
-        sessions,
+        selectedBookingId,
         messages: res.locals.messages
       });
     } catch (err) {
@@ -51,29 +69,41 @@ module.exports = {
     const message = req.body.message ? String(req.body.message).trim() : '';
     const rating = req.body.rating ? parseInt(req.body.rating, 10) : null;
 
-    console.log('Feedback submission:', { bookingId, message, rating, userId: req.session.user.id });
-
     if (!bookingId) {
       req.flash('error', 'Please select a session to review.');
-      return res.redirect('/feedback');
+      return res.redirect('/ratingsUser');
     }
     if (!message) {
       req.flash('error', 'Message is required.');
-      return res.redirect('/feedback');
+      return res.redirect(`/feedback?booking_id=${bookingId}`);
     }
 
     try {
+      const order = await getOrderByIdAsync(bookingId);
+      if (!order || order.user_id !== req.session.user.id) {
+        req.flash('error', 'Booking not found.');
+        return res.redirect('/ratingsUser');
+      }
+      if (!order.completed_at) {
+        req.flash('error', 'Complete the session before leaving feedback.');
+        return res.redirect('/ratingsUser');
+      }
+      const existing = await getReviewByOrderIdAsync(bookingId);
+      if (existing) {
+        req.flash('info', 'Feedback already submitted.');
+        return res.redirect('/ratingsUser');
+      }
       await createFeedbackAsync(req.session.user.id, {
         booking_id: bookingId,
         message,
         rating
       });
       req.flash('success', 'Thank you! Your feedback has been submitted.');
-      return res.redirect('/prof');
+      return res.redirect('/ratingsUser');
     } catch (err) {
       console.error('Feedback submission error:', err);
       req.flash('error', 'Unable to submit feedback.');
-      return res.redirect('/feedback');
+      return res.redirect(`/feedback?booking_id=${bookingId}`);
     }
   },
 
@@ -97,3 +127,4 @@ module.exports = {
     }
   }
 };
+

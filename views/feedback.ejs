@@ -1,15 +1,17 @@
 <%- include('partials/head', {
   title: 'Write Review - Feedback',
+  bodyClass: 'admin-page user-profile',
   extraHead: `
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="stylesheet" href="/css/user-common.css">
+    <link rel="stylesheet" href="/css/admin-common.css">
     <link rel="stylesheet" href="/css/user-profile.css">
   `
 }) %>
 
 <div class="app">
   <%- include("partials/userSidebar", {
-    active: "profile",
+    active: "ratings",
     courseCount: undefined
   }) %>
 
@@ -37,21 +39,7 @@
           </div>
 
           <form action="/feedback" method="post" class="profile-form">
-            <div class="profile-field">
-              <label for="booking_id">Select Session <span style="color: red;">*</span></label>
-              <select id="booking_id" name="booking_id" required>
-                <option value="">-- Choose a session to review --</option>
-                <% 
-                  const sessionsList = Array.isArray(sessions) ? sessions : [];
-                  sessionsList.forEach((session) => {
-                    const date = session.session_date ? new Date(session.session_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'TBC';
-                    const time = session.session_time ? String(session.session_time).slice(0, 5) : '';
-                    const label = `${session.coach_name || 'Coach'} - ${session.sport || 'Session'} (${date} ${time})`;
-                %>
-                  <option value="<%= session.id %>"><%= label %></option>
-                <% }); %>
-              </select>
-            </div>
+            <input type="hidden" name="booking_id" value="<%= typeof selectedBookingId === 'number' ? selectedBookingId : '' %>">
 
             <div class="profile-field">
               <label for="message">Your Review <span style="color: red;">*</span></label>
@@ -79,7 +67,7 @@
 
             <div class="profile-form__actions">
               <button class="btn btn--primary" type="submit">Submit Feedback</button>
-              <a href="/prof" class="btn btn--secondary">Cancel</a>
+              <a href="/profile" class="btn btn--secondary">Cancel</a>
             </div>
           </form>
         </div>
@@ -91,6 +79,10 @@
 <%- include('partials/footer') %>
 
 <style>
+  .profile-card__title {
+    color: var(--accent);
+  }
+
   .profile-form__actions {
     display: flex;
     gap: 1rem;
@@ -110,8 +102,8 @@
 
   #rating:focus {
     outline: none;
-    border-color: #ff4757;
-    box-shadow: 0 0 0 3px rgba(255, 71, 87, 0.1);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(234, 70, 70, 0.12);
   }
 
   textarea {

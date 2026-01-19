@@ -106,7 +106,7 @@ module.exports = {
         req.flash('error', 'Listing not found');
         return res.redirect(fallbackRedirect);
       }
-      if (product.is_active === 0 || product.is_active === '0') {
+      if (product.is_active === 0 || product.is_active === '0' || product.coach_status !== 'approved') {
         req.flash('error', 'Listing is not available');
         return res.redirect(fallbackRedirect);
       }
@@ -224,12 +224,7 @@ module.exports = {
         req.flash('error', 'Your booking cart is empty');
         return res.redirect('/bookingCart');
       }
-      const deliveryAddress = (req.body && req.body.deliveryAddress ? String(req.body.deliveryAddress).trim() : '');
-      if (!deliveryAddress) {
-        req.flash('error', 'Session location required');
-        req.flash('deliveryAddress', deliveryAddress);
-        return res.redirect('/bookingCart');
-      }
+      const deliveryAddress = cart[0] && cart[0].session_location ? String(cart[0].session_location).trim() : '';
       const total = cart.reduce((sum, item) => {
         const pricing = calculatePricing(item);
         return sum + pricing.finalPrice * Number(item.quantity || 0);
@@ -251,17 +246,12 @@ module.exports = {
     if (!ensureShopperRole(req, res)) return;
     try {
       const userId = req.session.user.id;
-      const deliveryAddress = (req.body && req.body.deliveryAddress ? String(req.body.deliveryAddress).trim() : '');
       const cart = await syncCartToSession(req);
       if (!cart.length) {
         req.flash('error', 'Your booking cart is empty');
         return res.redirect('/bookingCart');
       }
-      if (!deliveryAddress) {
-        req.flash('error', 'Session location required');
-        req.flash('deliveryAddress', deliveryAddress);
-        return res.redirect('/bookingCart');
-      }
+      const deliveryAddress = cart[0] && cart[0].session_location ? String(cart[0].session_location).trim() : '';
 
       // Calculate pricing for cart items
       const pricedCart = cart.map((item) => {

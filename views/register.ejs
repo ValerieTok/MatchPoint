@@ -1,10 +1,9 @@
 <%- include('partials/head', {
   title: 'Create account',
-  bodyClass: 'entry-page',
+  bodyClass: 'entry-page admin-page',
   extraHead: `
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/user-common.css">
+    <link rel="stylesheet" href="/css/admin-common.css">
     <link rel="stylesheet" href="/css/auth.css">
   `
 }) %>
@@ -40,11 +39,14 @@
           <input class="form-control" type="tel" name="contact" value="<%= (formData && formData.contact) || '' %>">
         </div>
         <div>
+          <label class="form-label">Profile photo (optional)</label>
+          <input class="form-control" type="file" name="profile_photo" accept=".jpg,.jpeg,.png,.webp,.gif">
+        </div>
+        <div>
           <label class="form-label">Account type</label>
           <select class="form-select" name="role">
             <option value="user" <%= (formData && formData.role) === 'user' ? 'selected' : '' %>>Athlete</option>
             <option value="coach" <%= (formData && formData.role) === 'coach' ? 'selected' : '' %>>Coach</option>
-            <option value="admin" <%= (formData && formData.role) === 'admin' ? 'selected' : '' %>>Admin</option>
           </select>
         </div>
         <div class="cert-fields d-none">
@@ -53,8 +55,8 @@
           <small class="text-muted">Required for coach accounts.</small>
         </div>
         <div class="cert-fields d-none">
-          <label class="form-label">Upload certification (JPG/PNG/PDF)</label>
-          <input class="form-control" type="file" name="cert_file" accept=".jpg,.jpeg,.png,.webp,.gif,.pdf">
+          <label class="form-label">Upload certification photo (JPG/PNG/WEBP/GIF)</label>
+          <input class="form-control" type="file" name="cert_file" accept=".jpg,.jpeg,.png,.webp,.gif">
         </div>
         <button class="entry-btn w-100" type="submit">Create account</button>
         <div class="entry-footer">
@@ -106,4 +108,3 @@
   })();
 </script>
 <%- include('partials/footer') %>
-

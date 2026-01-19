@@ -4,12 +4,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Admin Coaches - MatchPoint</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-    <link rel="stylesheet" href="/css/user-common.css" />
-    <link rel="stylesheet" href="/css/user-dashboard.css" />
-    <link rel="stylesheet" href="/css/admin-coaches.css" />
-  </head>
-  <body class="admin-coaches">
+  
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="/css/user-common.css" />
+  <link rel="stylesheet" href="/css/user-dashboard.css" />
+  <link rel="stylesheet" href="/css/admin-common.css" />
+  <link rel="stylesheet" href="/css/admin-coaches.css" />
+</head>
+  <body class="admin-page admin-coaches">
     <div class="app">
       <aside class="sidebar">
         <div class="brand">
@@ -24,7 +26,9 @@
           <a class="nav__item" href="/adminfeedback"><i class="fa-regular fa-message"></i>Feedback</a>
         </nav>
         <div class="sidebar__footer">
-          <a class="logout" href="/logout"><i class="fa-solid fa-right-from-bracket"></i>Logout</a>
+          <form action="/logout" method="post">
+          <button class="logout" type="submit"><i class="fa-solid fa-right-from-bracket"></i>Logout</button>
+        </form>
         </div>
       </aside>
 
@@ -97,13 +101,15 @@
                   <th>Sport</th>
                   <th>Sessions</th>
                   <th>Rating</th>
+                  <th>Certification</th>
+                  <th>Status</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 <% if (!rows.length) { %>
                   <tr>
-                    <td colspan="5">No coaches found.</td>
+                    <td colspan="7">No coaches found.</td>
                   </tr>
                 <% } else { %>
                   <% rows.forEach(row => { %>
@@ -118,9 +124,28 @@
                           <span class="rating muted">No reviews</span>
                         <% } %>
                       </td>
+                      <td>
+                        <% if (row.coach_cert_file) { %>
+                          <div>
+                            <a href="/certifications/<%= row.coach_cert_file %>" target="_blank" rel="noreferrer">View</a>
+                          </div>
+                          <% if (row.coach_cert_title) { %>
+                            <div class="cell-sub"><%= row.coach_cert_title %></div>
+                          <% } %>
+                        <% } else { %>
+                          <span class="rating muted">Not uploaded</span>
+                        <% } %>
+                      </td>
+                      <td>
+                        <span class="pill pill--<%= row.coach_status || 'pending' %>"><%= String(row.coach_status || 'pending').toUpperCase() %></span>
+                      </td>
                       <td class="actions">
-                        <button class="btn warn" type="button">Issue Warning</button>
-                        <button class="btn danger" type="button">Ban Coach</button>
+                        <form method="post" action="/admincoaches/<%= row.id %>/approve">
+                          <button class="btn approve" type="submit" <%= row.coach_status === 'approved' ? 'disabled' : '' %>>Approve</button>
+                        </form>
+                        <form method="post" action="/admincoaches/<%= row.id %>/reject">
+                          <button class="btn reject" type="submit" <%= row.coach_status === 'rejected' ? 'disabled' : '' %>>Reject</button>
+                        </form>
                       </td>
                     </tr>
                   <% }) %>

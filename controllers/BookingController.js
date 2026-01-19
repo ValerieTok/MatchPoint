@@ -50,32 +50,6 @@ module.exports = {
     });
   },
 
-  userOrders(req, res) {
-    const sessionUser = req.session && req.session.user;
-    if (!sessionUser || sessionUser.role !== 'user') {
-      req.flash('error', 'Access denied');
-      return res.redirect('/listingsManage');
-    }
-    const userId = sessionUser.id;
-    Booking.getOrdersByUser(userId, (err, orders) => {
-      if (err) {
-        console.error('Failed to load booking history', err);
-        req.flash('error', 'Unable to load your bookings right now.');
-        return res.render('bookingsUser', {
-          user: req.session && req.session.user,
-          orders: []
-        });
-      }
-      const withItems = Promise.all(orders.map((o) => buildOrderDetails(o, null)));
-      withItems.then((ordersWithItems) =>
-        res.render('bookingsUser', {
-          user: req.session && req.session.user,
-          orders: ordersWithItems
-        })
-      );
-    });
-  },
-
   async confirmDelivery(req, res) {
     const userId = req.session && req.session.user && req.session.user.id;
     if (!userId) {
@@ -89,127 +63,28 @@ module.exports = {
     const orderId = parseInt(req.params.id, 10);
     if (Number.isNaN(orderId)) {
       req.flash('error', 'Invalid booking');
-      return res.redirect('/bookingsUser');
+      return res.redirect('/ratingsUser');
     }
     try {
       const order = await getOrderByIdAsync(orderId);
       if (!order || order.user_id !== userId) {
         req.flash('error', 'Booking not found');
-        return res.redirect('/bookingsUser');
+        return res.redirect('/ratingsUser');
       }
       if (order.status && String(order.status).toLowerCase() !== 'accepted') {
         req.flash('error', 'Booking must be accepted before confirmation.');
-        return res.redirect('/bookingsUser');
+        return res.redirect('/ratingsUser');
       }
       if (!order.completed_at) {
         await new Promise((resolve, reject) => {
           Booking.markOrderDelivered(orderId, (err) => (err ? reject(err) : resolve()));
         });
       }
-      return res.redirect(`/reviewBooking/${orderId}`);
+      return res.redirect(`/feedback?booking_id=${orderId}`);
     } catch (err) {
       console.error(err);
       req.flash('error', 'Unable to confirm delivery');
-      return res.redirect('/bookingsUser');
-    }
-  },
-
-  async reviewOrderPage(req, res) {
-    const userId = req.session && req.session.user && req.session.user.id;
-    if (!userId) {
-      req.flash('error', 'Please log in');
-      return res.redirect('/login');
-    }
-    if (req.session.user.role !== 'user') {
-      req.flash('error', 'Access denied');
-      return res.redirect('/listingsManage');
-    }
-    const orderId = parseInt(req.params.id, 10);
-    if (Number.isNaN(orderId)) {
-      req.flash('error', 'Invalid booking');
-      return res.redirect('/bookingsUser');
-    }
-    try {
-      const order = await getOrderByIdAsync(orderId);
-      if (!order || order.user_id !== userId) {
-        req.flash('error', 'Booking not found');
-        return res.redirect('/bookingsUser');
-      }
-      if (!order.completed_at) {
-        req.flash('error', 'Confirm session first');
-        return res.redirect('/bookingsUser');
-      }
-      const detailed = await buildOrderDetails(order, null);
-      if (detailed.review) {
-        req.flash('info', 'Review already submitted');
-        return res.redirect('/bookingsUser');
-      }
-      return res.render('reviewBooking', {
-        user: req.session && req.session.user,
-        order: detailed
-      });
-    } catch (err) {
-      console.error(err);
-      req.flash('error', 'Unable to load review form');
-      return res.redirect('/bookingsUser');
-    }
-  },
-
-  async submitReview(req, res) {
-    const userId = req.session && req.session.user && req.session.user.id;
-    if (!userId) {
-      req.flash('error', 'Please log in');
-      return res.redirect('/login');
-    }
-    if (req.session.user.role !== 'user') {
-      req.flash('error', 'Access denied');
-      return res.redirect('/listingsManage');
-    }
-    const orderId = parseInt(req.params.id, 10);
-    if (Number.isNaN(orderId)) {
-      req.flash('error', 'Invalid booking');
-      return res.redirect('/bookingsUser');
-    }
-    const rating = Math.min(5, Math.max(1, Math.round(Number(req.body.rating) || 0)));
-    const comment = (req.body.comment || '').trim();
-    if (!rating) {
-      req.flash('error', 'Provide a rating between 1 and 5');
-      return res.redirect(`/reviewBooking/${orderId}`);
-    }
-    try {
-      const order = await getOrderByIdAsync(orderId);
-      if (!order || order.user_id !== userId) {
-        req.flash('error', 'Booking not found');
-        return res.redirect('/bookingsUser');
-      }
-      if (!order.completed_at) {
-        req.flash('error', 'Confirm session first');
-        return res.redirect('/bookingsUser');
-      }
-      const existing = await new Promise((resolve, reject) => {
-        Booking.getReviewByOrderId(orderId, (err, review) => (err ? reject(err) : resolve(review)));
-      });
-      if (existing) {
-        req.flash('info', 'Review already submitted');
-        return res.redirect('/bookingsUser');
-      }
-      await new Promise((resolve, reject) => {
-        Booking.createReview(
-          {
-            booking_id: orderId,
-            user_id: userId,
-            rating,
-            comment
-          },
-          (err) => (err ? reject(err) : resolve())
-        );
-      });
-      req.flash('success', 'Review saved');
-      return res.redirect('/bookingsUser');
-    } catch (err) {
-      console.error(err);
-      req.flash('error', 'Unable to save review');
-      return res.redirect(`/reviewBooking/${orderId}`);
+      return res.redirect('/ratingsUser');
     }
   },
 
@@ -273,5 +148,101 @@ module.exports = {
       req.flash('error', 'Unable to update booking status');
       return res.redirect('/bookingsManage');
     }
+  },
+
+  listCoachRatings(req, res) {
+    const user = req.session && req.session.user;
+    if (!user || (user.role !== 'coach' && user.role !== 'admin')) {
+      req.flash('error', 'Access denied');
+      return res.redirect('/bookingsManage');
+    }
+    let coachId = null;
+    if (user.role === 'coach') {
+      coachId = user.id;
+    } else if (user.role === 'admin' && req.query.coachId) {
+      coachId = parseInt(req.query.coachId, 10);
+    }
+    if (!coachId || Number.isNaN(coachId)) {
+      req.flash('error', 'Select a coach to view ratings.');
+      return res.render('ratingsManage', {
+        user: req.session.user,
+        ratings: []
+      });
+    }
+    Booking.getCoachReviews(coachId, (err, rows) => {
+      if (err) {
+        console.error('Failed to load ratings', err);
+        req.flash('error', 'Unable to load ratings right now.');
+        return res.render('ratingsManage', {
+          user: req.session.user,
+          ratings: []
+        });
+      }
+      return res.render('ratingsManage', {
+        user: req.session.user,
+        ratings: rows || []
+      });
+    });
+  },
+
+  userRatings(req, res) {
+    const sessionUser = req.session && req.session.user;
+    if (!sessionUser || sessionUser.role !== 'user') {
+      req.flash('error', 'Access denied');
+      return res.redirect('/listingsManage');
+    }
+    const userId = sessionUser.id;
+    Booking.getOrdersByUser(userId, (err, orders) => {
+      if (err) {
+        console.error('Failed to load ratings list', err);
+        req.flash('error', 'Unable to load your ratings list right now.');
+        return res.render('userRatings', {
+          user: req.session && req.session.user,
+          sessions: []
+        });
+      }
+      const withItems = Promise.all(orders.map((o) => buildOrderDetails(o, null)));
+      return withItems.then((ordersWithItems) => {
+        const upcomingSessions = [];
+        const completedSessions = [];
+        ordersWithItems.forEach((order) => {
+          const status = (order.status || '').toLowerCase();
+          const items = Array.isArray(order.items) ? order.items : [];
+          if (status === 'accepted' && !order.completed_at) {
+            items.forEach((item) => {
+              upcomingSessions.push({
+                bookingId: order.id,
+                status,
+                coach: item.username,
+                sport: item.sport,
+                location: item.session_location || order.session_location,
+                date: item.session_date,
+                time: item.session_time
+              });
+            });
+          }
+
+          if (order.completed_at && order.review) {
+            items.forEach((item) => {
+              completedSessions.push({
+                bookingId: order.id,
+                completedAt: order.completed_at,
+                review: order.review,
+                coach: item.username,
+                sport: item.sport,
+                location: item.session_location || order.session_location,
+                date: item.session_date,
+                time: item.session_time
+              });
+            });
+          }
+        });
+        return res.render('userRatings', {
+          user: req.session && req.session.user,
+          upcomingSessions,
+          completedSessions
+        });
+      });
+    });
   }
 };

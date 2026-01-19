@@ -97,6 +97,9 @@
   width: 200px;
   background:#fff;
 }
+.search--wide input{
+  width: 320px;
+}
 
 /* Sort */
 .sort{
@@ -171,6 +174,18 @@
 .pill--review{
   background: #ffedd5;
   color: #9a3412;
+}
+.pill--pending{
+  background: #fff4cc;
+  color: #9a6b00;
+}
+.pill--accepted{
+  background: #dcfce7;
+  color: #15803d;
+}
+.pill--rejected{
+  background: #fee2e2;
+  color: #b91c1c;
 }
 
 /* Footer */

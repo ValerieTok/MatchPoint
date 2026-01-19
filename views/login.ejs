@@ -1,16 +1,21 @@
 <%- include('partials/head', {
   title: 'Log in',
-  bodyClass: 'entry-page',
+  bodyClass: 'entry-page admin-page',
   extraHead: `
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/user-common.css">
+    <link rel="stylesheet" href="/css/admin-common.css">
     <link rel="stylesheet" href="/css/auth.css">
   `
 }) %>
-<%- include('partials/navbar', { user, activePage: '' }) %>
 
 <section class="entry-shell">
+  <div class="entry-topbar">
+    <div class="entry-topbar__actions">
+      <a class="entry-nav entry-nav--active" href="/login">Login</a>
+      <a class="entry-nav" href="/register">Sign up</a>
+    </div>
+  </div>
+
   <div class="entry-layout">
     <div class="entry-card">
       <div class="entry-eyebrow">MatchPoint</div>
@@ -64,5 +69,3 @@
 
 <%- include('partials/showPasswordToggle') %>
 <%- include('partials/footer') %>
-
-

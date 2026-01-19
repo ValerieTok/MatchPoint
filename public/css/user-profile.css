@@ -135,8 +135,8 @@
 
 .profile-photo img,
 .profile-photo__placeholder {
-  width: 86px;
-  height: 86px;
+  width: 180px;
+  height: 180px;
   border-radius: 16px;
   display: grid;
   place-items: center;
@@ -147,7 +147,8 @@
 }
 
 .profile-photo img {
-  object-fit: cover;
+  object-fit: contain;
+  background: #fff;
 }
 
 .profile-photo__form {

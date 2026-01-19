@@ -7,12 +7,13 @@
   <title>MatchPoint • Booking Cart</title>
 
   <!-- Icons -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
-  <link rel="stylesheet" href="/css/user-common.css">
-  <link rel="stylesheet" href="/css/user-dashboard.css">
-  <link rel="stylesheet" href="/css/admin-dashboard.css" />
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="/css/user-common.css" />
+  <link rel="stylesheet" href="/css/admin-common.css" />
+  <link rel="stylesheet" href="/css/user-dashboard.css" />
 </head>
-<body class="admin-dashboard">
+<body class="admin-page user-cart">
   <div class="app">
 
     <!-- SIDEBAR -->
@@ -91,11 +92,17 @@
                   </div>
                 </div>
                 
-                <div style="display: flex; align-items: center; gap: 1.5rem; color: #6b7280; font-size: 0.95rem; margin-bottom: 1.5rem; padding: 1rem; background: #f9fafb; border-radius: 12px;">
+                <div style="display: flex; align-items: center; gap: 1.5rem; color: #6b7280; font-size: 0.95rem; margin-bottom: 1.5rem; padding: 1rem; background: #f9fafb; border-radius: 12px; flex-wrap: wrap;">
                   <% if (item.duration_minutes) { %>
                     <div style="display: flex; align-items: center; gap: 0.5rem;">
                       <span style="font-size: 1.25rem;">⏱️</span>
                       <span style="font-weight: 500;"><%= item.duration_minutes %> mins</span>
+                    </div>
+                  <% } %>
+                  <% if (item.session_location) { %>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                      <i class="fa-solid fa-location-dot"></i>
+                      <span style="font-weight: 500;"><%= item.session_location %></span>
                     </div>
                   <% } %>
                   <div style="display: flex; align-items: center; gap: 0.5rem;">
@@ -166,16 +173,6 @@
               </div>
               
               <form action="/bookingCheckout" method="post">
-                <div style="margin-bottom: 1rem;">
-                  <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.9rem;">Session Location</label>
-                  <textarea
-                    style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 8px; font-family: inherit; font-size: 0.9rem; resize: vertical;"
-                    name="deliveryAddress"
-                    rows="3"
-                    placeholder="Enter training location or online meeting link..."
-                    required><%= deliveryAddress || '' %></textarea>
-                  <div style="color: #666; font-size: 0.75rem; margin-top: 0.25rem;">This will be used for all sessions in your cart</div>
-                </div>
                 
                 <button type="submit" style="width: 100%; background: linear-gradient(135deg, #ef4444, #dc2626); color: white; border: none; padding: 1rem; border-radius: 8px; font-weight: 600; font-size: 1rem; cursor: pointer; margin-bottom: 0.75rem;">Proceed to Checkout</button>
                 <a href="/userdashboard" style="display: block; width: 100%; text-align: center; background: white; color: #666; border: 1px solid #ddd; padding: 0.75rem; border-radius: 8px; text-decoration: none; font-weight: 500;">Continue Shopping</a>

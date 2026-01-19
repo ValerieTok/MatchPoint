@@ -1,8 +1,11 @@
 <%- include('partials/head', {
   title: 'Bookings',
+  bodyClass: 'admin-page coach-dashboard',
   extraHead: `
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="stylesheet" href="/css/user-common.css">
+    <link rel="stylesheet" href="/css/admin-common.css">
+    <link rel="stylesheet" href="/css/user-dashboard.css">
     <link rel="stylesheet" href="/css/coach-dashboard.css">
   `
 }) %>
@@ -10,7 +13,7 @@
 <%
   const safeSearchTerm = typeof searchTerm !== 'undefined' ? searchTerm : '';
   const formatSgDateTime = (value) => {
-    if (!value) return '—';
+    if (!value) return 'TBC';
     return new Date(value).toLocaleString('en-SG', { timeZone: 'Asia/Singapore' });
   };
   const formatSessionDate = (value) => {
@@ -20,11 +23,10 @@
     return date.toLocaleDateString('en-SG');
   };
   const formatSessionTime = (value) => (value ? String(value).slice(0, 5) : 'TBC');
-  const formatStatus = (value) => {
-    const status = (value || 'pending').toString().toLowerCase();
-    if (status === 'accepted') return { label: 'Accepted', class: 'bg-success' };
-    if (status === 'rejected') return { label: 'Rejected', class: 'bg-danger' };
-    return { label: 'Pending', class: 'bg-warning text-dark' };
+  const resolveStatus = (order) => {
+    if (order && order.completed_at) return { label: 'COMPLETED', class: 'pill--review' };
+    if (order && String(order.status || '').toLowerCase() === 'rejected') return { label: 'REJECTED', class: 'pill--inactive' };
+    return { label: 'UPCOMING', class: 'pill--upcoming' };
   };
 %>
 <div class="app">
@@ -38,193 +40,101 @@
       <div class="topbar__pill"><i class="fa-solid fa-calendar-check"></i></div>
     </header>
 
-    <section class="content-card">
-      <div class="content-card__head">
-        <div>
-          <div class="content-card__title"><%= user.role === 'coach' ? 'My Bookings' : 'All Bookings' %></div>
-          <div class="content-card__subtitle"><%= user.role === 'coach' ? 'Track your coaching sessions.' : 'Manage sessions across the platform.' %></div>
-        </div>
-        <button class="btn btn--ghost" onclick="window.print()">Print page</button>
+    <section class="card">
+      <div class="card__head">
+        <div class="card__title">All Sessions</div>
+        <form class="card__tools" method="get" action="/bookingsManage">
+          <div class="search">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input id="order-search" name="search" type="search" placeholder="Search" value="<%= safeSearchTerm %>">
+          </div>
+          <div class="sort">
+            <span class="sort__label">SORT BY:</span>
+            <select class="sort__btn" name="sort">
+              <option value="recent">Recent</option>
+            </select>
+          </div>
+        </form>
       </div>
-
-      <form class="row g-2 align-items-center mb-4" method="get" action="/bookingsManage">
-        <div class="col-auto">
-          <label class="visually-hidden" for="order-search">Search client</label>
-          <input id="order-search" name="search" class="form-control" type="search" placeholder="Search by client" value="<%= safeSearchTerm %>">
-        </div>
-        <div class="col-auto">
-          <button class="btn btn--primary" type="submit">Filter</button>
-          <% if (safeSearchTerm) { %>
-            <a class="btn btn--ghost" href="/bookingsManage">Reset</a>
-          <% } %>
-        </div>
-      </form>
 
       <%- include('partials/flashMessages', { messages }) %>
 
-      <% if (!orders || !orders.length) { %>
-        <div class="alert alert-info">No bookings found.</div>
-      <% } else { %>
-        <div class="accordion" id="orders-accordion">
-          <% orders.forEach((o, idx) => { %>
-            <div class="accordion-item">
-              <% const statusMeta = formatStatus(o.status); %>
-              <h2 class="accordion-header" id="heading-<%= o.id %>">
-                <button class="accordion-button <%= idx ? 'collapsed' : '' %>" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-<%= o.id %>">
-                    <div class="w-100 d-flex justify-content-between align-items-center">
-                      <div>
-                        <div class="fw-semibold">Booking #<%= o.id %> &middot; <%= o.username %></div>
-                        <div class="text-muted small">Booked: <%= formatSgDateTime(o.created_at) %></div>
-                      </div>
-                      <div class="text-end">
-                        <div class="fw-semibold">$<%= Number(o.total || 0).toFixed(2) %></div>
-                        <div class="text-muted small"><%= o.session_location || 'No location' %></div>
-                        <span class="badge <%= statusMeta.class %>"><%= statusMeta.label %></span>
-                        <% if (o.review) { %>
-                          <div class="text-warning small">
-                            <% for (let i = 0; i < o.review.rating; i++) { %>&#9733;<% } %>
-                            <% for (let i = o.review.rating; i < 5; i++) { %>&#9734;<% } %>
-                          </div>
-                        <% } %>
-                      </div>
-                    </div>
-                </button>
-              </h2>
-              <div id="collapse-<%= o.id %>" class="accordion-collapse collapse <%= idx ? '' : 'show' %>" data-bs-parent="#orders-accordion">
-                <div class="accordion-body">
-                  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
-                    <div class="d-flex gap-2 align-items-center">
-                      <% if ((o.status || 'pending').toLowerCase() === 'pending') { %>
-                        <form action="/bookingsManage/<%= o.id %>/status" method="post">
+      <div class="tableWrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Booked By</th>
+              <th>Booked At</th>
+              <th>Coach Name</th>
+              <th>Date &amp; Time</th>
+              <th>Phone Number</th>
+              <th>Email</th>
+              <th>Sport</th>
+              <th>Location</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% const rows = Array.isArray(orders) ? orders : []; %>
+            <% if (!rows.length) { %>
+              <tr>
+                <td colspan="10">No bookings found.</td>
+              </tr>
+            <% } else { %>
+              <% rows.forEach(o => { %>
+                <% const statusMeta = resolveStatus(o); %>
+                <% const bookedAt = formatSgDateTime(o.created_at); %>
+                <% const bookedBy = o.username || '-'; %>
+                <% const bookedEmail = o.user_email || '-'; %>
+                <% const bookedPhone = o.user_contact || '-'; %>
+                <% const items = Array.isArray(o.items) && o.items.length ? o.items : [null]; %>
+                <% items.forEach(it => { %>
+                  <% const coachName = it && it.username ? it.username : '-'; %>
+                  <% const sportName = it && (it.sport || it.listing_title) ? (it.sport || it.listing_title) : '-'; %>
+                  <% const location = it && it.session_location ? it.session_location : (o.session_location || '-'); %>
+                  <% const dateLabel = it ? formatSessionDate(it.session_date) : 'TBC'; %>
+                  <% const timeLabel = it ? formatSessionTime(it.session_time) : ''; %>
+                  <tr>
+                    <td><%= bookedBy %></td>
+                    <td><%= bookedAt %></td>
+                    <td>
+                      <div><%= coachName %></div>
+                      <% if (sportName && it && it.sport) { %>
+                        <div class="cell-sub"><%= it.sport %></div>
+                      <% } %>
+                    </td>
+                    <td><%= timeLabel ? `${dateLabel} ${timeLabel}` : dateLabel %></td>
+                    <td><%= bookedPhone %></td>
+                    <td><%= bookedEmail %></td>
+                    <td><%= sportName %></td>
+                    <td><%= location %></td>
+                    <td>
+                      <span class="pill <%= statusMeta.class %>"><%= statusMeta.label %></span>
+                    </td>
+                    <td>
+                      <% if (String(o.status || '').toLowerCase() === 'pending') { %>
+                        <form style="display:inline-block; margin-right:6px;" action="/bookingsManage/<%= o.id %>/status" method="post">
                           <input type="hidden" name="status" value="accepted">
-                          <button class="btn btn-sm btn-success" type="submit">Accept</button>
+                          <button class="btn btn--primary btn--sm" type="submit">Approve</button>
                         </form>
-                        <form action="/bookingsManage/<%= o.id %>/status" method="post">
+                        <form style="display:inline-block;" action="/bookingsManage/<%= o.id %>/status" method="post">
                           <input type="hidden" name="status" value="rejected">
-                          <button class="btn btn-sm btn-outline-danger" type="submit">Reject</button>
+                          <button class="btn btn--ghost btn--sm" type="submit">Reject</button>
                         </form>
                       <% } else { %>
-                        <span class="text-muted small">Status locked after decision.</span>
+                        <span class="cell-sub">Locked</span>
                       <% } %>
-                    </div>
-                    <button class="btn btn-sm btn-outline-secondary" type="button" onclick="printOrder('order-admin-<%= o.id %>', 'Booking #<%= o.id %>')">Print this booking</button>
-                  </div>
-                  <div id="order-admin-<%= o.id %>">
-                <div class="mb-3">
-                  <div><strong>Booked by:</strong> <%= o.username %></div>
-                  <div><strong>Booked on:</strong> <%= formatSgDateTime(o.created_at) %></div>
-                  <div><strong>Session location:</strong> <%= o.session_location || 'No location' %></div>
-                </div>
-                  <% if (!o.items || !o.items.length) { %>
-                    <div class="alert alert-light mb-0">No listings recorded.</div>
-                  <% } else { %>
-                    <div class="table-responsive">
-                      <table class="table align-middle">
-                        <thead>
-                          <tr>
-                            <th>Sport Type</th>
-                            <th class="text-center">Image</th>
-                            <th>Level</th>
-                            <th>Duration</th>
-                            <th>Location</th>
-                            <th class="text-end">Slots</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                        <% o.items.forEach(it => {
-                          const qty = Number(it.quantity || 0);
-                          const imageSrc = it.image ? '/images/' + it.image : '/images/placeholder.png';
-                          const durationLabel = it.duration_minutes ? (it.duration_minutes + ' mins') : '-';
-                          const levelLabel = it.skill_level ? it.skill_level.toUpperCase() : '-';
-                          const locationLabel = it.session_location || o.session_location || 'No location';
-                          const sessionDateLabel = formatSessionDate(it.session_date);
-                          const sessionTimeLabel = formatSessionTime(it.session_time);
-                        %>
-                          <tr>
-                            <td>
-                              <div class="fw-semibold"><%= it.listing_title %></div>
-                              <div class="text-muted small">Coach: <%= it.username %></div>
-                              <div class="text-muted small">Session: <%= sessionDateLabel %> ƒ?› <%= sessionTimeLabel %></div>
-                            </td>
-                              <td class="text-center">
-                                <img src="<%= imageSrc %>" alt="<%= it.listing_title %>" class="d-block mx-auto" style="max-height:70px;">
-                              </td>
-                              <td><%= levelLabel %></td>
-                              <td><%= durationLabel %></td>
-                              <td><%= locationLabel %></td>
-                              <td class="text-end"><%= qty %></td>
-                            </tr>
-                          <% }) %>
-                        </tbody>
-                      </table>
-                    </div>
-                  <% } %>
-                  <div class="mt-3">
-                  <% if (o.completed_at) { %>
-                    <div class="alert alert-success py-2">
-                      Session completed at <strong><%= formatSgDateTime(o.completed_at) %></strong>
-                    </div>
-                    <% } else { %>
-                      <div class="alert alert-secondary py-2">
-                        Session not yet confirmed complete.
-                      </div>
-                    <% } %>
-                  <% if (o.review) { %>
-                    <div class="border rounded-3 p-3 bg-light">
-                      <div class="fw-semibold mb-1">Athlete review</div>
-                      <div class="text-warning mb-1">
-                        <% for (let i = 0; i < o.review.rating; i++) { %>&#9733;<% } %>
-                        <% for (let i = o.review.rating; i < 5; i++) { %>&#9734;<% } %>
-                      </div>
-                      <p class="mb-0 text-muted"><%= o.review.comment || 'No comment provided.' %></p>
-                      <% if (user && user.role === 'admin') { %>
-                        <form class="mt-2" action="/bookingsManage/<%= o.id %>/review/delete" method="post">
-                          <button class="btn btn-outline-danger btn-sm" type="submit">Delete review</button>
-                        </form>
-                      <% } %>
-                    </div>
-                  <% } else { %>
-                    <div class="text-muted small mt-2"><%= o.completed_at ? 'Awaiting athlete review.' : 'Review available after session completion.' %></div>
-                    <% } %>
-                  </div>
-                </div>
-              </div>
-              </div>
-            </div>
-          <% }) %>
-        </div>
-      <% } %>
+                    </td>
+                  </tr>
+                <% }) %>
+              <% }) %>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
     </section>
   </main>
 </div>
 
-<%- include('partials/footer', { extraScripts: `<script>
-    function printOrder(elementId, title) {
-      var el = document.getElementById(elementId);
-      if (!el) return;
-      var iframe = document.createElement('iframe');
-      iframe.style.position = 'fixed';
-      iframe.style.right = '0';
-      iframe.style.bottom = '0';
-      iframe.style.width = '0';
-      iframe.style.height = '0';
-      iframe.style.border = '0';
-      document.body.appendChild(iframe);
-      var doc = iframe.contentWindow.document;
-      doc.open();
-      doc.write('<html><head><title>' + (title || 'Booking') + '</title>');
-      doc.write('<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">');
-      doc.write('</head><body class="p-3">');
-      doc.write(el.innerHTML);
-      doc.write('</body></html>');
-      doc.close();
-      iframe.contentWindow.focus();
-      iframe.contentWindow.print();
-      setTimeout(function () {
-        document.body.removeChild(iframe);
-      }, 1000);
-    }
-  </script>` }) %>
-
-
-
+<%- include('partials/footer') %>

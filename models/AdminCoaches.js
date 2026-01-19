@@ -46,6 +46,9 @@ const AdminCoaches = {
         u.id,
         u.username,
         u.contact,
+        u.coach_cert_title,
+        u.coach_cert_file,
+        u.coach_status,
         u.created_at,
         (
           SELECT COUNT(*)
@@ -83,6 +86,11 @@ const AdminCoaches = {
         return callback(null, { rows: rows || [], total });
       });
     });
+  },
+
+  setCoachStatus(id, status, callback) {
+    const sql = 'UPDATE users SET coach_status = ? WHERE id = ? AND role = "coach"';
+    db.query(sql, [status, id], (err, result) => callback(err, result));
   }
 };
 

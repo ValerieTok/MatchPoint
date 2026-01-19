@@ -1,0 +1,79 @@
+<%- include('partials/head', {
+  title: 'Ratings',
+  bodyClass: 'admin-page coach-dashboard',
+  extraHead: `
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/user-common.css">
+    <link rel="stylesheet" href="/css/admin-common.css">
+    <link rel="stylesheet" href="/css/user-dashboard.css">
+    <link rel="stylesheet" href="/css/coach-dashboard.css">
+  `
+}) %>
+
+<div class="app">
+  <%- include("partials/coachSidebar", { active: "ratings" }) %>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="crumb">RATINGS</div>
+      <div class="topbar__pill"><i class="fa-regular fa-star"></i></div>
+    </header>
+
+    <section class="card">
+      <div class="card__head">
+        <div class="card__title">Session Ratings</div>
+      </div>
+
+      <div class="tableWrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Booked By</th>
+              <th>Session</th>
+              <th>Date &amp; Time</th>
+              <th>Rating</th>
+              <th>Comment</th>
+              <th>Submitted</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% const rows = Array.isArray(ratings) ? ratings : []; %>
+            <% const formatSessionDate = (value) => value ? new Date(value).toLocaleDateString('en-GB') : 'TBC'; %>
+            <% const formatSessionTime = (value) => (value ? String(value).slice(0, 5) : ''); %>
+            <% const formatCreatedAt = (value) => value ? new Date(value).toLocaleString('en-GB') : 'TBC'; %>
+            <% if (!rows.length) { %>
+              <tr>
+                <td colspan="6">No ratings available yet.</td>
+              </tr>
+            <% } else { %>
+              <% rows.forEach(row => { %>
+                <tr>
+                  <td>
+                    <div><%= row.student_name || '-' %></div>
+                    <div class="cell-sub"><%= row.student_email || '-' %></div>
+                  </td>
+                  <td>
+                    <div><%= row.listing_title || row.sport || 'Session' %></div>
+                    <div class="cell-sub"><%= row.sport || '-' %></div>
+                  </td>
+                  <td>
+                    <% const dateLabel = formatSessionDate(row.session_date); %>
+                    <% const timeLabel = formatSessionTime(row.session_time); %>
+                    <%= timeLabel ? `${dateLabel} ${timeLabel}` : dateLabel %>
+                  </td>
+                  <td>
+                    <span class="rating"><i class="fa-solid fa-star"></i> <%= Number(row.rating || 0).toFixed(1) %></span>
+                  </td>
+                  <td><%= row.comment || '—' %></td>
+                  <td><%= formatCreatedAt(row.created_at) %></td>
+                </tr>
+              <% }) %>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+
+<%- include('partials/footer') %>

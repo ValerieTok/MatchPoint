@@ -1,4 +1,5 @@
 const Account = require('../models/Account');
+const UserProfile = require('../models/UserProfile');
 
 const getUserByIdAsync = (id) =>
   new Promise((resolve, reject) => {
@@ -22,14 +23,22 @@ const updatePasswordAsync = (id, password) =>
 
 const authenticateAsync = (email, password) =>
   new Promise((resolve, reject) => {
-    const authFn = typeof Account.authenticate === 'function' ? Account.authenticate : Account.authenticateUser;
-    if (!authFn) return resolve(null);
-    authFn.call(Account, email, password, (err, user) => (err ? reject(err) : resolve(user)));
+    Account.authenticate(email, password, (err, user) => (err ? reject(err) : resolve(user)));
   });
 
 const updateCertAsync = (id, title, fileName) =>
   new Promise((resolve, reject) => {
     Account.updateCertification(id, title, fileName, (err) => (err ? reject(err) : resolve()));
+  });
+
+const getProfileByUserIdAsync = (id) =>
+  new Promise((resolve, reject) => {
+    UserProfile.getByUserId(id, (err, profile) => (err ? reject(err) : resolve(profile)));
+  });
+
+const upsertPhotoAsync = (id, fileName) =>
+  new Promise((resolve, reject) => {
+    UserProfile.upsertPhoto(id, fileName, (err) => (err ? reject(err) : resolve()));
   });
 
 module.exports = {
@@ -41,9 +50,12 @@ module.exports = {
     }
     try {
       const profile = await getUserByIdAsync(user.id);
+      const detail = await getProfileByUserIdAsync(user.id);
+      const profilePhoto = detail && detail.photo ? detail.photo : null;
       return res.render('coachProfile', {
         user,
         profile,
+        profilePhoto,
         messages: res.locals.messages
       });
     } catch (err) {
@@ -155,6 +167,27 @@ module.exports = {
     } catch (err) {
       console.error(err);
       req.flash('error', 'Unable to update certification.');
+      return res.redirect('/coachProfile');
+    }
+  },
+  async updatePhoto(req, res) {
+    const sessionUser = req.session && req.session.user;
+    if (!sessionUser || (sessionUser.role !== 'coach' && sessionUser.role !== 'admin')) {
+      req.flash('error', 'Access denied');
+      return res.redirect('/listingsManage');
+    }
+    const fileName = req.file && req.file.filename ? req.file.filename : null;
+    if (!fileName) {
+      req.flash('error', 'Please upload a photo.');
+      return res.redirect('/coachProfile');
+    }
+    try {
+      await upsertPhotoAsync(sessionUser.id, fileName);
+      req.flash('success', 'Profile photo updated.');
+      return res.redirect('/coachProfile');
+    } catch (err) {
+      console.error(err);
+      req.flash('error', 'Unable to update photo.');
       return res.redirect('/coachProfile');
     }
   }

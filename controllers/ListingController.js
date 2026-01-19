@@ -1,5 +1,6 @@
 const Listing = require('../models/Listing');
 const Booking = require('../models/Booking');
+const UserProfile = require('../models/UserProfile');
 
 const allowedSkillLevels = new Set(['beginner', 'intermediate', 'advanced', 'expert']);
 const normalizeSkillLevel = (value, fallback) => {
@@ -54,30 +55,108 @@ const ListingController = {
       let upcomingCount = 0;
       let completedCount = 0;
       let sessions = [];
-      if (view === 'userdashboard' && user.role === 'user') {
-        const [stats, sessionRows] = await Promise.all([
+      let profilePhoto = null;
+      if ((view === 'userdashboard' || view === 'viewcourses') && user.role === 'user') {
+        const [stats, sessionRows, profile] = await Promise.all([
           new Promise((resolve, reject) => {
             Booking.getUserDashboardStats(user.id, (err, data) => (err ? reject(err) : resolve(data)));
           }),
           new Promise((resolve, reject) => {
             Booking.getUserDashboardSessions(user.id, (err, rows) => (err ? reject(err) : resolve(rows)));
+          }),
+          new Promise((resolve) => {
+            UserProfile.getByUserId(user.id, (err, profileRow) => {
+              if (err) {
+                console.error('Failed to load profile photo:', err);
+                return resolve(null);
+              }
+              return resolve(profileRow);
+            });
           })
         ]);
         upcomingCount = stats ? stats.upcomingCount : 0;
         completedCount = stats ? stats.completedCount : 0;
-        sessions = (sessionRows || []).map((row) => ({
-          coach: row.coach_name || '',
-          date: row.session_date || null,
-          time: row.session_time || null,
-          phone: row.coach_contact || '',
-          email: row.coach_email || '',
-          sport: row.sport || row.listing_title || '',
-          location: row.session_location || row.booking_location || '',
-          status: row.session_completed ? 'COMPLETED' : 'UPCOMING'
-        }));
+        const sessionList = (sessionRows || []).map((row) => {
+          const bookingStatus = row.booking_status ? String(row.booking_status).toLowerCase() : 'pending';
+          const status = row.session_completed
+            ? 'COMPLETED'
+            : (bookingStatus === 'rejected'
+              ? 'REJECTED'
+              : (bookingStatus === 'accepted' ? 'UPCOMING' : 'PENDING'));
+          return {
+            bookingId: row.id,
+            bookingStatus: row.booking_status ? String(row.booking_status).toLowerCase() : 'pending',
+            coach: row.coach_name || '',
+            date: row.session_date || null,
+            time: row.session_time || null,
+            phone: row.coach_contact || '',
+            email: row.coach_email || '',
+            sport: row.sport || row.listing_title || '',
+            location: row.session_location || row.booking_location || '',
+            status,
+            createdAt: row.created_at || null
+          };
+        });
+        profilePhoto = profile && profile.photo ? profile.photo : null;
+        if (view === 'userdashboard') {
+          const searchTerm = req.query && req.query.search ? String(req.query.search).trim().toLowerCase() : '';
+          const sort = req.query && req.query.sort ? String(req.query.sort).trim().toLowerCase() : 'recent';
+          const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+          const perPage = 10;
+          let filtered = searchTerm
+            ? sessionList.filter((session) => {
+              const hay = `${session.coach} ${session.sport}`.toLowerCase();
+              return hay.includes(searchTerm);
+            })
+            : sessionList.slice();
+          if (sort === 'upcoming' || sort === 'pending' || sort === 'rejected') {
+            const target = sort.toUpperCase();
+            filtered = filtered.filter((session) => session.status === target);
+          } else if (sort === 'status') {
+            const order = new Map([
+              ['UPCOMING', 0],
+              ['PENDING', 1],
+              ['REJECTED', 2],
+              ['COMPLETED', 3]
+            ]);
+            filtered.sort((a, b) => (order.get(a.status) ?? 9) - (order.get(b.status) ?? 9));
+          } else {
+            filtered.sort((a, b) => {
+              const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+              const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+              return bTime - aTime;
+            });
+          }
+          const totalSessions = filtered.length;
+          const totalPages = Math.max(1, Math.ceil(totalSessions / perPage));
+          const start = (page - 1) * perPage;
+          sessions = filtered.slice(start, start + perPage);
+          return res.render(view, {
+            products,
+            user,
+            search,
+            upcomingCount,
+            completedCount,
+            sessions,
+            profilePhoto,
+            filters: { search: searchTerm, sort },
+            pagination: { page, perPage, totalSessions, totalPages }
+          });
+        }
+      } else if (user && user.id) {
+        const profile = await new Promise((resolve) => {
+          UserProfile.getByUserId(user.id, (err, profileRow) => {
+            if (err) {
+              console.error('Failed to load profile photo:', err);
+              return resolve(null);
+            }
+            return resolve(profileRow);
+          });
+        });
+        profilePhoto = profile && profile.photo ? profile.photo : null;
       }
 
-      return res.render(view, { products, user, search, upcomingCount, completedCount, sessions });
+      return res.render(view, { products, user, search, upcomingCount, completedCount, sessions, profilePhoto });
     } catch (err) {
       console.error(err);
       req.flash('error', 'Failed to load listings');
@@ -85,7 +164,7 @@ const ListingController = {
       const completedCount = 0;
       const sessions = [];
 
-      return res.render(view, { products: [], user, search, upcomingCount, completedCount, sessions });
+      return res.render(view, { products: [], user, search, upcomingCount, completedCount, sessions, profilePhoto: null });
     }
   },
 
@@ -104,7 +183,7 @@ const ListingController = {
         return res.redirect('/userdashboard');
       }
       const user = req.session && req.session.user;
-      if (user && user.role === 'user' && !product.is_active) {
+      if (user && user.role === 'user' && (!product.is_active || product.coach_status !== 'approved')) {
         req.flash('error', 'Listing not available');
         return res.redirect('/userdashboard');
       }

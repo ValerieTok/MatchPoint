@@ -1,18 +1,18 @@
 <aside class="sidebar">
-  <div class="brand">
+  <a class="brand" href="/userdashboard">
     <div class="brand__dot"><i class="fa-solid fa-futbol"></i></div>
     <span class="brand__name">MatchPoint</span>
-  </div>
+  </a>
 
   <nav class="nav">
+    <a class="nav__item <%= active === 'profile' ? 'nav__item--active' : '' %>" href="/profile">
+      <i class="fa-regular fa-id-card"></i>
+      <span>Profile</span>
+    </a>
+
     <a class="nav__item <%= active === 'courses' ? 'nav__item--active' : '' %>" href="/viewcourses">
       <i class="fa-solid fa-book-open"></i>
       <span>Courses</span>
-    </a>
-
-    <a class="nav__item <%= active === 'dashboard' ? 'nav__item--active' : '' %>" href="/userdashboard">
-      <i class="fa-solid fa-chart-line"></i>
-      <span>Dashboard</span>
     </a>
 
     <a class="nav__item <%= active === 'cart' ? 'nav__item--active' : '' %>" href="/bookingCart">
@@ -20,9 +20,14 @@
       <span>Cart</span>
     </a>
 
-    <a class="nav__item <%= active === 'profile' ? 'nav__item--active' : '' %>" href="/prof">
-      <i class="fa-regular fa-id-card"></i>
-      <span>Profile</span>
+    <a class="nav__item <%= active === 'dashboard' ? 'nav__item--active' : '' %>" href="/userdashboard">
+      <i class="fa-solid fa-chart-line"></i>
+      <span>Dashboard</span>
+    </a>
+
+    <a class="nav__item <%= active === 'ratings' ? 'nav__item--active' : '' %>" href="/ratingsUser">
+      <i class="fa-solid fa-star"></i>
+      <span>Ratings</span>
     </a>
   </nav>
 

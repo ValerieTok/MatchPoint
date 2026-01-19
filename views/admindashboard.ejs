@@ -4,12 +4,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Admin Dashboard - MatchPoint</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-    <link rel="stylesheet" href="/css/user-common.css" />
-    <link rel="stylesheet" href="/css/user-dashboard.css" />
-    <link rel="stylesheet" href="/css/admin-dashboard.css" />
-  </head>
-  <body class="admin-dashboard">
+  
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="/css/user-common.css" />
+  <link rel="stylesheet" href="/css/user-dashboard.css" />
+  <link rel="stylesheet" href="/css/admin-common.css" />
+  <link rel="stylesheet" href="/css/admin-dashboard.css" />
+</head>
+  <body class="admin-page admin-dashboard">
     <div class="app">
       <aside class="sidebar">
         <div class="brand">
@@ -24,7 +26,9 @@
           <a class="nav__item" href="/adminfeedback"><i class="fa-regular fa-message"></i>Feedback</a>
         </nav>
         <div class="sidebar__footer">
-          <a class="logout" href="/logout"><i class="fa-solid fa-right-from-bracket"></i>Logout</a>
+          <form action="/logout" method="post">
+          <button class="logout" type="submit"><i class="fa-solid fa-right-from-bracket"></i>Logout</button>
+        </form>
         </div>
       </aside>
 

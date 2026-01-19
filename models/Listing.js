@@ -10,6 +10,8 @@ const baseSelect = `
     l.offer_message,
     l.coach_id,
     COALESCE(u.full_name, u.username) AS username,
+    up.photo AS coach_photo,
+    u.coach_status,
     l.sport,
     l.description,
     l.duration_minutes,
@@ -18,6 +20,7 @@ const baseSelect = `
     l.is_active
   FROM coach_listings l
   JOIN users u ON u.id = l.coach_id
+  LEFT JOIN user_profiles up ON up.user_id = u.id
 `;
 
 module.exports = {
@@ -27,7 +30,7 @@ module.exports = {
   },
 
   getActiveProducts: function (callback) {
-    const sql = `${baseSelect} WHERE l.is_active = 1 ORDER BY l.created_at DESC, l.id DESC`;
+    const sql = `${baseSelect} WHERE l.is_active = 1 AND u.coach_status = 'approved' ORDER BY l.created_at DESC, l.id DESC`;
     db.query(sql, (err, results) => callback(err, results));
   },
 
@@ -141,7 +144,7 @@ module.exports = {
     let sql = `${baseSelect} WHERE (l.listing_title LIKE ? OR l.sport LIKE ? OR l.description LIKE ? OR l.skill_level LIKE ? OR l.session_location LIKE ?)`;
     const params = [like, like, like, like, like];
     if (resolvedOptions.activeOnly) {
-      sql += ' AND l.is_active = 1';
+      sql += " AND l.is_active = 1 AND u.coach_status = 'approved'";
     }
     if (resolvedOptions.coachId) {
       sql += ' AND l.coach_id = ?';

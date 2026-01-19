@@ -52,11 +52,6 @@ module.exports = {
       const userId = req.session.user.id;
       const { paymentMethod, cardholderName, cardNumber, expiryDate, cvv, email, phone } = req.body;
 
-      console.log('=== Payment Processing Started ===');
-      console.log('User ID:', userId);
-      console.log('Payment Method:', paymentMethod);
-      console.log('Session Pending Payment:', JSON.stringify(req.session.pendingPayment, null, 2));
-
       // Validate payment details
       if (!paymentMethod) {
         req.flash('error', 'Please select a payment method');
@@ -74,16 +69,12 @@ module.exports = {
       const cart = req.session.pendingPayment?.cart || [];
       const deliveryAddress = req.session.pendingPayment?.deliveryAddress || '';
 
-      console.log('Cart items count:', cart.length);
-      console.log('Delivery address:', deliveryAddress);
-
       if (!cart || cart.length === 0) {
         req.flash('error', 'Your booking cart is empty');
         return res.redirect('/bookingCart');
       }
 
       // Create the booking order
-      console.log('Creating booking order...');
       const { orderId, total } = await new Promise((resolve, reject) => {
         Booking.createOrder(
           userId,
@@ -95,7 +86,6 @@ module.exports = {
               console.error('Error details:', err.message);
               reject(err);
             } else {
-              console.log('Booking created successfully:', result);
               resolve(result);
             }
           }

@@ -146,36 +146,10 @@ const Booking = {
     db.query(sql, [userId], (err, rows) => callback(err, rows || []));
   },
 
-  getAllUserSessions(userId, callback) {
-    const sql = `
-      SELECT
-        b.id,
-        bi.session_date,
-        bi.session_time,
-        bi.sport,
-        bi.listing_title,
-        bi.session_location,
-        b.session_location AS booking_location,
-        COALESCE(u.full_name, u.username) AS coach_name,
-        u.email AS coach_email,
-        u.contact AS coach_contact,
-        b.completed_at,
-        b.status AS booking_status,
-        b.created_at
-      FROM bookings b
-      JOIN booking_items bi ON bi.booking_id = b.id
-      JOIN users u ON u.id = bi.coach_id
-      WHERE b.user_id = ?
-        AND bi.session_date IS NOT NULL
-        AND TIMESTAMP(bi.session_date, IFNULL(bi.session_time, '00:00:00')) <= NOW()
-      ORDER BY bi.session_date DESC, bi.session_time DESC, b.created_at DESC, b.id DESC
-    `;
-    db.query(sql, [userId], (err, rows) => callback(err, rows || []));
-  },
-
   getAllOrders(searchTerm, callback) {
     let sql = `
-      SELECT b.id, b.total, b.session_location, b.created_at, b.completed_at, b.status, u.username
+      SELECT b.id, b.total, b.session_location, b.created_at, b.completed_at, b.status,
+             u.username, u.email AS user_email, u.contact AS user_contact
       FROM bookings b
       JOIN users u ON u.id = b.user_id
     `;
@@ -190,7 +164,8 @@ const Booking = {
 
   getBookingsByCoach(coachId, searchTerm, callback) {
     let sql = `
-      SELECT DISTINCT b.id, b.total, b.session_location, b.created_at, b.completed_at, b.status, u.username
+      SELECT DISTINCT b.id, b.total, b.session_location, b.created_at, b.completed_at, b.status,
+             u.username, u.email AS user_email, u.contact AS user_contact
       FROM bookings b
       JOIN booking_items bi ON bi.booking_id = b.id
       JOIN users u ON u.id = b.user_id
@@ -257,20 +232,6 @@ const Booking = {
     db.query(sql, [status, orderId], (err, result) => callback(err, result));
   },
 
-  createReview(reviewData, callback) {
-    const sql = `
-      INSERT INTO coach_reviews (booking_id, user_id, rating, comment)
-      VALUES (?, ?, ?, ?)
-    `;
-    const params = [
-      reviewData.booking_id,
-      reviewData.user_id,
-      reviewData.rating,
-      reviewData.comment || null
-    ];
-    db.query(sql, params, (err, result) => callback(err, result));
-  },
-
   getReviewByOrderId(orderId, callback) {
     const sql = `
       SELECT id, booking_id, user_id, rating, comment, created_at
@@ -284,6 +245,30 @@ const Booking = {
   deleteReviewByOrder(orderId, callback) {
     const sql = 'DELETE FROM coach_reviews WHERE booking_id = ?';
     db.query(sql, [orderId], (err, result) => callback(err, result));
+  },
+
+  getCoachReviews(coachId, callback) {
+    const sql = `
+      SELECT
+        r.id,
+        r.rating,
+        r.comment,
+        r.created_at,
+        r.booking_id,
+        u.username AS student_name,
+        u.email AS student_email,
+        u.contact AS student_contact,
+        MIN(bi.listing_title) AS listing_title,
+        MIN(bi.sport) AS sport,
+        MIN(bi.session_date) AS session_date,
+        MIN(bi.session_time) AS session_time
+      FROM coach_reviews r
+      JOIN users u ON u.id = r.user_id
+      JOIN booking_items bi ON bi.booking_id = r.booking_id AND bi.coach_id = ?
+      GROUP BY r.id, r.rating, r.comment, r.created_at, r.booking_id, u.username, u.email, u.contact
+      ORDER BY r.created_at DESC
+    `;
+    db.query(sql, [coachId], (err, rows) => callback(err, rows || []));
   }
 };
 
