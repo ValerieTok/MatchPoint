@@ -22,9 +22,63 @@ module.exports = {
     
     try {
       const orderId = req.params.orderId || req.query.orderId;
-      const cart = req.session.pendingPayment?.cart || [];
-      const deliveryAddress = req.session.pendingPayment?.deliveryAddress || '';
-      const total = req.session.pendingPayment?.total || 0;
+      let cart = req.session.pendingPayment?.cart || [];
+      let deliveryAddress = req.session.pendingPayment?.deliveryAddress || '';
+      let total = req.session.pendingPayment?.total || 0;
+
+      if (!cart.length) {
+        const userId = req.session.user.id;
+        const dbCart = await new Promise((resolve, reject) => {
+          BookingCart.getCart(userId, (err, rows) => (err ? reject(err) : resolve(rows || [])));
+        });
+        if (!dbCart.length) {
+          req.flash('error', 'No items to pay for');
+          return res.redirect('/bookingCart');
+        }
+
+        const pricedCart = dbCart.map((item) => {
+          const basePrice = Number.parseFloat(item.price) || 0;
+          const discountPercentage = Math.min(
+            100,
+            Math.max(0, Number.parseFloat(item.discount_percentage) || 0)
+          );
+          const hasDiscount = discountPercentage > 0;
+          const discountedPrice = hasDiscount
+            ? Number((basePrice * (1 - discountPercentage / 100)).toFixed(2))
+            : Number(basePrice.toFixed(2));
+
+          let sessionDate = item.session_date || null;
+          if (sessionDate) {
+            if (sessionDate instanceof Date) {
+              sessionDate = sessionDate.toISOString().split('T')[0];
+            } else if (typeof sessionDate === 'string' && sessionDate.includes('T')) {
+              sessionDate = sessionDate.split('T')[0];
+            }
+          }
+
+          return {
+            ...item,
+            price: discountedPrice,
+            listPrice: Number(basePrice.toFixed(2)),
+            discountPercentage,
+            offerMessage: item.offer_message,
+            session_date: sessionDate
+          };
+        });
+
+        total = pricedCart.reduce((sum, item) => {
+          return sum + Number(item.price) * Number(item.quantity || 0);
+        }, 0);
+
+        cart = pricedCart;
+        deliveryAddress = dbCart[0] && dbCart[0].session_location ? String(dbCart[0].session_location).trim() : '';
+
+        req.session.pendingPayment = {
+          cart,
+          deliveryAddress,
+          total
+        };
+      }
 
       if (!cart || cart.length === 0) {
         req.flash('error', 'No items to pay for');

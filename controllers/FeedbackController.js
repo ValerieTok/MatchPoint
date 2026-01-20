@@ -28,11 +28,16 @@ module.exports = {
       return res.redirect('/login');
     }
     try {
-      const selectedBookingId = req.query && req.query.booking_id ? parseInt(req.query.booking_id, 10) : null;
+      const selectedBookingId = req.query && req.query.booking_id
+        ? parseInt(req.query.booking_id, 10)
+        : (req.session && req.session.pendingFeedbackBookingId
+          ? parseInt(req.session.pendingFeedbackBookingId, 10)
+          : null);
       if (!selectedBookingId || Number.isNaN(selectedBookingId)) {
         req.flash('error', 'Select a session from the ratings page first.');
         return res.redirect('/ratingsUser');
       }
+      req.session.pendingFeedbackBookingId = selectedBookingId;
       const order = await getOrderByIdAsync(selectedBookingId);
       if (!order || order.user_id !== req.session.user.id) {
         req.flash('error', 'Booking not found.');
@@ -75,7 +80,7 @@ module.exports = {
     }
     if (!message) {
       req.flash('error', 'Message is required.');
-      return res.redirect(`/feedback?booking_id=${bookingId}`);
+      return res.redirect('/feedback');
     }
 
     try {
@@ -99,11 +104,12 @@ module.exports = {
         rating
       });
       req.flash('success', 'Thank you! Your feedback has been submitted.');
+      delete req.session.pendingFeedbackBookingId;
       return res.redirect('/ratingsUser');
     } catch (err) {
       console.error('Feedback submission error:', err);
       req.flash('error', 'Unable to submit feedback.');
-      return res.redirect(`/feedback?booking_id=${bookingId}`);
+      return res.redirect('/feedback');
     }
   },
 

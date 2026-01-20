@@ -216,32 +216,6 @@ module.exports = {
     }
   },
 
-  async showCheckoutSummary(req, res) {
-    if (!ensureShopperRole(req, res)) return;
-    try {
-      const cart = await syncCartToSession(req);
-      if (!cart.length) {
-        req.flash('error', 'Your booking cart is empty');
-        return res.redirect('/bookingCart');
-      }
-      const deliveryAddress = cart[0] && cart[0].session_location ? String(cart[0].session_location).trim() : '';
-      const total = cart.reduce((sum, item) => {
-        const pricing = calculatePricing(item);
-        return sum + pricing.finalPrice * Number(item.quantity || 0);
-      }, 0);
-      return res.render('bookingCheckout', {
-        cart,
-        user: req.session && req.session.user,
-        deliveryAddress,
-        total
-      });
-    } catch (err) {
-      console.error(err);
-      req.flash('error', 'Unable to build booking summary');
-      return res.redirect('/bookingCart');
-    }
-  },
-
   async confirmCheckout(req, res) {
     if (!ensureShopperRole(req, res)) return;
     try {

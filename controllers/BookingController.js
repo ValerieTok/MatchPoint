@@ -94,7 +94,8 @@ module.exports = {
           Booking.markOrderDelivered(orderId, (err) => (err ? reject(err) : resolve()));
         });
       }
-      return res.redirect(`/feedback?booking_id=${orderId}`);
+      req.session.pendingFeedbackBookingId = orderId;
+      return req.session.save(() => res.redirect('/feedback'));
     } catch (err) {
       console.error(err);
       req.flash('error', 'Unable to confirm delivery');

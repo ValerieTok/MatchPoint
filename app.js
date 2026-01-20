@@ -155,7 +155,6 @@ app.post('/login', AccountController.loginUser);
 app.get('/login2FA', AccountController.showTwoFactorLogin);
 app.post('/login2FA', AccountController.verifyTwoFactorLogin);
 app.post('/logout', AccountController.logoutUser);
-app.post('/logout', AccountController.logoutUser);
 app.get('/2FASetup', checkAuthenticated, AccountController.showTwoFactorSetup);
 app.post('/2FASetup/verify-setup', checkAuthenticated, AccountController.verifyTwoFactorSetup);
 app.post('/2FASetup/disable', checkAuthenticated, AccountController.disableOwnTwoFactor);
@@ -198,8 +197,6 @@ app.post('/listingDetail/add-to-cart/:id', checkAuthenticated, BookingCartContro
 app.post('/userdashboard/add-to-cart/:id', checkAuthenticated, BookingCartController.addToCart);
 app.post('/bookingCart/update/:id', checkAuthenticated, BookingCartController.updateCartItem);
 app.post('/bookingCart/remove/:id', checkAuthenticated, BookingCartController.removeFromCart);
-app.post('/bookingCheckout', checkAuthenticated, BookingCartController.showCheckoutSummary);
-app.post('/bookingCheckout/confirm', checkAuthenticated, BookingCartController.confirmCheckout);
 
 // Payment routes
 app.get('/payment', checkAuthenticated, PaymentController.showPaymentPage);

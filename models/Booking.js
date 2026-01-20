@@ -302,6 +302,7 @@ const Booking = {
       FROM coach_reviews r
       JOIN users u ON u.id = r.user_id
       JOIN booking_items bi ON bi.booking_id = r.booking_id AND bi.coach_id = ?
+      WHERE r.review_status = 'approved'
       GROUP BY r.id, r.rating, r.comment, r.created_at, r.booking_id, u.username, u.email, u.contact
       ORDER BY r.created_at DESC
     `;

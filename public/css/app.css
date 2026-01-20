@@ -1999,7 +1999,7 @@ body.payment-page .payment-container .row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 320px;
   align-items: start;
-  gap: 24px;
+  gap: 8px;
 }
 
 @media (max-width: 992px) {

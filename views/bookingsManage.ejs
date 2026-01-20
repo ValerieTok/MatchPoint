@@ -50,7 +50,7 @@
           </div>
           <div class="sort">
             <span class="sort__label">STATUS:</span>
-            <select class="sort__btn" name="status">
+            <select class="sort__btn" id="statusFilter" name="status">
               <option value="all" <%= activeStatus === 'all' ? 'selected' : '' %>>All</option>
               <option value="approved" <%= activeStatus === 'approved' ? 'selected' : '' %>>Approved</option>
               <option value="pending" <%= activeStatus === 'pending' ? 'selected' : '' %>>Pending</option>
@@ -176,5 +176,12 @@
     </section>
   </main>
 </div>
+
+<script>
+  const statusFilter = document.getElementById('statusFilter');
+  statusFilter?.addEventListener('change', () => {
+    statusFilter.form?.submit();
+  });
+</script>
 
 <%- include('partials/footer') %>
