@@ -14,12 +14,7 @@
           <div class="landing-tag">MatchPoint</div>
           <h1 class="landing-title">Own your next session</h1>
           <p class="landing-subtitle">Book certified coaches, build your schedule, and stay locked in on your training goals.</p>
-          <% if (!user) { %>
-            <div class="landing-actions">
-              <a class="landing-btn landing-btn--primary" href="/register">Create account</a>
-              <a class="landing-btn landing-btn--ghost" href="/login">Log in</a>
-            </div>
-          <% } else { %>
+          <% if (user) { %>
             <% if (user.role === 'admin') { %>
               <div class="landing-actions">
                 <a class="landing-btn landing-btn--primary" href="/listingsManage">Manage Listings</a>
@@ -33,7 +28,7 @@
               </div>
             <% } else { %>
               <div class="landing-actions">
-                <a class="landing-btn landing-btn--primary" href="/listingsBrowse">Find a Coach</a>
+                <a class="landing-btn landing-btn--primary" href="/viewcourses">Find a Coach</a>
               </div>
             <% } %>
           <% } %>
@@ -49,10 +44,6 @@
           </div>
         </div>
         <div class="landing-hero__visual">
-          <div class="landing-highlight">
-            <strong>Next session</strong>
-            <p>Set the pace with a coach who matches your goals.</p>
-          </div>
           <div class="landing-photo">
             <img src="https://img.freepik.com/free-photo/side-view-football-trainer-helping-kids_23-2149742054.jpg?semt=ais_hybrid&w=740&q=80" alt="Football coach training kids">
           </div>

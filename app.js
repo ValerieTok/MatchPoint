@@ -129,9 +129,19 @@ app.use(session({
 app.use(flash());
 app.use(attachUser);
 
-// Home: route admins to inventory, users to shopping, guests see landing
+// Home: send guests to login, route users by role
 app.get('/', (req, res) => {
-  return res.render('index', { user: req.session.user });
+  const user = req.session && req.session.user;
+  if (!user) {
+    return res.redirect('/login');
+  }
+  if (user.role === 'admin') {
+    return res.redirect('/admindashboard');
+  }
+  if (user.role === 'coach') {
+    return res.redirect('/listingsManage');
+  }
+  return res.redirect('/userdashboard');
 });
 
 // User routes

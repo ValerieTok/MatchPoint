@@ -1,18 +1,20 @@
 <%- include('partials/head', {
   title: 'Two-Factor Authentication',
-  bodyClass: 'admin-page coach-dashboard',
+  bodyClass: 'admin-page coach-dashboard twofa-page',
   extraHead: `
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <link rel="stylesheet" href="/css/user-common.css">
-    <link rel="stylesheet" href="/css/admin-common.css">
-    <link rel="stylesheet" href="/css/coach-dashboard.css">
   `
 }) %>
 
 <div class="app">
-  <%- include("partials/coachSidebar", {
-    active: "security"
-  }) %>
+  <% const role = user && user.role ? String(user.role) : ''; %>
+  <% if (role === 'admin') { %>
+    <%- include("partials/adminSidebar", { active: "security" }) %>
+  <% } else if (role === 'coach') { %>
+    <%- include("partials/coachSidebar", { active: "security" }) %>
+  <% } else { %>
+    <%- include("partials/userSidebar", { active: "security" }) %>
+  <% } %>
 
   <main class="main">
     <header class="topbar">

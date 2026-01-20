@@ -23,12 +23,15 @@ const allowedStatuses = new Set(['pending', 'accepted', 'rejected']);
 
 module.exports = {
   listAllOrders(req, res) {
-    const searchTerm = req.query && req.query.search ? String(req.query.search) : '';
+    const searchTerm = req.query && req.query.search ? String(req.query.search).trim() : '';
+    const statusFilter = req.query && req.query.status ? String(req.query.status).trim().toLowerCase() : 'all';
+    const page = Math.max(1, parseInt(req.query && req.query.page, 10) || 1);
+    const perPage = 10;
     const user = req.session && req.session.user;
     const isCoach = user && user.role === 'coach';
     const loader = isCoach
-      ? (cb) => Booking.getBookingsByCoach(user.id, searchTerm, cb)
-      : (cb) => Booking.getAllOrders(searchTerm, cb);
+      ? (cb) => Booking.getBookingsByCoach(user.id, searchTerm, statusFilter, cb)
+      : (cb) => Booking.getAllOrders(searchTerm, statusFilter, cb);
     loader((err, orders) => {
       if (err) {
         console.error('Failed to load bookings', err);
@@ -36,17 +39,28 @@ module.exports = {
         return res.render('bookingsManage', {
           user: req.session && req.session.user,
           orders: [],
-          searchTerm: searchTerm
+          searchTerm: searchTerm,
+          statusFilter: statusFilter,
+          pagination: { page, perPage, totalOrders: 0, totalPages: 1 }
         });
       }
       const withItems = Promise.all(orders.map((o) => buildOrderDetails(o, isCoach ? user.id : null)));
-      withItems.then((ordersWithItems) =>
-        res.render('bookingsManage', {
+      withItems.then((ordersWithItems) => {
+        const filtered = ordersWithItems;
+
+        const totalOrders = filtered.length;
+        const totalPages = Math.max(1, Math.ceil(totalOrders / perPage));
+        const start = (page - 1) * perPage;
+        const paged = filtered.slice(start, start + perPage);
+
+        return res.render('bookingsManage', {
           user: req.session && req.session.user,
-          orders: ordersWithItems,
-          searchTerm: searchTerm
-        })
-      );
+          orders: paged,
+          searchTerm: searchTerm,
+          statusFilter: statusFilter,
+          pagination: { page, perPage, totalOrders, totalPages }
+        });
+      });
     });
   },
 
@@ -113,21 +127,27 @@ module.exports = {
 
   async updateStatus(req, res) {
     const user = req.session && req.session.user;
+    const redirectParams = new URLSearchParams();
+    if (req.body && req.body.page) redirectParams.set('page', String(req.body.page));
+    if (req.body && req.body.search) redirectParams.set('search', String(req.body.search));
+    if (req.body && req.body.filterStatus) redirectParams.set('status', String(req.body.filterStatus));
+    const redirectSuffix = redirectParams.toString();
+    const redirectUrl = redirectSuffix ? `/bookingsManage?${redirectSuffix}` : '/bookingsManage';
     if (!user || (user.role !== 'admin' && user.role !== 'coach')) {
       req.flash('error', 'Access denied');
-      return res.redirect('/bookingsManage');
+      return res.redirect(redirectUrl);
     }
     const orderId = parseInt(req.params.id, 10);
     const status = req.body && req.body.status ? String(req.body.status).trim().toLowerCase() : '';
     if (Number.isNaN(orderId) || !allowedStatuses.has(status)) {
       req.flash('error', 'Invalid booking status update');
-      return res.redirect('/bookingsManage');
+      return res.redirect(redirectUrl);
     }
     try {
       const order = await getOrderByIdAsync(orderId);
       if (!order) {
         req.flash('error', 'Booking not found');
-        return res.redirect('/bookingsManage');
+        return res.redirect(redirectUrl);
       }
       if (user.role === 'coach') {
         const items = await new Promise((resolve, reject) => {
@@ -135,18 +155,18 @@ module.exports = {
         });
         if (!items.length) {
           req.flash('error', 'Access denied');
-          return res.redirect('/bookingsManage');
+          return res.redirect(redirectUrl);
         }
       }
       await new Promise((resolve, reject) => {
         Booking.updateOrderStatus(orderId, status, (err) => (err ? reject(err) : resolve()));
       });
       req.flash('success', `Booking marked as ${status}.`);
-      return res.redirect('/bookingsManage');
+      return res.redirect(redirectUrl);
     } catch (err) {
       console.error(err);
       req.flash('error', 'Unable to update booking status');
-      return res.redirect('/bookingsManage');
+      return res.redirect(redirectUrl);
     }
   },
 

@@ -1,36 +1,13 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Admin Feedback - MatchPoint</title>
-  
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-  <link rel="stylesheet" href="/css/user-common.css" />
-  <link rel="stylesheet" href="/css/user-dashboard.css" />
-  <link rel="stylesheet" href="/css/admin-common.css" />
-  <link rel="stylesheet" href="/css/admin-feedback.css" />
-</head>
-  <body class="admin-page admin-feedback">
-    <div class="app">
-      <aside class="sidebar">
-        <div class="brand">
-          <div class="brand__dot"><i class="fa-solid fa-bullseye"></i></div>
-          <div class="brand__name">MatchPoint</div>
-        </div>
-        <nav class="nav">
-          <a class="nav__item" href="/admindashboard"><i class="fa-regular fa-chart-bar"></i>Overview</a>
-          <a class="nav__item" href="/admincoaches"><i class="fa-solid fa-user-tie"></i>Coaches</a>
-          <a class="nav__item" href="/adminstudents"><i class="fa-solid fa-user-group"></i>Students</a>
-          <a class="nav__item" href="/adminservices"><i class="fa-solid fa-layer-group"></i>Services</a>
-          <a class="nav__item nav__item--active" href="/adminfeedback"><i class="fa-regular fa-message"></i>Feedback</a>
-        </nav>
-        <div class="sidebar__footer">
-          <form action="/logout" method="post">
-          <button class="logout" type="submit"><i class="fa-solid fa-right-from-bracket"></i>Logout</button>
-        </form>
-        </div>
-      </aside>
+<%- include('partials/head', {
+  title: 'Admin Feedback - MatchPoint',
+  bodyClass: 'admin-page admin-feedback',
+  extraHead: `
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  `
+}) %>
+
+<div class="app">
+  <%- include('partials/adminSidebar', { active: 'feedback' }) %>
 
       <main class="main">
         <header class="topbar">
@@ -171,8 +148,11 @@
             </div>
           </div>
         </section>
-      </main>
-    </div>
+  </main>
+</div>
+
+<%- include('partials/footer', {
+  extraScripts: `
     <script>
       const search = document.getElementById('feedbackSearch');
       const sort = document.getElementById('feedbackSort');
@@ -205,5 +185,5 @@
         }
       });
     </script>
-  </body>
-</html>
+  `
+}) %>

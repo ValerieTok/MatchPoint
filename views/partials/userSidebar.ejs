@@ -1,8 +1,8 @@
 <aside class="sidebar">
-  <a class="brand" href="/userdashboard">
+  <div class="brand">
     <div class="brand__dot"><i class="fa-solid fa-futbol"></i></div>
     <span class="brand__name">MatchPoint</span>
-  </a>
+  </div>
 
   <nav class="nav">
     <a class="nav__item <%= active === 'profile' ? 'nav__item--active' : '' %>" href="/profile">
@@ -25,9 +25,14 @@
       <span>Dashboard</span>
     </a>
 
-    <a class="nav__item <%= active === 'ratings' ? 'nav__item--active' : '' %>" href="/ratingsUser">
+    <a class="nav__item <%= active === 'Review' ? 'nav__item--active' : '' %>" href="/ratingsUser">
       <i class="fa-solid fa-star"></i>
       <span>Ratings</span>
+    </a>
+
+    <a class="nav__item <%= active === 'security' ? 'nav__item--active' : '' %>" href="/2FASetup">
+      <i class="fa-solid fa-shield-halved"></i>
+      <span>Security / 2FA</span>
     </a>
   </nav>
 

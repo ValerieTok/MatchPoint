@@ -172,7 +172,7 @@ const ListingController = {
     const id = req.params.id || req.query.id;
     if (!id) {
       req.flash('error', 'Listing id required');
-      return res.redirect('/listingsBrowse');
+      return res.redirect('/viewcourses');
     }
     try {
       const product = await new Promise((resolve, reject) => {

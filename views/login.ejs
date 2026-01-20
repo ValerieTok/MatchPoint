@@ -2,14 +2,16 @@
   title: 'Log in',
   bodyClass: 'entry-page admin-page',
   extraHead: `
-    <link rel="stylesheet" href="/css/user-common.css">
-    <link rel="stylesheet" href="/css/admin-common.css">
-    <link rel="stylesheet" href="/css/auth.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   `
 }) %>
 
 <section class="entry-shell">
   <div class="entry-topbar">
+    <a class="entry-brand" href="/">
+      <span class="entry-brand__dot"><i class="fa-solid fa-bullseye"></i></span>
+      <span class="entry-brand__name">MatchPoint</span>
+    </a>
     <div class="entry-topbar__actions">
       <a class="entry-nav entry-nav--active" href="/login">Login</a>
       <a class="entry-nav" href="/register">Sign up</a>

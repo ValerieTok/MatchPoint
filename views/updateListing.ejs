@@ -1,11 +1,8 @@
 <%- include('partials/head', {
   title: 'Update Listing',
-  bodyClass: 'admin-page coach-dashboard',
+  bodyClass: 'admin-page coach-dashboard update-listing',
   extraHead: `
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <link rel="stylesheet" href="/css/user-common.css">
-    <link rel="stylesheet" href="/css/admin-common.css">
-    <link rel="stylesheet" href="/css/coach-dashboard.css">
   `
 }) %>
 
@@ -86,6 +83,7 @@
           <div class="form-row">
             <label for="image" class="form-label">Upload New Image</label>
             <input class="form-control" type="file" id="image" name="image" accept="image/*">
+            <img id="newImagePreview" class="img-thumbnail mt-2 d-none" style="width: 150px;" alt="New listing preview">
           </div>
 
           <div class="form-actions">
@@ -99,5 +97,32 @@
     <% } %>
   </main>
 </div>
+
+<script>
+  (function () {
+    const imageInput = document.getElementById('image');
+    const preview = document.getElementById('newImagePreview');
+    if (!imageInput || !preview) return;
+    imageInput.addEventListener('change', () => {
+      const file = imageInput.files && imageInput.files[0];
+      if (!file) {
+        preview.src = '';
+        preview.classList.add('d-none');
+        return;
+      }
+      if (!file.type || !file.type.startsWith('image/')) {
+        preview.src = '';
+        preview.classList.add('d-none');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        preview.src = event.target.result;
+        preview.classList.remove('d-none');
+      };
+      reader.readAsDataURL(file);
+    });
+  })();
+</script>
 
 <%- include('partials/footer') %>

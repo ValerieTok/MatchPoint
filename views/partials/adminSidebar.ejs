@@ -1,0 +1,20 @@
+<% const activePage = typeof active !== 'undefined' ? active : ''; %>
+<aside class="sidebar">
+  <div class="brand">
+    <div class="brand__dot"><i class="fa-solid fa-bullseye"></i></div>
+    <div class="brand__name">MatchPoint</div>
+  </div>
+  <nav class="nav">
+    <a class="nav__item <%= activePage === 'overview' ? 'nav__item--active' : '' %>" href="/admindashboard"><i class="fa-regular fa-chart-bar"></i>Overview</a>
+    <a class="nav__item <%= activePage === 'coaches' ? 'nav__item--active' : '' %>" href="/admincoaches"><i class="fa-solid fa-user-tie"></i>Coaches</a>
+    <a class="nav__item <%= activePage === 'students' ? 'nav__item--active' : '' %>" href="/adminstudents"><i class="fa-solid fa-user-group"></i>Students</a>
+    <a class="nav__item <%= activePage === 'services' ? 'nav__item--active' : '' %>" href="/adminservices"><i class="fa-solid fa-layer-group"></i>Services</a>
+    <a class="nav__item <%= activePage === 'feedback' ? 'nav__item--active' : '' %>" href="/adminfeedback"><i class="fa-regular fa-message"></i>Feedback</a>
+    <a class="nav__item <%= activePage === 'security' ? 'nav__item--active' : '' %>" href="/2FASetup"><i class="fa-solid fa-shield-halved"></i>Security / 2FA</a>
+  </nav>
+  <div class="sidebar__footer">
+    <form action="/logout" method="post">
+      <button class="logout" type="submit"><i class="fa-solid fa-right-from-bracket"></i>Logout</button>
+    </form>
+  </div>
+</aside>

@@ -146,35 +146,72 @@ const Booking = {
     db.query(sql, [userId], (err, rows) => callback(err, rows || []));
   },
 
-  getAllOrders(searchTerm, callback) {
+  getAllOrders(searchTerm, statusFilter, callback) {
     let sql = `
-      SELECT b.id, b.total, b.session_location, b.created_at, b.completed_at, b.status,
+      SELECT DISTINCT b.id, b.total, b.session_location, b.created_at, b.completed_at, b.status,
              u.username, u.email AS user_email, u.contact AS user_contact
       FROM bookings b
       JOIN users u ON u.id = b.user_id
+      JOIN booking_items bi ON bi.booking_id = b.id
+      LEFT JOIN coach_listings l ON l.id = bi.listing_id
     `;
     const params = [];
+    const conditions = [];
     if (searchTerm && searchTerm.trim()) {
-      sql += ' WHERE u.username LIKE ?';
-      params.push(`%${searchTerm.trim()}%`);
+      conditions.push('(u.username LIKE ? OR u.email LIKE ? OR bi.sport LIKE ? OR bi.listing_title LIKE ? OR l.description LIKE ?)');
+      const term = `%${searchTerm.trim()}%`;
+      params.push(term, term, term, term, term);
+    }
+    if (statusFilter && statusFilter !== 'all') {
+      if (statusFilter === 'completed') {
+        conditions.push('b.completed_at IS NOT NULL');
+      } else if (statusFilter === 'approved') {
+        conditions.push("b.status = 'accepted' AND b.completed_at IS NULL");
+      } else if (statusFilter === 'pending') {
+        conditions.push("(b.status IS NULL OR b.status = '' OR b.status = 'pending') AND b.completed_at IS NULL");
+      } else {
+        conditions.push('b.status = ?');
+        params.push(statusFilter);
+      }
+    }
+    if (conditions.length) {
+      sql += ` WHERE ${conditions.join(' AND ')}`;
     }
     sql += ' ORDER BY b.created_at DESC, b.id DESC';
     db.query(sql, params, (err, rows) => callback(err, rows || []));
   },
 
-  getBookingsByCoach(coachId, searchTerm, callback) {
+  getBookingsByCoach(coachId, searchTerm, statusFilter, callback) {
     let sql = `
       SELECT DISTINCT b.id, b.total, b.session_location, b.created_at, b.completed_at, b.status,
              u.username, u.email AS user_email, u.contact AS user_contact
       FROM bookings b
       JOIN booking_items bi ON bi.booking_id = b.id
       JOIN users u ON u.id = b.user_id
+      LEFT JOIN coach_listings l ON l.id = bi.listing_id
       WHERE bi.coach_id = ?
     `;
     const params = [coachId];
+    const conditions = [];
     if (searchTerm && searchTerm.trim()) {
-      sql += ' AND u.username LIKE ?';
-      params.push(`%${searchTerm.trim()}%`);
+      conditions.push('(u.username LIKE ? OR u.email LIKE ? OR bi.sport LIKE ? OR bi.listing_title LIKE ? OR l.description LIKE ?)');
+      const term = `%${searchTerm.trim()}%`;
+      params.push(term, term, term, term, term);
+    }
+    if (statusFilter && statusFilter !== 'all') {
+      if (statusFilter === 'completed') {
+        conditions.push('b.completed_at IS NOT NULL');
+      } else if (statusFilter === 'approved') {
+        conditions.push("b.status = 'accepted' AND b.completed_at IS NULL");
+      } else if (statusFilter === 'pending') {
+        conditions.push("(b.status IS NULL OR b.status = '' OR b.status = 'pending') AND b.completed_at IS NULL");
+      } else {
+        conditions.push('b.status = ?');
+        params.push(statusFilter);
+      }
+    }
+    if (conditions.length) {
+      sql += ` AND ${conditions.join(' AND ')}`;
     }
     sql += ' ORDER BY b.created_at DESC, b.id DESC';
     db.query(sql, params, (err, rows) => callback(err, rows || []));

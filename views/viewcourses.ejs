@@ -1,20 +1,12 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MatchPoint • Available Courses</title>
+<%- include('partials/head', {
+  title: 'MatchPoint - Available Courses',
+  bodyClass: 'admin-page user-courses',
+  extraHead: `
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  `
+}) %>
 
-  <!-- Icons -->
-
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-  <link rel="stylesheet" href="/css/user-common.css" />
-  <link rel="stylesheet" href="/css/admin-common.css" />
-  <link rel="stylesheet" href="/css/courses.css" />
-</head>
-
-<body class="admin-page user-courses">
-  <div class="app">
+<div class="app">
     <!-- SIDEBAR -->
     <%- include("partials/userSidebar", {
       active: "courses",
@@ -179,34 +171,37 @@
     </main>
   </div>
 
-  <script>
-    // Client-side filtering
-    const q = document.getElementById("q");
-    const sport = document.getElementById("sport");
-    const level = document.getElementById("level");
-    const cards = () => Array.from(document.querySelectorAll(".course-card"));
+<%- include('partials/footer', {
+  extraScripts: `
+    <script>
+      // Client-side filtering
+      const q = document.getElementById("q");
+      const sport = document.getElementById("sport");
+      const level = document.getElementById("level");
+      const cards = () => Array.from(document.querySelectorAll(".course-card"));
 
-    function applyFilters(){
-      const text = (q.value || "").toLowerCase().trim();
-      const sportVal = (sport.value || "").toLowerCase().trim();
-      const levelVal = (level.value || "").toLowerCase().trim();
+      function applyFilters(){
+        const text = (q.value || "").toLowerCase().trim();
+        const sportVal = (sport.value || "").toLowerCase().trim();
+        const levelVal = (level.value || "").toLowerCase().trim();
 
-      cards().forEach(card => {
-        const hay = [
-          card.dataset.coach,
-          card.dataset.sport,
-          card.dataset.loc
-        ].join(" ");
+        cards().forEach(card => {
+          const hay = [
+            card.dataset.coach,
+            card.dataset.sport,
+            card.dataset.loc
+          ].join(" ");
 
-        const matchesText = !text || hay.includes(text);
-        const matchesSport = !sportVal || card.dataset.sport === sportVal;
-        const matchesLevel = !levelVal || card.dataset.level === levelVal;
+          const matchesText = !text || hay.includes(text);
+          const matchesSport = !sportVal || card.dataset.sport === sportVal;
+          const matchesLevel = !levelVal || card.dataset.level === levelVal;
 
-        card.style.display = (matchesText && matchesSport && matchesLevel) ? "" : "none";
-      });
-    }
+          card.style.display = (matchesText && matchesSport && matchesLevel) ? "" : "none";
+        });
+      }
 
-    [q, sport, level].forEach(el => el && el.addEventListener("input", applyFilters));
-  </script>
-</body>
-</html>
+      [q, sport, level].forEach(el => el && el.addEventListener("input", applyFilters));
+    </script>
+  `
+}) %>
+

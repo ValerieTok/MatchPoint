@@ -1,155 +1,169 @@
 <%- include('partials/head', {
   title: 'Payment',
-  bodyClass: 'admin-page',
+  bodyClass: 'admin-page payment-page',
   extraHead: `
-    <link rel="stylesheet" href="/css/user-common.css">
-    <link rel="stylesheet" href="/css/admin-common.css">
-    <link rel="stylesheet" href="/css/user-dashboard.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   `
 }) %>
 
-<div class="payment-container">
-  <div class="row g-4">
-    <div class="col-lg-7">
-      <div class="payment-card">
-        <h4 class="mb-1">Hello <%= user.full_name || user.username %> 👋,</h4>
-        <p class="text-muted mb-4">Complete your payment to confirm your booking</p>
+<div class="app">
+  <%- include("partials/userSidebar", { active: "cart" }) %>
 
-        <%- include('partials/flashMessages', { messages }) %>
+  <main class="main">
+    <header class="topbar">
+      <div class="crumb">PAYMENT</div>
+      <div class="topbar__pill"><i class="fa-solid fa-wallet"></i></div>
+    </header>
 
-        <form id="paymentForm" action="/payment/confirm" method="POST">
-          <!-- Payment Method -->
-          <div class="mb-4">
-            <h6 class="fw-semibold mb-3">Payment Method</h6>
-            
-            <label class="payment-method active">
-              <input type="radio" name="paymentMethod" value="card" checked>
-              <span class="payment-icon">💳</span>
-              <span class="fw-semibold">Credit / Debit Card</span>
-              <div class="card-logos">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/0/04/Visa.svg" alt="Visa" class="card-logo">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" alt="Mastercard" class="card-logo">
+    <div class="payment-container">
+      <div class="payment-title">USER WALLET PAGE</div>
+
+      <div class="row g-4 align-items-start">
+        <div class="col-lg-8">
+          <div class="payment-panel">
+            <div class="payment-card">
+              <h4 class="mb-1">Hello <%= user.full_name || user.username %> dY`<,</h4>
+              <p class="text-muted mb-4">Complete your payment to confirm your booking</p>
+
+              <%- include('partials/flashMessages', { messages }) %>
+
+              <form id="paymentForm" action="/payment/confirm" method="POST">
+              <div class="payment-form-grid">
+                <div class="payment-form-left">
+                  <div class="mb-4">
+                    <h6 class="fw-semibold mb-3">Payment Method</h6>
+
+                      <label class="payment-method active">
+                        <input type="radio" name="paymentMethod" value="card" checked>
+                        <span class="payment-icon"><i class="fa-regular fa-credit-card"></i></span>
+                        <span class="fw-semibold">Credit / Debit Card</span>
+                        <div class="card-logos">
+                          <img src="https://upload.wikimedia.org/wikipedia/commons/0/04/Visa.svg" alt="Visa" class="card-logo">
+                          <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" alt="Mastercard" class="card-logo">
+                        </div>
+                      </label>
+                    <label class="payment-method">
+                      <input type="radio" name="paymentMethod" value="nets">
+                      <span class="payment-icon"><i class="fa-solid fa-credit-card"></i></span>
+                      <span class="fw-semibold">NETS</span>
+                    </label>
+                  </div>
+
+                <div class="payment-form-details" id="cardDetails">
+                  <div class="mb-3">
+                    <label class="form-label fw-semibold">Cardholder Name</label>
+                    <input type="text" class="form-control" name="cardholderName" placeholder="Yuwarane Sri" required>
+                  </div>
+
+                    <div class="mb-3">
+                      <label class="form-label fw-semibold">Card Number</label>
+                      <input type="text" class="form-control" name="cardNumber" placeholder="1234 5678 9012 3456" maxlength="19" required>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                      <div class="col-md-6">
+                        <label class="form-label fw-semibold">Expiry Date</label>
+                        <input type="text" class="form-control" name="expiryDate" placeholder="MM/YY" maxlength="5" required>
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label fw-semibold">CVV</label>
+                        <input type="text" class="form-control" name="cvv" placeholder="123" maxlength="3" required>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label fw-semibold">Email Address</label>
+                  <input type="email" class="form-control" name="email" value="<%= user.email || '' %>" placeholder="yuwaranesri16@gmail.com">
+                </div>
+
+                <div class="mb-4">
+                  <label class="form-label fw-semibold">Phone Number</label>
+                  <input type="tel" class="form-control" name="phone" value="<%= user.contact || '' %>" placeholder="+65 8770 7650">
+                </div>
+
+                <div class="form-check mb-4">
+                  <input class="form-check-input" type="checkbox" id="termsCheck" required>
+                  <label class="form-check-label small" for="termsCheck">
+                    I agree to the terms and conditions and privacy policy. I understand that my payment will be processed securely
+                  </label>
+                </div>
               </div>
-            </label>
+
+                <input type="hidden" name="orderId" value="<%= orderId %>">
+              </form>
+            </div>
           </div>
+        </div>
 
-          <!-- Card Details -->
-          <div id="cardDetails">
-            <div class="mb-3">
-              <label class="form-label fw-semibold">Cardholder Name</label>
-              <input type="text" class="form-control" name="cardholderName" placeholder="Yuwarane Sri" required>
-            </div>
+        <div class="col-lg-4 payment-summary">
+          <div class="summary-card">
+            <h5 class="fw-bold mb-4">Booking Summary</h5>
 
-            <div class="mb-3">
-              <label class="form-label fw-semibold">Card Number</label>
-              <input type="text" class="form-control" name="cardNumber" placeholder="1234 5678 9012 3456" maxlength="19" required>
-            </div>
+            <% if (cart && cart.length > 0) { 
+              cart.forEach(item => { 
+                const sessionDate = item.session_date ? new Date(item.session_date).toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : 'TBC';
+                const sessionTime = item.session_time ? String(item.session_time).slice(0, 5) : 'TBC';
+            %>
+              <div class="mb-3">
+                <h6 class="fw-semibold mb-2"><%= item.listing_title %></h6>
+                <p class="text-muted small mb-2">with <%= item.username %></p>
 
-            <div class="row g-3 mb-3">
-              <div class="col-md-6">
-                <label class="form-label fw-semibold">Expiry Date</label>
-                <input type="text" class="form-control" name="expiryDate" placeholder="MM/YY" maxlength="5" required>
+                <div class="summary-item small">
+                  <div class="icon-circle"><i class="fa-regular fa-calendar"></i></div>
+                  <span class="text-muted"><%= sessionDate %></span>
+                </div>
+
+                <div class="summary-item small">
+                  <div class="icon-circle"><i class="fa-regular fa-clock"></i></div>
+                  <span class="text-muted"><%= sessionTime %></span>
+                </div>
+
+                <div class="summary-item small">
+                  <div class="icon-circle"><i class="fa-solid fa-location-dot"></i></div>
+                  <span class="text-muted"><%= item.session_location || 'TBC' %></span>
+                </div>
               </div>
-              <div class="col-md-6">
-                <label class="form-label fw-semibold">CVV</label>
-                <input type="text" class="form-control" name="cvv" placeholder="123" maxlength="3" required>
+
+              <hr>
+
+              <div class="d-flex justify-content-between mb-2">
+                <span class="text-muted">Session fee</span>
+                <span class="fw-semibold">$<%= Number(item.price || 0).toFixed(2) %></span>
               </div>
-            </div>
-          </div>
+              <% }) %>
 
-          <!-- Email Address -->
-          <div class="mb-3">
-            <label class="form-label fw-semibold">Email Address</label>
-            <input type="email" class="form-control" name="email" value="<%= user.email || '' %>" placeholder="yuwaranesri16@gmail.com">
-          </div>
+              <div class="d-flex justify-content-between mb-3">
+                <span class="text-muted">Service fee</span>
+                <span class="fw-semibold">$2.50</span>
+              </div>
 
-          <!-- Phone Number -->
-          <div class="mb-4">
-            <label class="form-label fw-semibold">Phone Number</label>
-            <input type="tel" class="form-control" name="phone" value="<%= user.contact || '' %>" placeholder="+65 8770 7650">
-          </div>
+              <div class="summary-total d-flex justify-content-between">
+                <span>Total</span>
+                <span class="text-success">$<%= (Number(total || 0) + 2.50).toFixed(2) %></span>
+              </div>
+            <% } else { %>
+              <p class="text-muted">No items in booking</p>
+            <% } %>
 
-          <!-- Terms and Conditions -->
-          <div class="form-check mb-4">
-            <input class="form-check-input" type="checkbox" id="termsCheck" required>
-            <label class="form-check-label small" for="termsCheck">
-              I agree to the terms and conditions and privacy policy. I understand that my payment will be processed securely
-            </label>
+            <button type="submit" form="paymentForm" class="btn btn-success btn-payment w-100 mt-4">
+              Confirm Payment
+            </button>
           </div>
-
-          <input type="hidden" name="orderId" value="<%= orderId %>">
-        </form>
+        </div>
       </div>
     </div>
-
-    <div class="col-lg-5">
-      <div class="summary-card">
-        <h5 class="fw-bold mb-4">Booking Summary</h5>
-
-        <% if (cart && cart.length > 0) { 
-          cart.forEach(item => { 
-            const sessionDate = item.session_date ? new Date(item.session_date).toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : 'TBC';
-            const sessionTime = item.session_time ? String(item.session_time).slice(0, 5) : 'TBC';
-        %>
-          <div class="mb-3">
-            <h6 class="fw-semibold mb-2"><%= item.listing_title %></h6>
-            <p class="text-muted small mb-2">with <%= item.username %></p>
-            
-            <div class="summary-item small">
-              <div class="icon-circle">📅</div>
-              <span class="text-muted"><%= sessionDate %></span>
-            </div>
-            
-            <div class="summary-item small">
-              <div class="icon-circle">🕐</div>
-              <span class="text-muted"><%= sessionTime %></span>
-            </div>
-            
-            <div class="summary-item small">
-              <div class="icon-circle">📍</div>
-              <span class="text-muted"><%= item.session_location || 'TBC' %></span>
-            </div>
-          </div>
-
-          <hr>
-
-          <div class="d-flex justify-content-between mb-2">
-            <span class="text-muted">Session fee</span>
-            <span class="fw-semibold">$<%= Number(item.price || 0).toFixed(2) %></span>
-          </div>
-          <% }) %>
-
-          <div class="d-flex justify-content-between mb-3">
-            <span class="text-muted">Service fee</span>
-            <span class="fw-semibold">$2.50</span>
-          </div>
-
-          <div class="summary-total d-flex justify-content-between">
-            <span>Total</span>
-            <span class="text-success">$<%= (Number(total || 0) + 2.50).toFixed(2) %></span>
-          </div>
-        <% } else { %>
-          <p class="text-muted">No items in booking</p>
-        <% } %>
-
-        <button type="submit" form="paymentForm" class="btn btn-danger btn-payment w-100 mt-4">
-          Confirm Payment
-        </button>
-      </div>
-    </div>
-  </div>
+  </main>
 </div>
 
 <script>
-
-  // Format card number
   document.querySelector('input[name="cardNumber"]')?.addEventListener('input', function(e) {
     let value = e.target.value.replace(/\s/g, '');
     let formattedValue = value.match(/.{1,4}/g)?.join(' ') || value;
     e.target.value = formattedValue;
   });
 
-  // Format expiry date
   document.querySelector('input[name="expiryDate"]')?.addEventListener('input', function(e) {
     let value = e.target.value.replace(/\D/g, '');
     if (value.length >= 2) {
@@ -158,9 +172,17 @@
     e.target.value = value;
   });
 
-  // Only allow numbers for CVV
   document.querySelector('input[name="cvv"]')?.addEventListener('input', function(e) {
     e.target.value = e.target.value.replace(/\D/g, '');
+  });
+
+  const methodInputs = document.querySelectorAll('input[name="paymentMethod"]');
+  const methodLabels = document.querySelectorAll('.payment-method');
+  methodInputs.forEach((input) => {
+    input.addEventListener('change', () => {
+      methodLabels.forEach((label) => label.classList.remove('active'));
+      input.closest('.payment-method')?.classList.add('active');
+    });
   });
 </script>
 

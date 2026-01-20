@@ -2,13 +2,20 @@
   title: 'Create account',
   bodyClass: 'entry-page admin-page',
   extraHead: `
-    <link rel="stylesheet" href="/css/user-common.css">
-    <link rel="stylesheet" href="/css/admin-common.css">
-    <link rel="stylesheet" href="/css/auth.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   `
 }) %>
-<%- include('partials/navbar', { user, activePage: '' }) %>
 <section class="entry-shell">
+  <div class="entry-topbar">
+    <a class="entry-brand" href="/">
+      <span class="entry-brand__dot"><i class="fa-solid fa-bullseye"></i></span>
+      <span class="entry-brand__name">MatchPoint</span>
+    </a>
+    <div class="entry-topbar__actions">
+      <a class="entry-nav" href="/login">Login</a>
+      <a class="entry-nav entry-nav--active" href="/register">Sign up</a>
+    </div>
+  </div>
   <div class="entry-layout">
     <div class="entry-card">
       <div class="entry-eyebrow">MatchPoint</div>
@@ -49,14 +56,17 @@
             <option value="coach" <%= (formData && formData.role) === 'coach' ? 'selected' : '' %>>Coach</option>
           </select>
         </div>
-        <div class="cert-fields d-none">
-          <label class="form-label">Certification title</label>
-          <input class="form-control" type="text" name="cert_title" value="<%= (formData && formData.cert_title) || '' %>">
-          <small class="text-muted">Required for coach accounts.</small>
-        </div>
-        <div class="cert-fields d-none">
-          <label class="form-label">Upload certification photo (JPG/PNG/WEBP/GIF)</label>
-          <input class="form-control" type="file" name="cert_file" accept=".jpg,.jpeg,.png,.webp,.gif">
+        <div class="cert-section" aria-hidden="true">
+          <div class="cert-section__inner">
+            <div class="cert-fields">
+              <label class="form-label">Certification title</label>
+              <input class="form-control" type="text" name="cert_title" value="<%= (formData && formData.cert_title) || '' %>">
+            </div>
+            <div class="cert-fields">
+              <label class="form-label">Upload certification photo (JPG/PNG/WEBP/GIF)</label>
+              <input class="form-control" type="file" name="cert_file" accept=".jpg,.jpeg,.png,.webp,.gif">
+            </div>
+          </div>
         </div>
         <button class="entry-btn w-100" type="submit">Create account</button>
         <div class="entry-footer">
@@ -91,16 +101,15 @@
 <script>
   (function () {
     const roleSelect = document.querySelector('select[name="role"]');
-    const certFields = document.querySelectorAll('.cert-fields');
-    if (!roleSelect || !certFields.length) return;
+    const certSection = document.querySelector('.cert-section');
+    const certFields = document.querySelectorAll('.cert-fields input');
+    if (!roleSelect || !certSection) return;
     const updateVisibility = () => {
       const isCoach = roleSelect.value === 'coach';
-      certFields.forEach((el) => {
-        el.classList.toggle('d-none', !isCoach);
-        const input = el.querySelector('input');
-        if (input) {
-          input.required = isCoach && input.type !== 'file';
-        }
+      certSection.classList.toggle('cert-section--open', isCoach);
+      certSection.setAttribute('aria-hidden', isCoach ? 'false' : 'true');
+      certFields.forEach((input) => {
+        input.required = isCoach;
       });
     };
     roleSelect.addEventListener('change', updateVisibility);
