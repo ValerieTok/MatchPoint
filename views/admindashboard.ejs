@@ -63,6 +63,11 @@
             <% params.push(`page=${pageNum}`); %>
             <% return params.join('&'); %>
           <% }; %>
+          <% const maxPagerButtons = 5; %>
+          <% const totalPages = Math.max(1, Number(pager.totalPages || 1)); %>
+          <% const firstPageCount = Math.min(maxPagerButtons, totalPages); %>
+          <% const showLastPage = totalPages > maxPagerButtons; %>
+          <% const showDots = totalPages > maxPagerButtons + 1; %>
 
           <div class="card__head">
             <div class="card__title">Recent Activity</div>
@@ -124,18 +129,28 @@
           <div class="card__foot">
             <% const startIndex = pager.totalActivities ? ((pager.page - 1) * pager.perPage + 1) : 0; %>
             <% const endIndex = Math.min(pager.page * pager.perPage, pager.totalActivities || 0); %>
-            <div class="hint">Showing <%= startIndex %> to <%= endIndex %> of <%= pager.totalActivities %> activities</div>
+            <div class="hint">Showing <%= startIndex %> to <%= endIndex %> of <%= pager.totalActivities %> activities (Page <%= pager.page %> of <%= totalPages %>)</div>
             <div class="pager">
               <% if (pager.totalPages > 1) { %>
                 <% if (pager.page > 1) { %>
                   <a class="pager__btn" href="/admindashboard?<%= buildQuery(pager.page - 1) %>"><i class="fa-solid fa-chevron-left"></i></a>
                 <% } %>
-                <% for (let p = 1; p <= pager.totalPages; p += 1) { %>
+                <% for (let p = 1; p <= firstPageCount; p += 1) { %>
                   <a class="pager__num <%= p === pager.page ? 'pager__num--active' : '' %>" href="/admindashboard?<%= buildQuery(p) %>"><%= p %></a>
+                <% } %>
+                <% if (showDots) { %>
+                  <span class="pager__dots">...</span>
+                <% } %>
+                <% if (showLastPage) { %>
+                  <a class="pager__num <%= totalPages === pager.page ? 'pager__num--active' : '' %>" href="/admindashboard?<%= buildQuery(totalPages) %>"><%= totalPages %></a>
                 <% } %>
                 <% if (pager.page < pager.totalPages) { %>
                   <a class="pager__btn" href="/admindashboard?<%= buildQuery(pager.page + 1) %>"><i class="fa-solid fa-chevron-right"></i></a>
                 <% } %>
+                <div class="pager__jump">
+                  <input id="activityPageJump" class="pager__input" type="number" min="1" max="<%= totalPages %>" placeholder="Page" aria-label="Jump to page" />
+                  <button id="activityPageJumpBtn" class="pager__btn pager__go" type="button">Go</button>
+                </div>
               <% } else { %>
                 <span class="pager__num pager__num--active">1</span>
               <% } %>
@@ -151,6 +166,8 @@
       const filter = document.getElementById('activityFilter');
       const sort = document.getElementById('activitySort');
       const search = document.getElementById('activitySearch');
+      const pageJump = document.getElementById('activityPageJump');
+      const pageJumpBtn = document.getElementById('activityPageJumpBtn');
 
       const buildUrl = (params) => {
         const url = new URL(window.location.href);
@@ -162,6 +179,15 @@
           }
         });
         return url.toString();
+      };
+
+      const goToPage = () => {
+        if (!pageJump) return;
+        const raw = parseInt(pageJump.value, 10);
+        if (!Number.isFinite(raw)) return;
+        const max = parseInt(pageJump.max, 10) || 1;
+        const page = Math.min(Math.max(raw, 1), max);
+        window.location.href = buildUrl({ page });
       };
 
       filter?.addEventListener('change', () => {
@@ -177,6 +203,16 @@
           const value = (search.value || '').trim().toLowerCase();
           window.location.href = buildUrl({ search: value, page: 1 });
         }
+      });
+
+      pageJump?.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+          goToPage();
+        }
+      });
+
+      pageJumpBtn?.addEventListener('click', () => {
+        goToPage();
       });
     </script>
   `

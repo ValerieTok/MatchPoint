@@ -2,6 +2,7 @@ const userModel = require('../models/Account');
 const Listing = require('../models/Listing');
 const BookingCart = require('../models/BookingCart');
 const UserProfile = require('../models/UserProfile');
+const activityStore = require('../activityStore');
 const speakeasy = require('speakeasy');
 const QRCode = require('qrcode');
 
@@ -218,6 +219,10 @@ const AccountController = {
   },
 
   logoutUser(req, res) {
+    const userId = req.session && req.session.user && req.session.user.id;
+    if (userId) {
+      activityStore.markInactive(userId);
+    }
     req.session.regenerate((err) => {
       if (err) {
         console.error(err);
