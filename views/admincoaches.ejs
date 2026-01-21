@@ -117,12 +117,10 @@
                         <span class="pill pill--<%= row.coach_status || 'pending' %>"><%= String(row.coach_status || 'pending').toUpperCase() %></span>
                       </td>
                       <td class="actions">
-                        <form method="post" action="/admincoaches/<%= row.id %>/approve">
-                          <button class="btn approve" type="submit" <%= row.coach_status === 'approved' ? 'disabled' : '' %>>Approve</button>
-                        </form>
-                        <form method="post" action="/admincoaches/<%= row.id %>/reject">
-                          <button class="btn reject" type="submit" <%= row.coach_status === 'rejected' ? 'disabled' : '' %>>Reject</button>
-                        </form>
+                        <div class="action-group">
+                          <button class="btn warn" type="button">Issue Warning</button>
+                          <button class="btn danger" type="button">Ban Coach</button>
+                        </div>
                       </td>
                     </tr>
                   <% }) %>

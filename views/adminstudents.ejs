@@ -16,6 +16,7 @@
         </header>
 
         <% const safeStats = stats || {}; %>
+        <% const activeCount = Number(activeStudents || 0); %>
         <section class="hero">
           <div class="hero__left">
             <h1>
@@ -28,6 +29,13 @@
                 <div class="stat__meta">
                   <div class="stat__label">Total Students</div>
                   <div class="stat__value"><%= (safeStats.totalStudents || 0).toLocaleString('en-US') %></div>
+                </div>
+              </div>
+              <div class="stat">
+                <div class="stat__icon"><i class="fa-solid fa-user-check"></i></div>
+                <div class="stat__meta">
+                  <div class="stat__label">Active Students</div>
+                  <div class="stat__value"><%= activeCount.toLocaleString('en-US') %></div>
                 </div>
               </div>
               <div class="stat">
@@ -99,8 +107,10 @@
                         <span class="pill pill--<%= row.status %>"><%= row.status.toUpperCase() %></span>
                       </td>
                       <td class="actions">
-                        <button class="btn warn" type="button">Issue Warning</button>
-                        <button class="btn danger" type="button">Ban User</button>
+                        <div class="action-group">
+                          <button class="btn warn" type="button">Issue Warning</button>
+                          <button class="btn danger" type="button">Ban User</button>
+                        </div>
                       </td>
                     </tr>
                   <% }) %>
