@@ -3,6 +3,8 @@ const AdminCoaches = require('../models/AdminCoaches');
 const AdminStudents = require('../models/AdminStudents');
 const AdminServices = require('../models/AdminServices');
 const AdminFeedback = require('../models/AdminFeedback');
+const Account = require('../models/Account');
+const Warnings = require('../models/Warnings');
 const activityStore = require('../activityStore');
 
 const formatTimeAgo = (input) => {
@@ -331,6 +333,68 @@ const AdminController = {
     } catch (err) {
       console.error(err);
       req.flash('error', 'Failed to reject coach.');
+    }
+    return res.redirect('/admincoaches');
+  },
+
+  warnStudent: async function (req, res) {
+    const comment = req.body && req.body.comment ? String(req.body.comment).trim() : '';
+    if (!comment) {
+      req.flash('error', 'Warning comment is required.');
+      return res.redirect('/adminstudents');
+    }
+    try {
+      const targetId = req.params.id;
+      const target = await new Promise((resolve, reject) => {
+        Account.getUserById(targetId, (err, user) => (err ? reject(err) : resolve(user)));
+      });
+      if (!target || target.role !== 'user') {
+        req.flash('error', 'Student not found.');
+        return res.redirect('/adminstudents');
+      }
+      await new Promise((resolve, reject) => {
+        Warnings.createWarning({
+          userId: target.id,
+          targetRole: 'user',
+          comment,
+          createdBy: req.session && req.session.user ? req.session.user.id : null
+        }, (err) => (err ? reject(err) : resolve()));
+      });
+      req.flash('success', 'Warning sent to student inbox.');
+    } catch (err) {
+      console.error(err);
+      req.flash('error', 'Failed to issue warning.');
+    }
+    return res.redirect('/adminstudents');
+  },
+
+  warnCoach: async function (req, res) {
+    const comment = req.body && req.body.comment ? String(req.body.comment).trim() : '';
+    if (!comment) {
+      req.flash('error', 'Warning comment is required.');
+      return res.redirect('/admincoaches');
+    }
+    try {
+      const targetId = req.params.id;
+      const target = await new Promise((resolve, reject) => {
+        Account.getUserById(targetId, (err, user) => (err ? reject(err) : resolve(user)));
+      });
+      if (!target || target.role !== 'coach') {
+        req.flash('error', 'Coach not found.');
+        return res.redirect('/admincoaches');
+      }
+      await new Promise((resolve, reject) => {
+        Warnings.createWarning({
+          userId: target.id,
+          targetRole: 'coach',
+          comment,
+          createdBy: req.session && req.session.user ? req.session.user.id : null
+        }, (err) => (err ? reject(err) : resolve()));
+      });
+      req.flash('success', 'Warning sent to coach inbox.');
+    } catch (err) {
+      console.error(err);
+      req.flash('error', 'Failed to issue warning.');
     }
     return res.redirect('/admincoaches');
   }

@@ -108,7 +108,7 @@
                       </td>
                       <td class="actions">
                         <div class="action-group">
-                          <button class="btn warn" type="button">Issue Warning</button>
+                          <button class="btn warn js-warn" type="button" data-id="<%= row.id %>" data-name="<%= row.username %>">Issue Warning</button>
                           <button class="btn danger" type="button">Ban User</button>
                         </div>
                       </td>
@@ -143,11 +143,59 @@
   </main>
 </div>
 
+<div class="warn-modal" id="warnModal">
+  <div class="warn-modal__backdrop" data-warn-close></div>
+  <div class="warn-modal__panel" role="dialog" aria-modal="true" aria-labelledby="warnTitle">
+    <h3 class="warn-modal__title" id="warnTitle">Issue Warning</h3>
+    <p class="warn-modal__sub">Send a warning to <span data-warn-name>this student</span>. The comment is visible in their inbox.</p>
+    <form id="warnForm" method="post">
+      <div class="warn-modal__field">
+        <textarea name="comment" maxlength="500" required placeholder="Add warning details..."></textarea>
+      </div>
+      <div class="warn-modal__actions">
+        <button class="btn" type="button" data-warn-close>Cancel</button>
+        <button class="btn warn" type="submit">Send Warning</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <%- include('partials/footer', {
   extraScripts: `
     <script>
       const search = document.getElementById('studentSearch');
       const sort = document.getElementById('studentSort');
+      const warnModal = document.getElementById('warnModal');
+      const warnForm = document.getElementById('warnForm');
+      const warnName = warnModal ? warnModal.querySelector('[data-warn-name]') : null;
+      const warnComment = warnForm ? warnForm.querySelector('textarea[name="comment"]') : null;
+      const warnButtons = document.querySelectorAll('.js-warn');
+      const warnClosers = warnModal ? warnModal.querySelectorAll('[data-warn-close]') : [];
+
+      const closeWarnModal = () => {
+        warnModal?.classList.remove('is-open');
+      };
+
+      warnButtons.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const userId = btn.getAttribute('data-id');
+          const userName = btn.getAttribute('data-name') || 'this student';
+          if (!warnForm || !warnModal) return;
+          warnForm.action = \`/adminstudents/\${userId}/warn\`;
+          if (warnName) warnName.textContent = userName;
+          if (warnComment) warnComment.value = '';
+          warnModal.classList.add('is-open');
+          warnComment?.focus();
+        });
+      });
+
+      warnClosers.forEach((btn) => {
+        btn.addEventListener('click', closeWarnModal);
+      });
+
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') closeWarnModal();
+      });
 
       const buildUrl = (params) => {
         const url = new URL(window.location.href);

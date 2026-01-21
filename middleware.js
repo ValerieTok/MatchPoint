@@ -1,5 +1,12 @@
 // Centralized middleware helpers for auth and view locals
 const Booking = require('./models/Booking');
+const Warnings = require('./models/Warnings');
+
+const formatInboxDate = (input) => {
+  const date = new Date(input);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleDateString('en-GB');
+};
 
 const toInboxStatus = (row) => {
   if (row && row.completed_at) return { status: 'completed', label: 'COMPLETED' };
@@ -13,15 +20,14 @@ const buildUserInboxItems = (rows) =>
   (rows || []).map((row) => {
     const who = row.coach_name;
     const title = who ? `Booking #${row.id} with ${who}` : `Booking #${row.id}`;
-    const when = row.created_at
-      ? new Date(row.created_at).toLocaleDateString('en-GB')
-      : '';
+    const when = formatInboxDate(row.created_at);
     const statusInfo = toInboxStatus(row);
     return {
       title,
       when,
       status: statusInfo.status,
-      statusLabel: statusInfo.label
+      statusLabel: statusInfo.label,
+      createdAt: row.created_at
     };
   });
 
@@ -31,15 +37,31 @@ const buildCoachInboxItems = (rows) =>
     const title = who
       ? `New review from ${who} (Booking #${row.booking_id})`
       : `New review (Booking #${row.booking_id})`;
-    const when = row.created_at
-      ? new Date(row.created_at).toLocaleDateString('en-GB')
-      : '';
+    const when = formatInboxDate(row.created_at);
     return {
       title,
       when,
       status: 'submitted',
-      statusLabel: 'SUBMITTED'
+      statusLabel: 'SUBMITTED',
+      createdAt: row.created_at
     };
+  });
+
+const buildWarningItems = (rows) =>
+  (rows || []).map((row) => ({
+    title: 'Warning from admin',
+    body: row.comment,
+    when: formatInboxDate(row.created_at),
+    status: 'warning',
+    statusLabel: 'WARNING',
+    createdAt: row.created_at
+  }));
+
+const sortInboxItems = (items) =>
+  (items || []).sort((a, b) => {
+    const aTime = a && a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const bTime = b && b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    return bTime - aTime;
   });
 
 const attachUser = (req, res, next) => {
@@ -61,17 +83,28 @@ const attachUser = (req, res, next) => {
     ? Booking.getRecentCoachInbox
     : Booking.getRecentUserInbox;
 
-  return loader(user.id, limit, (err, rows) => {
-    if (err) {
+  const inboxPromise = new Promise((resolve, reject) => {
+    loader(user.id, limit, (err, rows) => (err ? reject(err) : resolve(rows || [])));
+  });
+
+  const warningsPromise = new Promise((resolve, reject) => {
+    Warnings.getRecentWarnings(user.id, limit, (err, rows) => (err ? reject(err) : resolve(rows || [])));
+  });
+
+  return Promise.all([inboxPromise, warningsPromise])
+    .then(([inboxRows, warningRows]) => {
+      const baseItems = user.role === 'coach'
+        ? buildCoachInboxItems(inboxRows)
+        : buildUserInboxItems(inboxRows);
+      const warningItems = buildWarningItems(warningRows);
+      res.locals.inboxItems = sortInboxItems([...warningItems, ...baseItems]).slice(0, limit);
+      return next();
+    })
+    .catch((err) => {
       console.error('Failed to load inbox items:', err);
       res.locals.inboxItems = [];
       return next();
-    }
-    res.locals.inboxItems = user.role === 'coach'
-      ? buildCoachInboxItems(rows)
-      : buildUserInboxItems(rows);
-    return next();
-  });
+    });
 };
 
 const checkAuthenticated = (req, res, next) => {
