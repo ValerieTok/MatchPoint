@@ -46,7 +46,14 @@ module.exports = {
       }
       const withItems = Promise.all(orders.map((o) => buildOrderDetails(o, isCoach ? user.id : null)));
       withItems.then((ordersWithItems) => {
-        const filtered = ordersWithItems;
+        const filtered = ordersWithItems
+          .slice()
+          .sort((a, b) => {
+            const aTime = a && a.created_at ? new Date(a.created_at).getTime() : 0;
+            const bTime = b && b.created_at ? new Date(b.created_at).getTime() : 0;
+            if (aTime !== bTime) return bTime - aTime;
+            return Number(b && b.id ? b.id : 0) - Number(a && a.id ? a.id : 0);
+          });
 
         const totalOrders = filtered.length;
         const totalPages = Math.max(1, Math.ceil(totalOrders / perPage));

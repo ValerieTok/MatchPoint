@@ -3,6 +3,7 @@ const AdminCoaches = require('../models/AdminCoaches');
 const AdminStudents = require('../models/AdminStudents');
 const AdminServices = require('../models/AdminServices');
 const AdminFeedback = require('../models/AdminFeedback');
+const activityStore = require('../activityStore');
 
 const formatTimeAgo = (input) => {
   const date = new Date(input);
@@ -138,12 +139,14 @@ const AdminController = {
         })
       ]);
 
-      const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+      const activeIds = new Set(activityStore.getActiveUserIds({
+        role: 'user',
+        withinMs: activityStore.DEFAULT_ACTIVE_WINDOW_MS
+      }));
       const students = (studentResult.rows || []).map((row) => {
-        const last = row.last_booking ? new Date(row.last_booking).getTime() : 0;
         return {
           ...row,
-          status: last && last >= cutoff ? 'active' : 'inactive'
+          status: activeIds.has(String(row.id)) ? 'active' : 'inactive'
         };
       });
 
@@ -154,6 +157,7 @@ const AdminController = {
         user: req.session.user,
         messages: res.locals.messages,
         stats,
+        activeStudents: activeIds.size,
         students,
         filters: { search, sort },
         pagination: {

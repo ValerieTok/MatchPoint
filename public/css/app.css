@@ -1,3 +1,272 @@
+
+/* Booking Receipt Page Styles */
+.receipt-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.receipt-success-card {
+  background: white;
+  border-radius: 16px;
+  padding: 3rem 2rem;
+  margin-bottom: 2rem;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.success-icon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 1.5rem;
+  background: linear-gradient(135deg, #10b981, #059669);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: scaleIn 0.5s ease-out;
+}
+
+.success-icon i {
+  font-size: 3rem;
+  color: white;
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+.booking-number {
+  margin-top: 1rem;
+}
+
+.booking-number .badge {
+  font-size: 1.1rem;
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+  border-radius: 8px;
+}
+
+.receipt-details-card {
+  background: white;
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.receipt-details-card .card-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 1.5rem;
+}
+
+.receipt-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.receipt-table thead {
+  background: linear-gradient(135deg, #f9fafb, #f3f4f6);
+}
+
+.receipt-table th {
+  padding: 1rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  color: #6b7280;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.receipt-table td {
+  padding: 1.25rem 1rem;
+  border-bottom: 1px solid #f3f4f6;
+  vertical-align: middle;
+}
+
+.receipt-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.receipt-table tbody tr:hover {
+  background-color: #f9fafb;
+}
+
+.item-details {
+  min-width: 250px;
+}
+
+.item-details .fw-semibold {
+  font-size: 1rem;
+  color: #1a1a1a;
+  margin-bottom: 0.25rem;
+}
+
+.item-details small {
+  display: block;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.receipt-item-image {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.no-image-placeholder {
+  width: 80px;
+  height: 80px;
+  background: #f3f4f6;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+  font-size: 1.5rem;
+}
+
+.discount-badge {
+  display: inline-block;
+  background: #dcfce7;
+  color: #16a34a;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.receipt-summary {
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 2px solid #e5e7eb;
+}
+
+.summary-box {
+  background: linear-gradient(135deg, #f9fafb, #f3f4f6);
+  padding: 1.5rem;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border: 1px solid #e5e7eb;
+}
+
+.summary-box.total {
+  background: linear-gradient(135deg, #eff6ff, #dbeafe);
+  border-color: #bfdbfe;
+}
+
+.summary-box.savings {
+  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+  border-color: #bbf7d0;
+}
+
+.summary-label {
+  font-size: 0.875rem;
+  color: #6b7280;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.summary-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.summary-box.total .summary-value {
+  color: #1d4ed8;
+}
+
+.receipt-actions {
+  margin-top: 2rem;
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.receipt-actions .btn {
+  padding: 0.75rem 2rem;
+  font-weight: 600;
+  border-radius: 8px;
+  font-size: 1rem;
+}
+
+@media (max-width: 768px) {
+  .receipt-success-card {
+    padding: 2rem 1rem;
+  }
+
+  .receipt-details-card {
+    padding: 1.5rem 1rem;
+  }
+
+  .receipt-table th,
+  .receipt-table td {
+    padding: 0.75rem 0.5rem;
+    font-size: 0.875rem;
+  }
+
+  .item-details {
+    min-width: 200px;
+  }
+
+  .receipt-item-image,
+  .no-image-placeholder {
+    width: 60px;
+    height: 60px;
+  }
+
+  .summary-value {
+    font-size: 1.5rem;
+  }
+
+  .receipt-actions {
+    flex-direction: column;
+  }
+
+  .receipt-actions .btn {
+    width: 100%;
+  }
+}
+
+@media print {
+  .app .sidebar,
+  .topbar,
+  .receipt-actions {
+    display: none !important;
+  }
+
+  .main {
+    margin-left: 0 !important;
+  }
+
+  .receipt-container {
+    max-width: 100%;
+  }
+
+  .receipt-success-card,
+  .receipt-details-card {
+    box-shadow: none;
+    border: 1px solid #e5e7eb;
+  }
+}
 :root {
   --bs-primary: #ef4444;
   --bs-primary-rgb: 239, 68, 68;
@@ -441,9 +710,14 @@ body{
 }
 
 .admin-page .actions {
+  vertical-align: middle;
+}
+
+.admin-page .action-group {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  align-items: center;
 }
 
 .admin-page .btn {
@@ -749,6 +1023,20 @@ body{
   font-weight: 800;
   padding: 0 4px;
 }
+.pager__jump{
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 6px;
+}
+.pager__input{
+  width: 64px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 700;
+}
 
 body.admin-dashboard {
   --bg: #f5f5f5;
@@ -848,9 +1136,7 @@ body.admin-coaches {
 }
 
 .admin-coaches .actions {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
+  vertical-align: middle;
 }
 
 .admin-coaches .btn {
@@ -1101,9 +1387,7 @@ body.admin-students {
 }
 
 .admin-students .actions {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
+  vertical-align: middle;
 }
 
 .admin-students .btn {

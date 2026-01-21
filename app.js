@@ -16,6 +16,7 @@ const CoachProfileController = require('./controllers/CoachProfileController');
 const UserProfileController = require('./controllers/UserProfileController');
 const FeedbackController = require('./controllers/FeedbackController');
 const RevenueController = require('./controllers/RevenueController');
+const activityStore = require('./activityStore');
 const { attachUser, checkAuthenticated, checkAdmin, checkAdminOrCoach, checkCoachApproved } = require('./middleware');
 
 const app = express();
@@ -129,6 +130,13 @@ app.use(session({
 }));
 app.use(flash());
 app.use(attachUser);
+app.use((req, res, next) => {
+  const user = req.session && req.session.user;
+  if (user && user.id) {
+    activityStore.markActive(user);
+  }
+  next();
+});
 
 // Home: send guests to login, route users by role
 app.get('/', (req, res) => {

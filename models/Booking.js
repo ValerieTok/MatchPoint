@@ -375,8 +375,11 @@ const Booking = {
       FROM booking_items bi
       JOIN bookings b ON b.id = bi.booking_id
       WHERE bi.coach_id = ?
-        AND b.completed_at >= DATE_FORMAT(NOW(), '%Y-%m-01')
-        AND b.completed_at < DATE_ADD(DATE_FORMAT(NOW(), '%Y-%m-01'), INTERVAL 1 MONTH)
+        AND b.completed_at IS NOT NULL
+        AND (
+          (bi.session_date IS NOT NULL AND DATE(bi.session_date) BETWEEN DATE_FORMAT(NOW(), '%Y-%m-01') AND LAST_DAY(NOW()))
+          OR (bi.session_date IS NULL AND DATE(b.completed_at) BETWEEN DATE_FORMAT(NOW(), '%Y-%m-01') AND LAST_DAY(NOW()))
+        )
     `;
     db.query(sql, [coachId], (err, rows) => {
       if (err) return callback(err);
