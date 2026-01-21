@@ -230,31 +230,40 @@ module.exports = {
         });
       }
       const withItems = Promise.all(orders.map((o) => buildOrderDetails(o, null)));
-      return withItems.then((ordersWithItems) => {
-        const completedSessions = [];
-        ordersWithItems.forEach((order) => {
-          const status = (order.status || '').toLowerCase();
-          const items = Array.isArray(order.items) ? order.items : [];
-          if (order.completed_at) {
-            items.forEach((item) => {
-              completedSessions.push({
-                bookingId: order.id,
-                completedAt: order.completed_at,
-                review: order.review,
-                coach: item.username,
-                sport: item.sport,
-                location: item.session_location || order.session_location,
-                date: item.session_date,
-                time: item.session_time
+        return withItems.then((ordersWithItems) => {
+          const completedSessions = [];
+          ordersWithItems.forEach((order) => {
+            const status = (order.status || '').toLowerCase();
+            const items = Array.isArray(order.items) ? order.items : [];
+            if (order.completed_at) {
+              items.forEach((item) => {
+                completedSessions.push({
+                  bookingId: order.id,
+                  completedAt: order.completed_at,
+                  review: order.review,
+                  coach: item.username,
+                  sport: item.sport,
+                  location: item.session_location || order.session_location,
+                  date: item.session_date,
+                  time: item.session_time
+                });
               });
-            });
-          }
-        });
-        return res.render('userRatings', {
-          user: req.session && req.session.user,
-          completedSessions
+            }
+          });
+          completedSessions.sort((a, b) => {
+            const aReviewTime = a.review && a.review.created_at ? new Date(a.review.created_at).getTime() : 0;
+            const bReviewTime = b.review && b.review.created_at ? new Date(b.review.created_at).getTime() : 0;
+            if (aReviewTime !== bReviewTime) return bReviewTime - aReviewTime;
+            const aCompleted = a.completedAt ? new Date(a.completedAt).getTime() : 0;
+            const bCompleted = b.completedAt ? new Date(b.completedAt).getTime() : 0;
+            if (aCompleted !== bCompleted) return bCompleted - aCompleted;
+            return Number(b.bookingId || 0) - Number(a.bookingId || 0);
+          });
+          return res.render('userRatings', {
+            user: req.session && req.session.user,
+            completedSessions
+          });
         });
       });
-    });
   }
 };
