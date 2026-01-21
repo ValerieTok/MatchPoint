@@ -197,7 +197,9 @@ app.get('/admindashboard', checkAuthenticated, checkAdmin, AdminController.dashb
 app.get('/admincoaches', checkAuthenticated, checkAdmin, AdminController.coaches);
 app.post('/admincoaches/:id/approve', checkAuthenticated, checkAdmin, AdminController.approveCoach);
 app.post('/admincoaches/:id/reject', checkAuthenticated, checkAdmin, AdminController.rejectCoach);
+app.post('/admincoaches/:id/warn', checkAuthenticated, checkAdmin, AdminController.warnCoach);
 app.get('/adminstudents', checkAuthenticated, checkAdmin, AdminController.students);
+app.post('/adminstudents/:id/warn', checkAuthenticated, checkAdmin, AdminController.warnStudent);
 app.get('/adminservices', checkAuthenticated, checkAdmin, AdminController.services);
 app.post('/adminservices/:id/toggle', checkAuthenticated, checkAdmin, AdminController.toggleService);
 app.get('/adminfeedback', checkAuthenticated, checkAdmin, AdminController.feedback);

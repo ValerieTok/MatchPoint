@@ -40,6 +40,32 @@
 
   </nav>
 
+  <div class="sidebar__inbox">
+    <div class="sidebar__section-title">
+      <span>Inbox</span>
+      <i class="fa-solid fa-inbox"></i>
+    </div>
+    <div class="inbox">
+      <% const inboxRows = Array.isArray(inboxItems) ? inboxItems : []; %>
+      <% if (!inboxRows.length) { %>
+        <div class="inbox__empty">No messages yet.</div>
+      <% } else { %>
+        <% inboxRows.forEach((item) => { %>
+          <div class="inbox__item">
+            <div class="inbox__title"><%= item.title %></div>
+            <% if (item.body) { %>
+              <div class="inbox__body"><%= item.body %></div>
+            <% } %>
+            <div class="inbox__meta">
+              <span class="inbox__time"><%= item.when %></span>
+              <span class="inbox__pill inbox__pill--<%= item.status %>"><%= item.statusLabel %></span>
+            </div>
+          </div>
+        <% }) %>
+      <% } %>
+    </div>
+  </div>
+
   <div class="sidebar__footer">
     <form action="/logout" method="post">
       <button class="logout" type="submit">
