@@ -176,6 +176,16 @@ app.post('/accounts/delete/:id', checkAuthenticated, checkAdmin, AccountControll
 app.get('/bookingsManage', checkAuthenticated, checkAdminOrCoach, BookingController.listAllOrders);
 app.get('/coachRatings', checkAuthenticated, checkAdminOrCoach, BookingController.listCoachRatings);
 app.get('/ratingsUser', checkAuthenticated, BookingController.userRatings);
+app.get('/inbox', checkAuthenticated, (req, res) => {
+  const user = req.session && req.session.user;
+  if (!user || user.role !== 'user') {
+    return res.redirect('/userdashboard');
+  }
+  return res.render('inbox', {
+    user,
+    inboxItems: res.locals.inboxItems || []
+  });
+});
 
 // Listing routes
 app.get('/userdashboard', checkAuthenticated, ListingController.listAllProducts);
