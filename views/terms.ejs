@@ -1,0 +1,75 @@
+<%- include('partials/head', {
+  title: 'Terms and Conditions',
+  bodyClass: 'static-page',
+  extraHead: `
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  `
+}) %>
+
+<div class="entry-shell">
+  <div class="entry-layout entry-layout--narrow">
+    <div class="entry-card">
+      <div class="entry-eyebrow">MatchPoint</div>
+      <h1 class="entry-title">Terms and Conditions</h1>
+      <p class="entry-subtitle">Last updated: January 21, 2026</p>
+
+      <nav class="terms-nav">
+        <a href="#website">Website terms</a> ·
+        <a href="#user">User terms</a> ·
+        <a href="#coach">Coach terms</a> ·
+        <a href="#admin">Admin terms</a>
+      </nav>
+
+      <section id="website" class="terms-section">
+        <h2>General Website Terms</h2>
+        <p>These Terms and Conditions ("Terms") govern access to and use of the MatchPoint website and services (the "Platform"). They apply to everyone who visits, registers, or uses the Platform including administrators, coaches, and users (students). By registering, using, or accessing any part of the Platform you agree to be bound by these Terms.</p>
+        <p><strong>Account registration and verification</strong> — Users and Coaches must provide accurate, current information when registering and keep account details up-to-date. Coaches may be subject to verification checks. Accounts are personal and must not be shared.</p>
+        <p><strong>Listings & Bookings</strong> — Listings are created by Coaches and displayed on the Platform. Bookings are formed when Users complete the Platform booking and payment workflow. Cancellation, refund and scheduling rules apply as described on the Platform.</p>
+        <p><strong>Payments</strong> — Payments are processed through the Platform. The Platform may hold payments until release conditions are met (for example, session completion and any release triggers declared by the Platform).</p>
+      </section>
+
+      <section id="user" class="terms-section">
+        <h2>User (Student) Terms</h2>
+        <ul>
+          <li>Provide accurate booking details and payment information.</li>
+          <li>Respect Coaches and follow reasonable session rules.</li>
+          <li>Provide honest feedback and reviews after sessions; defamatory or false reviews may be removed.</li>
+          <li>Users must not attempt to bypass Platform payment flows or contact Coaches off-platform in ways that violate Platform policy.</li>
+        </ul>
+      </section>
+
+      <section id="coach" class="terms-section">
+        <h2>Coach Terms</h2>
+        <ul>
+          <li>Coaches are independent providers responsible for the service they deliver and for complying with local laws and safety requirements.</li>
+          <li>Provide truthful listings including accurate descriptions, availability, prices and images.</li>
+          <li>Maintain valid certifications where required. Do not impersonate qualifications.</li>
+          <li>Coaches must honor confirmed Bookings or follow the cancellation policy stated in the listing.</li>
+          <li><strong>Earnings and payment release:</strong> Funds are only considered "earned" by the Coach when the Platform's release conditions are met (for example, session completed and release trigger such as review or admin confirmation). Do not treat pending funds as available until released.</li>
+        </ul>
+      </section>
+
+      <section id="admin" class="terms-section">
+        <h2>Admin Terms</h2>
+        <ul>
+          <li>Admins manage and moderate the Platform, may access limited user data for support/verification, and may take disciplinary actions.</li>
+          <li>Admin actions should follow internal moderation rules. Misuse of Admin privileges may lead to termination and legal action.</li>
+          <li>Admins will handle disputes, payments, and platform maintenance as required.</li>
+        </ul>
+      </section>
+
+      <section class="terms-section">
+        <h2>Other provisions</h2>
+        <p><strong>Intellectual property:</strong> The Platform and its content are protected by law. Coaches retain ownership of content they upload but grant the Platform a license to operate the Platform.</p>
+        <p><strong>Privacy:</strong> Use of personal data is governed by the Platform's Privacy Policy.</p>
+        <p><strong>Limitation of liability:</strong> The Platform is provided "as is"; liability is limited to the extent permitted by law.</p>
+      </section>
+
+      <div class="entry-footer">
+        <a class="entry-link" href="/register">Back to registration</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('partials/footer') %>

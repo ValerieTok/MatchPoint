@@ -240,6 +240,11 @@ app.post('/profile/photo', checkAuthenticated, upload.single('photo'), UserProfi
 app.get('/feedback', checkAuthenticated, FeedbackController.showFeedbackForm);
 app.post('/feedback', checkAuthenticated, FeedbackController.submitFeedback);
 
+// Terms and Conditions page
+app.get('/terms', (req, res) => {
+  return res.render('terms', { user: req.session && req.session.user });
+});
+
 // Track Revenue (blank page placeholder)
 app.get('/trackRevenue', checkAuthenticated, checkAdminOrCoach, RevenueController.showDashboard);
 

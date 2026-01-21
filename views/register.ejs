@@ -68,6 +68,10 @@
             </div>
           </div>
         </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="tnc" name="tnc">
+          <label class="form-check-label" for="tnc">I agree to the <a href="/terms" target="_blank" rel="noopener">Terms and Conditions</a></label>
+        </div>
         <button class="entry-btn w-100" type="submit">Create account</button>
         <div class="entry-footer">
           Already have an account? <a class="entry-link" href="/login">Log in</a>
@@ -114,6 +118,21 @@
     };
     roleSelect.addEventListener('change', updateVisibility);
     updateVisibility();
+  })();
+</script>
+<script>
+  (function () {
+    const form = document.querySelector('form[action="/register"]');
+    if (!form) return;
+    form.addEventListener('submit', function (e) {
+      const tnc = form.querySelector('input[name="tnc"]');
+      if (tnc && !tnc.checked) {
+        e.preventDefault();
+        alert('Please accept the Terms and Conditions to continue.');
+        tnc.focus();
+        return false;
+      }
+    });
   })();
 </script>
 <%- include('partials/footer') %>

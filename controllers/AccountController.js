@@ -106,6 +106,12 @@ const AccountController = {
       req.flash('formData', { username, email, contact, role, cert_title: certTitle });
       return res.redirect('/register');
     }
+    // Require acceptance of Terms and Conditions
+    if (!req.body || !req.body.tnc) {
+      req.flash('error', 'You must accept the Terms and Conditions to register');
+      req.flash('formData', { username, email, contact, role, cert_title: certTitle });
+      return res.redirect('/register');
+    }
     const uploadedCert = req.files && req.files.cert_file ? req.files.cert_file[0] : null;
     const uploadedPhoto = req.files && req.files.profile_photo ? req.files.profile_photo[0] : null;
     if (normalizedRole === 'coach') {
