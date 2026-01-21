@@ -1,4 +1,5 @@
 const Revenue = require('../models/Revenue');
+const UserProfile = require('../models/UserProfile');
 
 module.exports = {
   showDashboard(req, res) {
@@ -19,7 +20,10 @@ module.exports = {
         console.error('Failed to load revenue', err);
         req.flash('error', 'Unable to load revenue right now.');
         // still attempt to get monthly (or render fallback)
-        return res.render('trackRevenue', { user: sessionUser, revenue: { totalEarned: 0, totalPending: 0, monthEarned: 0 }, active: 'revenue' });
+        return UserProfile.getByUserId(coachId, (upErr, profile) => {
+          const profilePhoto = profile && profile.photo ? profile.photo : null;
+          return res.render('trackRevenue', { user: sessionUser, revenue: { totalEarned: 0, totalPending: 0, monthEarned: 0 }, profilePhoto, active: 'revenue' });
+        });
       }
 
       Revenue.getCoachMonthlyRevenue(coachId, (err2, monthData) => {
@@ -28,7 +32,10 @@ module.exports = {
           monthData = { monthEarned: 0 };
         }
         const merged = Object.assign({}, data || { totalEarned: 0, totalPending: 0 }, monthData || { monthEarned: 0 });
-        return res.render('trackRevenue', { user: sessionUser, revenue: merged, active: 'revenue' });
+        return UserProfile.getByUserId(coachId, (upErr, profile) => {
+          const profilePhoto = profile && profile.photo ? profile.photo : null;
+          return res.render('trackRevenue', { user: sessionUser, revenue: merged, profilePhoto, active: 'revenue' });
+        });
       });
     });
   }
