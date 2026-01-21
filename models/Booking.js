@@ -307,6 +307,42 @@ const Booking = {
       ORDER BY r.created_at DESC
     `;
     db.query(sql, [coachId], (err, rows) => callback(err, rows || []));
+  },
+
+  getCoachRevenue(coachId, callback) {
+    const sql = `
+      SELECT
+        COALESCE(SUM(CASE WHEN b.completed_at IS NOT NULL THEN bi.price * bi.quantity ELSE 0 END), 0) AS totalEarned,
+        COALESCE(SUM(CASE WHEN b.completed_at IS NULL THEN bi.price * bi.quantity ELSE 0 END), 0) AS totalPending
+      FROM booking_items bi
+      JOIN bookings b ON b.id = bi.booking_id
+      WHERE bi.coach_id = ?
+    `;
+    db.query(sql, [coachId], (err, rows) => {
+      if (err) return callback(err);
+      const row = rows && rows[0] ? rows[0] : { totalEarned: 0, totalPending: 0 };
+      return callback(null, {
+        totalEarned: Number(row.totalEarned || 0),
+        totalPending: Number(row.totalPending || 0)
+      });
+    });
+  }
+
+  ,getCoachMonthlyRevenue(coachId, callback) {
+    const sql = `
+      SELECT
+        COALESCE(SUM(bi.price * bi.quantity), 0) AS monthEarned
+      FROM booking_items bi
+      JOIN bookings b ON b.id = bi.booking_id
+      WHERE bi.coach_id = ?
+        AND b.completed_at >= DATE_FORMAT(NOW(), '%Y-%m-01')
+        AND b.completed_at < DATE_ADD(DATE_FORMAT(NOW(), '%Y-%m-01'), INTERVAL 1 MONTH)
+    `;
+    db.query(sql, [coachId], (err, rows) => {
+      if (err) return callback(err);
+      const row = rows && rows[0] ? rows[0] : { monthEarned: 0 };
+      return callback(null, { monthEarned: Number(row.monthEarned || 0) });
+    });
   }
 };
 

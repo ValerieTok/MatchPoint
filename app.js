@@ -15,6 +15,7 @@ const AdminController = require('./controllers/AdminController');
 const CoachProfileController = require('./controllers/CoachProfileController');
 const UserProfileController = require('./controllers/UserProfileController');
 const FeedbackController = require('./controllers/FeedbackController');
+const RevenueController = require('./controllers/RevenueController');
 const { attachUser, checkAuthenticated, checkAdmin, checkAdminOrCoach, checkCoachApproved } = require('./middleware');
 
 const app = express();
@@ -218,6 +219,9 @@ app.post('/profile/photo', checkAuthenticated, upload.single('photo'), UserProfi
 // Feedback routes
 app.get('/feedback', checkAuthenticated, FeedbackController.showFeedbackForm);
 app.post('/feedback', checkAuthenticated, FeedbackController.submitFeedback);
+
+// Track Revenue (blank page placeholder)
+app.get('/trackRevenue', checkAuthenticated, checkAdminOrCoach, RevenueController.showDashboard);
 
 // upload error handling
 app.use((err, req, res, next) => {

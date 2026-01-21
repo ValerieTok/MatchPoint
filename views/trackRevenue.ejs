@@ -1,0 +1,91 @@
+<%- include('partials/head', {
+	title: 'Track Revenue',
+	bodyClass: 'admin-page coach-dashboard',
+	extraHead: `
+		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+	`
+}) %>
+
+<div class="app">
+	<%- include('partials/coachSidebar', { active: 'revenue' }) %>
+
+	<main class="main">
+		<header class="topbar">
+			<div class="crumb">COACH DASHBOARD</div>
+			<div class="topbar__right">
+				<div class="topbar__avatar topbar__avatar--lg">
+					<% if (typeof profilePhoto !== 'undefined' && profilePhoto) { %>
+						<img src="/images/<%= profilePhoto %>" alt="Profile photo">
+					<% } else { %>
+						<i class="fa-regular fa-user"></i>
+					<% } %>
+				</div>
+				<div class="topbar__pill"><i class="fa-solid fa-dollar-sign"></i></div>
+			</div>
+		</header>
+
+		<section class="hero">
+			<div>
+				<h1 class="hero__title">Hi, <%= user ? user.username : 'Coach' %>!</h1>
+				<p class="hero__subtitle">Overview of your earnings from completed sessions.</p>
+			</div>
+		</section>
+
+		<%- include('partials/flashMessages', { messages: typeof messages !== 'undefined' ? messages : null }) %>
+
+		<section class="stats">
+			<div class="stat">
+				<div class="stat__icon"><i class="fa-solid fa-dollar-sign"></i></div>
+				<div>
+					<div class="stat__label">Total Earned</div>
+					<div class="stat__value">
+						<% if (revenue && typeof revenue.totalEarned !== 'undefined') { %>
+							$<%= Number(revenue.totalEarned).toFixed(2) %>
+						<% } else { %>
+							$0.00
+						<% } %>
+					</div>
+				</div>
+			</div>
+
+			<div class="stat stat--active">
+				<div class="stat__icon"><i class="fa-solid fa-hourglass-half"></i></div>
+				<div>
+					<div class="stat__label">Total Pending</div>
+					<div class="stat__value">
+						<% if (revenue && typeof revenue.totalPending !== 'undefined') { %>
+							$<%= Number(revenue.totalPending).toFixed(2) %>
+						<% } else { %>
+							$0.00
+						<% } %>
+					</div>
+				</div>
+			</div>
+      
+			<div class="stat">
+				<div class="stat__icon"><i class="fa-solid fa-calendar-day"></i></div>
+				<div>
+					<div class="stat__label">This Month</div>
+					<div class="stat__value">
+						<% if (revenue && typeof revenue.monthEarned !== 'undefined') { %>
+							$<%= Number(revenue.monthEarned).toFixed(2) %>
+						<% } else { %>
+							$0.00
+						<% } %>
+					</div>
+				</div>
+			</div>
+		</section>
+
+		<section class="section">
+			<div class="section__head">
+				<div class="section__title">Revenue Details</div>
+			</div>
+			<div class="section__body">
+				<div class="empty">Detailed breakdown coming soon.</div>
+			</div>
+		</section>
+	</main>
+</div>
+
+<%- include('partials/footer') %>
