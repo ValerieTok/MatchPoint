@@ -5,6 +5,8 @@ const crypto = require('crypto');
 const session = require('express-session');
 const flash = require('connect-flash');
 const multer = require('multer');
+const axios = require('axios');
+
 
 const AccountController = require('./controllers/AccountController');
 const ListingController = require('./controllers/ListingController');
@@ -18,6 +20,7 @@ const FeedbackController = require('./controllers/FeedbackController');
 const RevenueController = require('./controllers/RevenueController');
 const activityStore = require('./activityStore');
 const { attachUser, checkAuthenticated, checkAdmin, checkAdminOrCoach, checkCoachApproved } = require('./middleware');
+const netsQr = require('./services/nets');
 
 const app = express();
 
@@ -235,6 +238,88 @@ app.get('/profile', checkAuthenticated, UserProfileController.showProfile);
 app.post('/profile', checkAuthenticated, UserProfileController.updateProfile);
 app.post('/profile/password', checkAuthenticated, UserProfileController.updatePassword);
 app.post('/profile/photo', checkAuthenticated, upload.single('photo'), UserProfileController.updatePhoto);
+
+// NETS QR Code Payment Integration
+app.post('/generateNETSQR', checkAuthenticated, netsQr.generateQrCode);
+
+app.get("/nets-qr/success", checkAuthenticated, PaymentController.netsQrSuccess);
+app.get("/nets-qr/fail", checkAuthenticated, PaymentController.netsQrFail);
+
+//Endpoint in your backend which is a Server-Sent Events (SSE) endpoint that allows your frontend (browser) 
+//to receive real-time updates about the payment status of a NETS QR transaction.
+app.get('/sse/payment-status/:txnRetrievalRef', async (req, res) => {
+    res.set({
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive'
+    });
+
+    const txnRetrievalRef = req.params.txnRetrievalRef;
+    let pollCount = 0;
+    const maxPolls = 60; // 5 minutes if polling every 5s
+    let frontendTimeoutStatus = 0;
+
+    const interval = setInterval(async () => {
+        pollCount++;
+
+        try {
+            // Call the NETS query API
+            const response = await axios.post(
+                'https://sandbox.nets.openapipaas.com/api/v1/common/payments/nets-qr/query',
+                { txn_retrieval_ref: txnRetrievalRef, frontend_timeout_status: frontendTimeoutStatus },
+                {
+                    headers: {
+                        'api-key': process.env.API_KEY,
+                        'project-id': process.env.PROJECT_ID,
+                        'Content-Type': 'application/json'
+                    }
+                }
+            );
+
+            console.log("Polling response:", response.data);
+            // Send the full response to the frontend
+            res.write(`data: ${JSON.stringify(response.data)}\n\n`);
+        
+          const resData = response.data.result.data;
+
+            // Decide when to end polling and close the connection
+            //Check if payment is successful
+            if (resData.response_code == "00" && resData.txn_status === 1) {
+                // Payment success: send a success message
+                res.write(`data: ${JSON.stringify({ success: true })}\n\n`);
+                clearInterval(interval);
+                res.end();
+            } else if (frontendTimeoutStatus == 1 && resData && (resData.response_code !== "00" || resData.txn_status === 2)) {
+                // Payment failure: send a fail message
+                res.write(`data: ${JSON.stringify({ fail: true, ...resData })}\n\n`);
+                clearInterval(interval);
+                res.end();
+            }
+
+        } catch (err) {
+            clearInterval(interval);
+            res.write(`data: ${JSON.stringify({ error: err.message })}\n\n`);
+            res.end();
+        }
+
+
+        // Timeout
+        if (pollCount >= maxPolls) {
+            clearInterval(interval);
+            frontendTimeoutStatus = 1;
+            res.write(`data: ${JSON.stringify({ fail: true, error: "Timeout" })}\n\n`);
+            res.end();
+        }
+    }, 5000);
+
+    req.on('close', () => {
+        clearInterval(interval);
+    });
+});
+
+
+
+
 
 // Feedback routes
 app.get('/feedback', checkAuthenticated, FeedbackController.showFeedbackForm);

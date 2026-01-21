@@ -2425,15 +2425,15 @@ body.payment-page .topbar {
 }
 
 body.payment-page .payment-container .row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
-  align-items: start;
-  gap: 8px;
-}
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    align-items: start;
+    gap: 8px;
+  }
 
 @media (max-width: 992px) {
   body.payment-page .payment-container .row {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr) 320px;
   }
 }
 
@@ -2460,23 +2460,23 @@ body.payment-page .payment-container .row {
 }
 
 .payment-panel {
-  background: #ffffff;
-  border-radius: 18px;
-  border: 1px solid #ececec;
-  padding: 16px;
-  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.08);
-  max-width: 720px;
-  margin-top: 0;
-}
-.summary-card {
-  background: #f1eded;
-  border-color: #e2d6d6;
-  max-width: 420px;
-  padding: 32px;
-  margin-left: auto;
-  align-self: flex-start;
-  margin-top: 0;
-}
+    background: #ffffff;
+    border-radius: 18px;
+    border: 1px solid #ececec;
+    padding: 16px;
+    box-shadow: 0 12px 26px rgba(15, 23, 42, 0.08);
+    max-width: 720px;
+    margin-top: 0;
+  }
+  .summary-card {
+    background: #f1eded;
+    border-color: #e2d6d6;
+    max-width: 420px;
+    padding: 32px;
+    margin-left: auto;
+    align-self: flex-start;
+    margin-top: 0;
+  }
 
 .summary-card h5 {
   margin-bottom: 22px;
@@ -2491,12 +2491,12 @@ body.payment-page .payment-container .row {
 }
 
 .payment-summary {
-  display: flex;
-  justify-content: flex-end;
-  align-items: flex-start;
-  padding-top: 0;
-  align-self: flex-start;
-}
+    display: flex;
+    justify-content: flex-end;
+    align-items: flex-start;
+    padding-top: 0;
+    align-self: flex-start;
+  }
 
 .payment-method {
   display: flex;

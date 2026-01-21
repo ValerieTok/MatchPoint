@@ -1,3 +1,9 @@
+<%
+  const netsAmount = (cart && cart.length)
+    ? Number(cart[0].price || 0).toFixed(2)
+    : '0.00';
+%>
+
 <%- include('partials/head', {
   title: 'Payment',
   bodyClass: 'admin-page payment-page',
@@ -28,10 +34,10 @@
               <%- include('partials/flashMessages', { messages }) %>
 
               <form id="paymentForm" action="/payment/confirm" method="POST">
-              <div class="payment-form-grid">
-                <div class="payment-form-left">
-                  <div class="mb-4">
-                    <h6 class="fw-semibold mb-3">Payment Method</h6>
+                <div class="payment-form-grid">
+                  <div class="payment-form-left">
+                    <div class="mb-4">
+                      <h6 class="fw-semibold mb-3">Payment Method</h6>
 
                       <label class="payment-method active">
                         <input type="radio" name="paymentMethod" value="paypal" checked>
@@ -41,12 +47,12 @@
                           <img src="https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg" alt="PayPal" class="card-logo">
                         </div>
                       </label>
-                    <label class="payment-method">
-                      <input type="radio" name="paymentMethod" value="netsqr">
-                      <span class="payment-icon"><i class="fa-solid fa-qrcode"></i></span>
-                      <span class="fw-semibold">NETS QR</span>
-                    </label>
-                  </div>
+                      <label class="payment-method">
+                        <input type="radio" name="paymentMethod" value="netsqr">
+                        <span class="payment-icon"><i class="fa-solid fa-qrcode"></i></span>
+                        <span class="fw-semibold">NETS QR</span>
+                      </label>
+                    </div>
 
                 <div class="payment-form-details" id="cardDetails" style="display: none;">
                   <div class="mb-3">
@@ -71,40 +77,51 @@
                   </div>
                 </div>
 
-                <div class="payment-form-details" id="netsqrDetails" style="display: none;">
-                  <div class="mb-4">
-                    <h6 class="fw-semibold mb-3">Scan QR Code to Pay</h6>
-                    <div class="d-flex justify-content-center">
-                      <div class="netsqr-qrcode-container" id="netsqrQRCode"></div>
-                    </div>
-                    <p class="text-muted mt-3 small text-center">Scan this code with your mobile banking app to complete the payment</p>
-                    <div class="mt-3 text-center">
-                      <label class="form-check-label">
-                        <input type="checkbox" class="form-check-input" name="netsqrConfirm" id="netsqrConfirm">
-                        I have scanned and completed the payment
-                      </label>
+                  <div class="payment-form-details" id="netsqrDetails" style="display: none;">
+                    <div class="mb-4">
+                      <h6 class="fw-semibold mb-3">Scan QR Code to Pay</h6>
+
+                      <div class="text-center mb-3">
+                        <button type="submit" form="netsQrForm" class="btn btn-outline-dark">Generate NETS QR</button>
+                      </div>
+
+                      <% if (qrCodeUrl) { %>
+                        <div class="d-flex justify-content-center">
+                          <img src="<%= qrCodeUrl %>" alt="NETS QR Code" style="max-width: 260px; width: 100%;">
+                        </div>
+                        <p id="timer" class="text-muted mt-3 small text-center">Time remaining: 5:00</p>
+                        <p class="text-muted mt-2 small text-center">Scan this code with your mobile banking app to complete the payment</p>
+                      <% } else { %>
+                        <p class="text-muted mt-3 small text-center">Generate a NETS QR code to proceed.</p>
+                      <% } %>
+
+                      <div class="mt-3 text-center">
+                        <label class="form-check-label">
+                          <input type="checkbox" class="form-check-input" name="netsqrConfirm" id="netsqrConfirm">
+                          I have scanned and completed the payment
+                        </label>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
 
-                <div class="mb-3">
-                  <label class="form-label fw-semibold">Email Address</label>
-                  <input type="email" class="form-control" name="email" value="<%= user.email || '' %>" placeholder="yuwaranesri16@gmail.com">
-                </div>
 
-                <div class="mb-4">
-                  <label class="form-label fw-semibold">Phone Number</label>
-                  <input type="tel" class="form-control" name="phone" value="<%= user.contact || '' %>" placeholder="+65 8770 7650">
-                </div>
+                  <div class="mb-3">
+                    <label class="form-label fw-semibold">Email Address</label>
+                    <input type="email" class="form-control" name="email" value="<%= user.email || '' %>" placeholder="yuwaranesri16@gmail.com">
+                  </div>
 
-                <div class="form-check mb-4">
-                  <input class="form-check-input" type="checkbox" id="termsCheck" required>
-                  <label class="form-check-label small" for="termsCheck">
-                    I agree to the terms and conditions and privacy policy. I understand that my payment will be processed securely
-                  </label>
+                  <div class="mb-4">
+                    <label class="form-label fw-semibold">Phone Number</label>
+                    <input type="tel" class="form-control" name="phone" value="<%= user.contact || '' %>" placeholder="+65 8770 7650">
+                  </div>
+
+                  <div class="form-check mb-4">
+                    <input class="form-check-input" type="checkbox" id="termsCheck" required>
+                    <label class="form-check-label small" for="termsCheck">
+                      I agree to the terms and conditions and privacy policy. I understand that my payment will be processed securely
+                    </label>
+                  </div>
                 </div>
-              </div>
 
                 <input type="hidden" name="orderId" value="<%= orderId %>">
               </form>
@@ -162,7 +179,7 @@
               <p class="text-muted">No items in booking</p>
             <% } %>
 
-            <button type="submit" form="paymentForm" class="btn btn-danger btn-payment w-100 mt-4">
+            <button type="submit" form="paymentForm" class="btn btn-danger btn-payment w-100 mt-4" id="confirmPaymentBtn">
               Confirm Payment
             </button>
           </div>
@@ -172,108 +189,68 @@
   </main>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<form id="netsQrForm" action="/generateNETSQR" method="POST">
+  <input type="hidden" name="cartTotal" value="<%= (Number(total || 0) + 2.50).toFixed(2) %>">
+  <input type="hidden" name="orderId" value="<%= orderId %>">
+</form>
+
+<!-- NETS payment -->
+ <script src="https://unpkg.com/event-source-polyfill"></script>
 <script>
-  // Generate NETS QR code
-  function generateNetsQRCode() {
-    const container = document.getElementById('netsqrQRCode');
-    if (container) {
-      container.innerHTML = '';
-      // Generate a sample NETS QR code - in production, this should be a real transaction reference
-      const qrData = `00020126360014SG.PAYNOW0107121234567890520400005303702540520025406112.005802SG6304D4F4`;
-      try {
-        new QRCode(container, {
-          text: qrData,
-          width: 250,
-          height: 250,
-          colorDark: "#000000",
-          colorLight: "#ffffff",
-          correctLevel: QRCode.CorrectLevel.H
-        });
-      } catch (err) {
-        console.error('QR Code generation error:', err);
-        container.innerHTML = '<p class="text-danger">Error generating QR code</p>';
-      }
-    }
-  }
+  const txnRetrievalRef = "<%= txnRetrievalRef || '' %>";
+  const fullNetsResponse = <%- JSON.stringify(fullNetsResponse || {}) %>;
 
-  document.querySelector('input[name="cardNumber"]')?.addEventListener('input', function(e) {
-    let value = e.target.value.replace(/\s/g, '');
-    let formattedValue = value.match(/.{1,4}/g)?.join(' ') || value;
-    e.target.value = formattedValue;
-  });
+  const paymentMethodInputs = document.querySelectorAll('input[name="paymentMethod"]');
+  const cardDetails = document.getElementById("cardDetails");
+  const netsqrDetails = document.getElementById("netsqrDetails");
+  const confirmPaymentBtn = document.getElementById("confirmPaymentBtn");
 
-  document.querySelector('input[name="expiryDate"]')?.addEventListener('input', function(e) {
-    let value = e.target.value.replace(/\D/g, '');
-    if (value.length >= 2) {
-      value = value.slice(0, 2) + '/' + value.slice(2, 4);
-    }
-    e.target.value = value;
-  });
+  const syncPaymentUi = () => {
+    const selected = document.querySelector('input[name="paymentMethod"]:checked')?.value;
+    const isNets = selected === "netsqr";
+    if (cardDetails) cardDetails.style.display = isNets ? "none" : "block";
+    if (netsqrDetails) netsqrDetails.style.display = isNets ? "block" : "none";
+    if (confirmPaymentBtn) confirmPaymentBtn.disabled = isNets;
+  };
 
-  document.querySelector('input[name="cvv"]')?.addEventListener('input', function(e) {
-    e.target.value = e.target.value.replace(/\D/g, '');
-  });
+  paymentMethodInputs.forEach((input) => input.addEventListener("change", syncPaymentUi));
+  syncPaymentUi();
 
-  const methodInputs = document.querySelectorAll('input[name="paymentMethod"]');
-  const methodLabels = document.querySelectorAll('.payment-method');
-  const cardDetails = document.getElementById('cardDetails');
-  const netsqrDetails = document.getElementById('netsqrDetails');
-  
-  methodInputs.forEach((input) => {
-    input.addEventListener('change', () => {
-      methodLabels.forEach((label) => label.classList.remove('active'));
-      input.closest('.payment-method')?.classList.add('active');
-      
-      // Show/hide form details based on payment method
-      const selectedMethod = input.value;
-      if (selectedMethod === 'paypal') {
-        cardDetails.style.display = 'block';
-        netsqrDetails.style.display = 'none';
-        // Set required on card fields
-        cardDetails.querySelectorAll('input').forEach(field => {
-          field.setAttribute('required', 'required');
-        });
-      } else if (selectedMethod === 'netsqr') {
-        cardDetails.style.display = 'none';
-        netsqrDetails.style.display = 'block';
-        generateNetsQRCode();
-        // Remove required from card fields
-        cardDetails.querySelectorAll('input').forEach(field => {
-          field.removeAttribute('required');
-        });
+  if (txnRetrievalRef) {
+    const url = `/sse/payment-status/${txnRetrievalRef}`;
+    const s2sNetsTxnStatus = new EventSourcePolyfill(url, { heartbeatTimeout: 150000 });
+
+    s2sNetsTxnStatus.addEventListener("message", (event) => {
+      const data = JSON.parse(event.data);
+      if (data.success) {
+        s2sNetsTxnStatus.close();
+        window.location.href = `/nets-qr/success?txn_retrieval_ref=${txnRetrievalRef}`;
+      } else if (data.fail) {
+        s2sNetsTxnStatus.close();
+        window.location.href = `/nets-qr/fail?txn_retrieval_ref=${txnRetrievalRef}`;
       }
     });
-  });
 
-  // Handle form submission for NETS QR
-  document.getElementById('paymentForm')?.addEventListener('submit', function(e) {
-    const selectedMethod = document.querySelector('input[name="paymentMethod"]:checked')?.value;
-    if (selectedMethod === 'netsqr') {
-      const confirmed = document.getElementById('netsqrConfirm')?.checked;
-      if (!confirmed) {
-        e.preventDefault();
-        alert('Please confirm that you have completed the payment by scanning the QR code');
-      }
-    }
-  });
+    // Countdown
+    const timerElement = document.getElementById("timer");
+    if (timerElement) {
+      let remainingTime = 300;
+      const timerInterval = setInterval(() => {
+        const minutes = Math.floor(remainingTime / 60);
+        const seconds = remainingTime % 60;
+        timerElement.textContent = `Time remaining: ${minutes}:${seconds.toString().padStart(2, "0")}`;
+        remainingTime--;
 
-  // Initialize on page load
-  window.addEventListener('load', () => {
-    const selectedMethod = document.querySelector('input[name="paymentMethod"]:checked')?.value;
-    if (selectedMethod === 'paypal' || selectedMethod === 'nets') {
-      cardDetails.style.display = 'block';
-      netsqrDetails.style.display = 'none';
-      cardDetails.querySelectorAll('input').forEach(field => {
-        field.setAttribute('required', 'required');
-      });
-    } else if (selectedMethod === 'netsqr') {
-      cardDetails.style.display = 'none';
-      netsqrDetails.style.display = 'block';
-      // Give QRCode library time to load
-      setTimeout(generateNetsQRCode, 100);
+        if (remainingTime < 0) {
+          clearInterval(timerInterval);
+          timerElement.textContent = "Transaction timed out.";
+          s2sNetsTxnStatus.close();
+          window.location.href = `/nets-qr/fail?txn_retrieval_ref=${txnRetrievalRef}`;
+        }
+      }, 1000);
     }
-  });
+  }
 </script>
+
 
 <%- include('partials/footer') %>
