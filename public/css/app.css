@@ -2140,6 +2140,9 @@ body.payment-page .payment-container .row {
   padding: 14px 18px;
   font-size: 15px;
   width: 100%;
+  background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+  border-color: #dc2626 !important;
+  color: white !important;
 }
 
 .payment-form-grid {
@@ -2148,9 +2151,32 @@ body.payment-page .payment-container .row {
   gap: 18px;
 }
 
+.netsqr-qrcode-container {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 2px solid #e5e7eb;
+  max-width: 100%;
+  width: fit-content;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.netsqr-qrcode-container img,
+.netsqr-qrcode-container canvas {
+  max-width: 100%;
+  height: auto !important;
+  width: auto !important;
+}
+
 @media (max-width: 992px) {
   .payment-form-grid {
     grid-template-columns: 1fr;
+  }
+  
+  .netsqr-qrcode-container {
+    padding: 1rem;
   }
 }
 

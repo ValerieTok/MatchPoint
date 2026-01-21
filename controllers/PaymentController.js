@@ -112,9 +112,21 @@ module.exports = {
         return res.redirect('/payment');
       }
 
-      if (paymentMethod === 'card') {
+      if (paymentMethod === 'paypal') {
         if (!cardholderName || !cardNumber || !expiryDate || !cvv) {
-          req.flash('error', 'Please fill in all card details');
+          req.flash('error', 'Please fill in all PayPal payment details');
+          return res.redirect('/payment');
+        }
+      }
+
+      if (paymentMethod === 'netsqr') {
+        if (!email || !phone) {
+          req.flash('error', 'Please provide email and phone number for NETS QR payment');
+          return res.redirect('/payment');
+        }
+        const netsqrConfirm = req.body.netsqrConfirm;
+        if (!netsqrConfirm) {
+          req.flash('error', 'Please confirm that you have completed the QR code payment');
           return res.redirect('/payment');
         }
       }

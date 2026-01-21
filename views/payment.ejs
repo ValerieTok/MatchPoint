@@ -34,44 +34,59 @@
                     <h6 class="fw-semibold mb-3">Payment Method</h6>
 
                       <label class="payment-method active">
-                        <input type="radio" name="paymentMethod" value="card" checked>
-                        <span class="payment-icon"><i class="fa-regular fa-credit-card"></i></span>
-                        <span class="fw-semibold">Credit / Debit Card</span>
+                        <input type="radio" name="paymentMethod" value="paypal" checked>
+                        <span class="payment-icon"><i class="fa-brands fa-paypal"></i></span>
+                        <span class="fw-semibold">PayPal</span>
                         <div class="card-logos">
-                          <img src="https://upload.wikimedia.org/wikipedia/commons/0/04/Visa.svg" alt="Visa" class="card-logo">
-                          <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" alt="Mastercard" class="card-logo">
+                          <img src="https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg" alt="PayPal" class="card-logo">
                         </div>
                       </label>
                     <label class="payment-method">
-                      <input type="radio" name="paymentMethod" value="nets">
-                      <span class="payment-icon"><i class="fa-solid fa-credit-card"></i></span>
-                      <span class="fw-semibold">NETS</span>
+                      <input type="radio" name="paymentMethod" value="netsqr">
+                      <span class="payment-icon"><i class="fa-solid fa-qrcode"></i></span>
+                      <span class="fw-semibold">NETS QR</span>
                     </label>
                   </div>
 
-                <div class="payment-form-details" id="cardDetails">
+                <div class="payment-form-details" id="cardDetails" style="display: none;">
                   <div class="mb-3">
                     <label class="form-label fw-semibold">Cardholder Name</label>
-                    <input type="text" class="form-control" name="cardholderName" placeholder="Yuwarane Sri" required>
+                    <input type="text" class="form-control" name="cardholderName" placeholder="Yuwarane Sri">
                   </div>
 
                     <div class="mb-3">
                       <label class="form-label fw-semibold">Card Number</label>
-                      <input type="text" class="form-control" name="cardNumber" placeholder="1234 5678 9012 3456" maxlength="19" required>
+                      <input type="text" class="form-control" name="cardNumber" placeholder="1234 5678 9012 3456" maxlength="19">
                     </div>
 
                     <div class="row g-3 mb-3">
                       <div class="col-md-6">
                         <label class="form-label fw-semibold">Expiry Date</label>
-                        <input type="text" class="form-control" name="expiryDate" placeholder="MM/YY" maxlength="5" required>
+                        <input type="text" class="form-control" name="expiryDate" placeholder="MM/YY" maxlength="5">
                       </div>
                       <div class="col-md-6">
                         <label class="form-label fw-semibold">CVV</label>
-                        <input type="text" class="form-control" name="cvv" placeholder="123" maxlength="3" required>
+                        <input type="text" class="form-control" name="cvv" placeholder="123" maxlength="3">
                       </div>
+                  </div>
+                </div>
+
+                <div class="payment-form-details" id="netsqrDetails" style="display: none;">
+                  <div class="mb-4">
+                    <h6 class="fw-semibold mb-3">Scan QR Code to Pay</h6>
+                    <div class="d-flex justify-content-center">
+                      <div class="netsqr-qrcode-container" id="netsqrQRCode"></div>
+                    </div>
+                    <p class="text-muted mt-3 small text-center">Scan this code with your mobile banking app to complete the payment</p>
+                    <div class="mt-3 text-center">
+                      <label class="form-check-label">
+                        <input type="checkbox" class="form-check-input" name="netsqrConfirm" id="netsqrConfirm">
+                        I have scanned and completed the payment
+                      </label>
                     </div>
                   </div>
                 </div>
+              </div>
 
                 <div class="mb-3">
                   <label class="form-label fw-semibold">Email Address</label>
@@ -147,7 +162,7 @@
               <p class="text-muted">No items in booking</p>
             <% } %>
 
-            <button type="submit" form="paymentForm" class="btn btn-success btn-payment w-100 mt-4">
+            <button type="submit" form="paymentForm" class="btn btn-danger btn-payment w-100 mt-4">
               Confirm Payment
             </button>
           </div>
@@ -157,7 +172,31 @@
   </main>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
+  // Generate NETS QR code
+  function generateNetsQRCode() {
+    const container = document.getElementById('netsqrQRCode');
+    if (container) {
+      container.innerHTML = '';
+      // Generate a sample NETS QR code - in production, this should be a real transaction reference
+      const qrData = `00020126360014SG.PAYNOW0107121234567890520400005303702540520025406112.005802SG6304D4F4`;
+      try {
+        new QRCode(container, {
+          text: qrData,
+          width: 250,
+          height: 250,
+          colorDark: "#000000",
+          colorLight: "#ffffff",
+          correctLevel: QRCode.CorrectLevel.H
+        });
+      } catch (err) {
+        console.error('QR Code generation error:', err);
+        container.innerHTML = '<p class="text-danger">Error generating QR code</p>';
+      }
+    }
+  }
+
   document.querySelector('input[name="cardNumber"]')?.addEventListener('input', function(e) {
     let value = e.target.value.replace(/\s/g, '');
     let formattedValue = value.match(/.{1,4}/g)?.join(' ') || value;
@@ -178,11 +217,62 @@
 
   const methodInputs = document.querySelectorAll('input[name="paymentMethod"]');
   const methodLabels = document.querySelectorAll('.payment-method');
+  const cardDetails = document.getElementById('cardDetails');
+  const netsqrDetails = document.getElementById('netsqrDetails');
+  
   methodInputs.forEach((input) => {
     input.addEventListener('change', () => {
       methodLabels.forEach((label) => label.classList.remove('active'));
       input.closest('.payment-method')?.classList.add('active');
+      
+      // Show/hide form details based on payment method
+      const selectedMethod = input.value;
+      if (selectedMethod === 'paypal') {
+        cardDetails.style.display = 'block';
+        netsqrDetails.style.display = 'none';
+        // Set required on card fields
+        cardDetails.querySelectorAll('input').forEach(field => {
+          field.setAttribute('required', 'required');
+        });
+      } else if (selectedMethod === 'netsqr') {
+        cardDetails.style.display = 'none';
+        netsqrDetails.style.display = 'block';
+        generateNetsQRCode();
+        // Remove required from card fields
+        cardDetails.querySelectorAll('input').forEach(field => {
+          field.removeAttribute('required');
+        });
+      }
     });
+  });
+
+  // Handle form submission for NETS QR
+  document.getElementById('paymentForm')?.addEventListener('submit', function(e) {
+    const selectedMethod = document.querySelector('input[name="paymentMethod"]:checked')?.value;
+    if (selectedMethod === 'netsqr') {
+      const confirmed = document.getElementById('netsqrConfirm')?.checked;
+      if (!confirmed) {
+        e.preventDefault();
+        alert('Please confirm that you have completed the payment by scanning the QR code');
+      }
+    }
+  });
+
+  // Initialize on page load
+  window.addEventListener('load', () => {
+    const selectedMethod = document.querySelector('input[name="paymentMethod"]:checked')?.value;
+    if (selectedMethod === 'paypal' || selectedMethod === 'nets') {
+      cardDetails.style.display = 'block';
+      netsqrDetails.style.display = 'none';
+      cardDetails.querySelectorAll('input').forEach(field => {
+        field.setAttribute('required', 'required');
+      });
+    } else if (selectedMethod === 'netsqr') {
+      cardDetails.style.display = 'none';
+      netsqrDetails.style.display = 'block';
+      // Give QRCode library time to load
+      setTimeout(generateNetsQRCode, 100);
+    }
   });
 </script>
 
