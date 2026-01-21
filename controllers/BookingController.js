@@ -224,26 +224,11 @@ module.exports = {
       }
       const withItems = Promise.all(orders.map((o) => buildOrderDetails(o, null)));
       return withItems.then((ordersWithItems) => {
-        const upcomingSessions = [];
         const completedSessions = [];
         ordersWithItems.forEach((order) => {
           const status = (order.status || '').toLowerCase();
           const items = Array.isArray(order.items) ? order.items : [];
-          if (status === 'accepted' && !order.completed_at) {
-            items.forEach((item) => {
-              upcomingSessions.push({
-                bookingId: order.id,
-                status,
-                coach: item.username,
-                sport: item.sport,
-                location: item.session_location || order.session_location,
-                date: item.session_date,
-                time: item.session_time
-              });
-            });
-          }
-
-          if (order.completed_at && order.review) {
+          if (order.completed_at) {
             items.forEach((item) => {
               completedSessions.push({
                 bookingId: order.id,
@@ -260,7 +245,6 @@ module.exports = {
         });
         return res.render('userRatings', {
           user: req.session && req.session.user,
-          upcomingSessions,
           completedSessions
         });
       });

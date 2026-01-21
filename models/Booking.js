@@ -271,7 +271,7 @@ const Booking = {
 
   getReviewByOrderId(orderId, callback) {
     const sql = `
-      SELECT id, booking_id, user_id, rating, comment, created_at
+      SELECT id, booking_id, user_id, rating, comment, review_status, created_at
       FROM coach_reviews
       WHERE booking_id = ?
       LIMIT 1
@@ -307,6 +307,46 @@ const Booking = {
       ORDER BY r.created_at DESC
     `;
     db.query(sql, [coachId], (err, rows) => callback(err, rows || []));
+  },
+
+  getRecentUserInbox(userId, limit, callback) {
+    const capped = Number.isFinite(Number(limit)) ? Number(limit) : 3;
+    const sql = `
+      SELECT
+        b.id,
+        b.status,
+        b.completed_at,
+        b.created_at,
+        MIN(u.username) AS coach_name
+      FROM bookings b
+      JOIN booking_items bi ON bi.booking_id = b.id
+      JOIN users u ON u.id = bi.coach_id
+      WHERE b.user_id = ?
+        AND (b.status = 'accepted' OR b.status = 'rejected')
+      GROUP BY b.id, b.status, b.completed_at, b.created_at
+      ORDER BY b.created_at DESC
+      LIMIT ?
+    `;
+    db.query(sql, [userId, capped], (err, rows) => callback(err, rows || []));
+  },
+
+  getRecentCoachInbox(coachId, limit, callback) {
+    const capped = Number.isFinite(Number(limit)) ? Number(limit) : 3;
+    const sql = `
+      SELECT
+        r.id AS review_id,
+        r.booking_id,
+        r.review_status,
+        r.created_at,
+        u.username AS student_name
+      FROM coach_reviews r
+      JOIN users u ON u.id = r.user_id
+      JOIN booking_items bi ON bi.booking_id = r.booking_id AND bi.coach_id = ?
+      WHERE r.review_status = 'pending'
+      ORDER BY r.created_at DESC
+      LIMIT ?
+    `;
+    db.query(sql, [coachId, capped], (err, rows) => callback(err, rows || []));
   },
 
   getCoachRevenue(coachId, callback) {

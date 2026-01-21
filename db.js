@@ -1,5 +1,5 @@
 const mysql = require('mysql2');
-require('dotenv').config(); // Load variables from .env
+require('dotenv').config({ override: true }); // Load variables from .env
  
 //Database connection details
 const useSsl = String(process.env.DB_SSL || '').toLowerCase() === 'true';
