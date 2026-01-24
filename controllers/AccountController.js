@@ -2,6 +2,7 @@ const userModel = require('../models/Account');
 const Listing = require('../models/Listing');
 const BookingCart = require('../models/BookingCart');
 const UserProfile = require('../models/UserProfile');
+const UserBan = require('../models/UserBan');
 const activityStore = require('../activityStore');
 const speakeasy = require('speakeasy');
 const QRCode = require('qrcode');
@@ -64,6 +65,17 @@ const addPendingBookingToCart = async (req) => {
     return null;
   }
 };
+
+const getActiveBan = (userId) =>
+  new Promise((resolve) => {
+    UserBan.getActiveBan(userId, (err, banRow) => {
+      if (err) {
+        console.error('Failed to load ban status:', err);
+        return resolve(null);
+      }
+      return resolve(banRow);
+    });
+  });
 
 const ensureAdminOnly = (req, res) => {
   if (req.session && req.session.user && req.session.user.role === 'admin') {
@@ -210,8 +222,10 @@ const AccountController = {
       req.session.user = safeUser;
       req.session.cart = [];
       req.flash('success', 'Login successful');
+      const ban = safeUser.role !== 'admin' ? await getActiveBan(safeUser.id) : null;
       const pendingRedirect = await addPendingBookingToCart(req);
       return req.session.save(function () {
+        if (ban) return res.redirect('/banned');
         if (safeUser.role === 'admin') return res.redirect('/admindashboard');
         if (safeUser.role === 'coach') return res.redirect('/listingsManage');
         if (pendingRedirect) return res.redirect(pendingRedirect);
@@ -543,8 +557,10 @@ const AccountController = {
     req.session.user = safeUser;
     req.session.cart = [];
     req.flash('success', 'Login successful');
+    const ban = safeUser.role !== 'admin' ? await getActiveBan(safeUser.id) : null;
     const pendingRedirect = await addPendingBookingToCart(req);
     return req.session.save(function () {
+      if (ban) return res.redirect('/banned');
       if (safeUser.role === 'admin') return res.redirect('/admindashboard');
       if (safeUser.role === 'coach') return res.redirect('/listingsManage');
       if (pendingRedirect) return res.redirect(pendingRedirect);

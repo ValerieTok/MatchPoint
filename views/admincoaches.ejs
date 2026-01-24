@@ -114,12 +114,22 @@
                         <% } %>
                       </td>
                       <td>
-                        <span class="pill pill--<%= row.coach_status || 'pending' %>"><%= String(row.coach_status || 'pending').toUpperCase() %></span>
+                        <% if (row.is_banned) { %>
+                          <span class="pill pill--banned">BANNED</span>
+                        <% } else { %>
+                          <span class="pill pill--<%= row.coach_status || 'pending' %>"><%= String(row.coach_status || 'pending').toUpperCase() %></span>
+                        <% } %>
                       </td>
                       <td class="actions">
                         <div class="action-group">
                           <button class="btn warn js-warn" type="button" data-id="<%= row.id %>" data-name="<%= row.username %>">Issue Warning</button>
-                          <button class="btn danger" type="button">Ban Coach</button>
+                          <% if (row.is_banned) { %>
+                            <form method="post" action="/admincoaches/<%= row.id %>/unban">
+                              <button class="btn neutral" type="submit">Unban Coach</button>
+                            </form>
+                          <% } else { %>
+                            <button class="btn danger js-ban" type="button" data-id="<%= row.id %>" data-name="<%= row.username %>">Ban Coach</button>
+                          <% } %>
                         </div>
                       </td>
                     </tr>
@@ -170,6 +180,23 @@
   </div>
 </div>
 
+<div class="warn-modal" id="banModal">
+  <div class="warn-modal__backdrop" data-ban-close></div>
+  <div class="warn-modal__panel" role="dialog" aria-modal="true" aria-labelledby="banTitle">
+    <h3 class="warn-modal__title" id="banTitle">Ban Coach</h3>
+    <p class="warn-modal__sub">Add a reason for banning <span data-ban-name>this coach</span>.</p>
+    <form id="banForm" method="post">
+      <div class="warn-modal__field">
+        <textarea name="comment" maxlength="500" required placeholder="Add ban reason..."></textarea>
+      </div>
+      <div class="warn-modal__actions">
+        <button class="btn" type="button" data-ban-close>Cancel</button>
+        <button class="btn danger" type="submit">Ban Coach</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <%- include('partials/footer', {
   extraScripts: `
     <script>
@@ -181,9 +208,18 @@
       const warnComment = warnForm ? warnForm.querySelector('textarea[name="comment"]') : null;
       const warnButtons = document.querySelectorAll('.js-warn');
       const warnClosers = warnModal ? warnModal.querySelectorAll('[data-warn-close]') : [];
+      const banModal = document.getElementById('banModal');
+      const banForm = document.getElementById('banForm');
+      const banName = banModal ? banModal.querySelector('[data-ban-name]') : null;
+      const banComment = banForm ? banForm.querySelector('textarea[name="comment"]') : null;
+      const banButtons = document.querySelectorAll('.js-ban');
+      const banClosers = banModal ? banModal.querySelectorAll('[data-ban-close]') : [];
 
       const closeWarnModal = () => {
         warnModal?.classList.remove('is-open');
+      };
+      const closeBanModal = () => {
+        banModal?.classList.remove('is-open');
       };
 
       warnButtons.forEach((btn) => {
@@ -199,12 +235,31 @@
         });
       });
 
+      banButtons.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const coachId = btn.getAttribute('data-id');
+          const coachName = btn.getAttribute('data-name') || 'this coach';
+          if (!banForm || !banModal) return;
+          banForm.action = \`/admincoaches/\${coachId}/ban\`;
+          if (banName) banName.textContent = coachName;
+          if (banComment) banComment.value = '';
+          banModal.classList.add('is-open');
+          banComment?.focus();
+        });
+      });
+
       warnClosers.forEach((btn) => {
         btn.addEventListener('click', closeWarnModal);
       });
+      banClosers.forEach((btn) => {
+        btn.addEventListener('click', closeBanModal);
+      });
 
       document.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape') closeWarnModal();
+        if (event.key === 'Escape') {
+          closeWarnModal();
+          closeBanModal();
+        }
       });
 
       const buildUrl = (params) => {

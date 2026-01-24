@@ -5,6 +5,7 @@ const AdminServices = require('../models/AdminServices');
 const AdminFeedback = require('../models/AdminFeedback');
 const Account = require('../models/Account');
 const Warnings = require('../models/Warnings');
+const UserBan = require('../models/UserBan');
 const activityStore = require('../activityStore');
 
 const formatTimeAgo = (input) => {
@@ -101,11 +102,30 @@ const AdminController = {
       const totalCoaches = Number(coachResult.total || 0);
       const totalPages = Math.max(1, Math.ceil(totalCoaches / perPage));
 
+      const coachIds = (coachResult.rows || []).map((row) => row.id);
+      const banMap = await new Promise((resolve) => {
+        UserBan.getActiveBans(coachIds, (err, map) => {
+          if (err) {
+            console.error(err);
+            return resolve(new Map());
+          }
+          return resolve(map);
+        });
+      });
+      const coaches = (coachResult.rows || []).map((row) => {
+        const banInfo = banMap.get(Number(row.id));
+        return {
+          ...row,
+          is_banned: Boolean(banInfo),
+          ban_comment: banInfo ? banInfo.comment : ''
+        };
+      });
+
       return res.render('admincoaches', {
         user: req.session.user,
         messages: res.locals.messages,
         stats,
-        coaches: coachResult.rows || [],
+        coaches,
         filters: { search, sort },
         pagination: {
           page,
@@ -145,10 +165,23 @@ const AdminController = {
         role: 'user',
         withinMs: activityStore.DEFAULT_ACTIVE_WINDOW_MS
       }));
+      const studentIds = (studentResult.rows || []).map((row) => row.id);
+      const banMap = await new Promise((resolve) => {
+        UserBan.getActiveBans(studentIds, (err, map) => {
+          if (err) {
+            console.error(err);
+            return resolve(new Map());
+          }
+          return resolve(map);
+        });
+      });
       const students = (studentResult.rows || []).map((row) => {
+        const banInfo = banMap.get(Number(row.id));
         return {
           ...row,
-          status: activeIds.has(String(row.id)) ? 'active' : 'inactive'
+          status: banInfo ? 'banned' : (activeIds.has(String(row.id)) ? 'active' : 'inactive'),
+          is_banned: Boolean(banInfo),
+          ban_comment: banInfo ? banInfo.comment : ''
         };
       });
 
@@ -395,6 +428,90 @@ const AdminController = {
     } catch (err) {
       console.error(err);
       req.flash('error', 'Failed to issue warning.');
+    }
+    return res.redirect('/admincoaches');
+  },
+
+  banStudent: async function (req, res) {
+    const comment = req.body && req.body.comment ? String(req.body.comment).trim() : '';
+    if (!comment) {
+      req.flash('error', 'Ban reason is required.');
+      return res.redirect('/adminstudents');
+    }
+    try {
+      const targetId = req.params.id;
+      const target = await new Promise((resolve, reject) => {
+        Account.getUserById(targetId, (err, user) => (err ? reject(err) : resolve(user)));
+      });
+      if (!target || target.role !== 'user') {
+        req.flash('error', 'Student not found.');
+        return res.redirect('/adminstudents');
+      }
+      await new Promise((resolve, reject) => {
+        UserBan.banUser(target.id, comment, req.session && req.session.user ? req.session.user.id : null, (err) =>
+          err ? reject(err) : resolve()
+        );
+      });
+      req.flash('success', 'Student banned.');
+    } catch (err) {
+      console.error(err);
+      req.flash('error', 'Failed to ban student.');
+    }
+    return res.redirect('/adminstudents');
+  },
+
+  unbanStudent: async function (req, res) {
+    try {
+      const targetId = req.params.id;
+      await new Promise((resolve, reject) => {
+        UserBan.unbanUser(targetId, (err) => (err ? reject(err) : resolve()));
+      });
+      req.flash('success', 'Student unbanned.');
+    } catch (err) {
+      console.error(err);
+      req.flash('error', 'Failed to unban student.');
+    }
+    return res.redirect('/adminstudents');
+  },
+
+  banCoach: async function (req, res) {
+    const comment = req.body && req.body.comment ? String(req.body.comment).trim() : '';
+    if (!comment) {
+      req.flash('error', 'Ban reason is required.');
+      return res.redirect('/admincoaches');
+    }
+    try {
+      const targetId = req.params.id;
+      const target = await new Promise((resolve, reject) => {
+        Account.getUserById(targetId, (err, user) => (err ? reject(err) : resolve(user)));
+      });
+      if (!target || target.role !== 'coach') {
+        req.flash('error', 'Coach not found.');
+        return res.redirect('/admincoaches');
+      }
+      await new Promise((resolve, reject) => {
+        UserBan.banUser(target.id, comment, req.session && req.session.user ? req.session.user.id : null, (err) =>
+          err ? reject(err) : resolve()
+        );
+      });
+      req.flash('success', 'Coach banned.');
+    } catch (err) {
+      console.error(err);
+      req.flash('error', 'Failed to ban coach.');
+    }
+    return res.redirect('/admincoaches');
+  },
+
+  unbanCoach: async function (req, res) {
+    try {
+      const targetId = req.params.id;
+      await new Promise((resolve, reject) => {
+        UserBan.unbanUser(targetId, (err) => (err ? reject(err) : resolve()));
+      });
+      req.flash('success', 'Coach unbanned.');
+    } catch (err) {
+      console.error(err);
+      req.flash('error', 'Failed to unban coach.');
     }
     return res.redirect('/admincoaches');
   }

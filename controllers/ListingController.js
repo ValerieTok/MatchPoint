@@ -1,6 +1,7 @@
 const Listing = require('../models/Listing');
 const Booking = require('../models/Booking');
 const UserProfile = require('../models/UserProfile');
+const Favorite = require('../models/Favorite');
 
 const allowedSkillLevels = new Set(['beginner', 'intermediate', 'advanced', 'expert']);
 const normalizeSkillLevel = (value, fallback) => {
@@ -56,8 +57,15 @@ const ListingController = {
       let completedCount = 0;
       let sessions = [];
       let profilePhoto = null;
+      let favoritesMap = new Map();
+      const sortFavoritesFirst = (items) =>
+        (items || []).sort((a, b) => {
+          const aFav = a && a.isFavorited ? 1 : 0;
+          const bFav = b && b.isFavorited ? 1 : 0;
+          return bFav - aFav;
+        });
       if ((view === 'userdashboard' || view === 'viewcourses') && user.role === 'user') {
-        const [stats, sessionRows, profile] = await Promise.all([
+        const [stats, sessionRows, profile, favoriteMap] = await Promise.all([
           new Promise((resolve, reject) => {
             Booking.getUserDashboardStats(user.id, (err, data) => (err ? reject(err) : resolve(data)));
           }),
@@ -72,10 +80,21 @@ const ListingController = {
               }
               return resolve(profileRow);
             });
+          }),
+          new Promise((resolve) => {
+            const listingIds = (products || []).map((row) => row.id || row.listing_id).filter(Boolean);
+            Favorite.getFavoritesMap(user.id, listingIds, (err, map) => {
+              if (err) {
+                console.error('Failed to load favorites:', err);
+                return resolve(new Map());
+              }
+              return resolve(map);
+            });
           })
         ]);
         upcomingCount = stats ? stats.upcomingCount : 0;
         completedCount = stats ? stats.completedCount : 0;
+        favoritesMap = favoriteMap || new Map();
         const sessionList = (sessionRows || []).map((row) => {
           const bookingStatus = row.booking_status ? String(row.booking_status).toLowerCase() : 'pending';
           const status = row.session_completed
@@ -131,8 +150,13 @@ const ListingController = {
           const totalPages = Math.max(1, Math.ceil(totalSessions / perPage));
           const start = (page - 1) * perPage;
           sessions = filtered.slice(start, start + perPage);
+          let productsWithFav = (products || []).map((row) => ({
+            ...row,
+            isFavorited: favoritesMap.has(Number(row.id || row.listing_id))
+          }));
+          productsWithFav = sortFavoritesFirst(productsWithFav);
           return res.render(view, {
-            products,
+            products: productsWithFav,
             user,
             search,
             upcomingCount,
@@ -156,7 +180,12 @@ const ListingController = {
         profilePhoto = profile && profile.photo ? profile.photo : null;
       }
 
-      return res.render(view, { products, user, search, upcomingCount, completedCount, sessions, profilePhoto });
+      let productsWithFav = (products || []).map((row) => ({
+        ...row,
+        isFavorited: favoritesMap.has(Number(row.id || row.listing_id))
+      }));
+      productsWithFav = sortFavoritesFirst(productsWithFav);
+      return res.render(view, { products: productsWithFav, user, search, upcomingCount, completedCount, sessions, profilePhoto });
     } catch (err) {
       console.error(err);
       req.flash('error', 'Failed to load listings');
@@ -187,7 +216,20 @@ const ListingController = {
         req.flash('error', 'Listing not available');
         return res.redirect('/userdashboard');
       }
-      return res.render('listingDetail', { product, user: req.session && req.session.user });
+      let isFavorited = false;
+      if (user && user.role === 'user') {
+        await new Promise((resolve) => {
+          Favorite.isFavorited(user.id, product.id, (err, exists) => {
+            if (err) {
+              console.error('Failed to load favorite state:', err);
+              return resolve();
+            }
+            isFavorited = Boolean(exists);
+            return resolve();
+          });
+        });
+      }
+      return res.render('listingDetail', { product, user: req.session && req.session.user, isFavorited });
     } catch (err) {
       console.error(err);
       req.flash('error', 'Listing not found');

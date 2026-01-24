@@ -6,7 +6,7 @@
   `
 }) %>
 
-<div class="app">
+<div class="app" id="top">
     <!-- SIDEBAR -->
     <%- include("partials/userSidebar", {
       active: "courses",
@@ -88,6 +88,7 @@
         <% } %>
 
         <% list.forEach((p) => {
+          const listingId = p.id || p.listing_id;
           const title = p.listing_title || p.title || "Coach Session";
           const coach = p.coach_name || p.username || title;
           const levelRaw = (p.skill_level != null ? String(p.skill_level).trim() : "");
@@ -136,6 +137,12 @@
                   <h3 class="course-card__name"><%= sportName || (p.listing_title || "") %></h3>
                   <p class="course-card__level"><%= level ? (level.charAt(0).toUpperCase() + level.slice(1)) : "Not set" %> Level</p>
                 </div>
+                <% if (user && user.role === 'user' && listingId) { %>
+                  <form action="/favorite/<%= listingId %>" method="POST" class="fav-form">
+                    <input type="hidden" name="returnTo" value="/viewcourses#top">
+                    <button type="submit" class="fav-btn <%= p.isFavorited ? 'is-fav' : '' %>" title="Favourite"></button>
+                  </form>
+                <% } %>
                 <% if (rating !== null) { %>
                   <div class="course-card__rating">
                     <i class="fa-solid fa-star"></i>
@@ -161,7 +168,7 @@
                   <p class="course-card__price-label">Price per session</p>
                   <p class="course-card__price">$<%= price %></p>
                 </div>
-                <a href="/listingDetail/<%= p.id || p.listing_id || '' %>" class="course-card__btn">Book Now</a>
+                <a href="/listingDetail/<%= listingId || '' %>" class="course-card__btn">Book Now</a>
               </div>
             </div>
           </article>

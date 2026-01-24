@@ -18,6 +18,7 @@ const CoachProfileController = require('./controllers/CoachProfileController');
 const UserProfileController = require('./controllers/UserProfileController');
 const FeedbackController = require('./controllers/FeedbackController');
 const RevenueController = require('./controllers/RevenueController');
+const FavoriteController = require('./controllers/FavoriteController');
 const Inbox = require('./models/Inbox');
 const activityStore = require('./activityStore');
 const { attachUser, getInboxItems, checkAuthenticated, checkAdmin, checkAdminOrCoach, checkCoachApproved } = require('./middleware');
@@ -141,6 +142,21 @@ app.use((req, res, next) => {
   }
   next();
 });
+app.use((req, res, next) => {
+  const user = req.session && req.session.user;
+  const ban = res.locals.activeBan;
+  if (!user || !ban || user.role === 'admin') {
+    return next();
+  }
+  const path = req.path || '';
+  if (path === '/banned' || path === '/logout') {
+    return next();
+  }
+  if (path.startsWith('/css') || path.startsWith('/images') || path.startsWith('/certifications') || path.startsWith('/js')) {
+    return next();
+  }
+  return res.redirect('/banned');
+});
 
 // Home: send guests to login, route users by role
 app.get('/', (req, res) => {
@@ -186,10 +202,10 @@ app.get('/inbox', checkAuthenticated, (req, res) => {
     return res.redirect('/userdashboard');
   }
   return getInboxItems(user, 50)
-    .then((items) => {
+    .then((result) => {
       return res.render('inbox', {
         user,
-        inboxItems: items
+        inboxItems: result.items || []
       });
     })
     .catch((err) => {
@@ -250,8 +266,12 @@ app.get('/admincoaches', checkAuthenticated, checkAdmin, AdminController.coaches
 app.post('/admincoaches/:id/approve', checkAuthenticated, checkAdmin, AdminController.approveCoach);
 app.post('/admincoaches/:id/reject', checkAuthenticated, checkAdmin, AdminController.rejectCoach);
 app.post('/admincoaches/:id/warn', checkAuthenticated, checkAdmin, AdminController.warnCoach);
+app.post('/admincoaches/:id/ban', checkAuthenticated, checkAdmin, AdminController.banCoach);
+app.post('/admincoaches/:id/unban', checkAuthenticated, checkAdmin, AdminController.unbanCoach);
 app.get('/adminstudents', checkAuthenticated, checkAdmin, AdminController.students);
 app.post('/adminstudents/:id/warn', checkAuthenticated, checkAdmin, AdminController.warnStudent);
+app.post('/adminstudents/:id/ban', checkAuthenticated, checkAdmin, AdminController.banStudent);
+app.post('/adminstudents/:id/unban', checkAuthenticated, checkAdmin, AdminController.unbanStudent);
 app.get('/adminservices', checkAuthenticated, checkAdmin, AdminController.services);
 app.post('/adminservices/:id/toggle', checkAuthenticated, checkAdmin, AdminController.toggleService);
 app.get('/adminfeedback', checkAuthenticated, checkAdmin, AdminController.feedback);
@@ -287,6 +307,20 @@ app.get('/profile', checkAuthenticated, UserProfileController.showProfile);
 app.post('/profile', checkAuthenticated, UserProfileController.updateProfile);
 app.post('/profile/password', checkAuthenticated, UserProfileController.updatePassword);
 app.post('/profile/photo', checkAuthenticated, upload.single('photo'), UserProfileController.updatePhoto);
+
+app.post('/favorite/:id', checkAuthenticated, FavoriteController.toggle);
+
+app.get('/banned', checkAuthenticated, (req, res) => {
+  const user = req.session && req.session.user;
+  if (!user || user.role === 'admin') {
+    return res.redirect('/');
+  }
+  const ban = res.locals.activeBan;
+  if (!ban) {
+    return res.redirect('/');
+  }
+  return res.render('banned', { user, ban });
+});
 
 // NETS QR Code Payment Integration
 app.post('/generateNETSQR', checkAuthenticated, netsQr.generateQrCode);

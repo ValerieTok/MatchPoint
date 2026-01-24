@@ -2,6 +2,7 @@
 const Booking = require('./models/Booking');
 const Warnings = require('./models/Warnings');
 const Inbox = require('./models/Inbox');
+const UserBan = require('./models/UserBan');
 
 const formatInboxDate = (input) => {
   const date = new Date(input);
@@ -74,7 +75,7 @@ const sortInboxItems = (items) =>
 
 const getInboxItems = (user, limit = 3) => {
   if (!user || (user.role !== 'user' && user.role !== 'coach')) {
-    return Promise.resolve([]);
+    return Promise.resolve({ items: [], ban: null });
   }
 
   const capped = Number.isFinite(Number(limit)) ? Number(limit) : 3;
@@ -100,8 +101,18 @@ const getInboxItems = (user, limit = 3) => {
     });
   });
 
-  return Promise.all([inboxPromise, warningsPromise, statusPromise])
-    .then(([inboxRows, warningRows, statusRows]) => {
+  const banPromise = new Promise((resolve) => {
+    UserBan.getActiveBan(user.id, (err, banRow) => {
+      if (err) {
+        console.error('Failed to load ban status:', err);
+        return resolve(null);
+      }
+      return resolve(banRow);
+    });
+  });
+
+  return Promise.all([inboxPromise, warningsPromise, statusPromise, banPromise])
+    .then(([inboxRows, warningRows, statusRows, banRow]) => {
       const baseItems = user.role === 'coach'
         ? buildCoachInboxItems(inboxRows)
         : buildUserInboxItems(inboxRows);
@@ -117,7 +128,8 @@ const getInboxItems = (user, limit = 3) => {
         });
       });
 
-      return merged
+      return {
+        items: merged
         .filter((item) => {
           const key = `${item.itemType}:${item.itemId}`;
           const status = statusMap.get(key);
@@ -131,7 +143,9 @@ const getInboxItems = (user, limit = 3) => {
             isRead: status ? status.isRead : false
           };
         })
-        .slice(0, capped);
+        .slice(0, capped),
+        ban: banRow || null
+      };
     });
 };
 
@@ -145,13 +159,15 @@ const attachUser = (req, res, next) => {
   };
 
   return getInboxItems(user, 3)
-    .then((items) => {
-      res.locals.inboxItems = items;
+    .then((result) => {
+      res.locals.inboxItems = result.items || [];
+      res.locals.activeBan = result.ban || null;
       return next();
     })
     .catch((err) => {
       console.error('Failed to load inbox items:', err);
       res.locals.inboxItems = [];
+      res.locals.activeBan = null;
       return next();
     });
 };

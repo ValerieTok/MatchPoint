@@ -1,0 +1,20 @@
+<%- include('partials/head', {
+  title: 'Account Banned - MatchPoint',
+  bodyClass: 'admin-page user-dashboard'
+}) %>
+
+<div class="inbox-modal is-open">
+  <div class="inbox-modal__backdrop"></div>
+  <div class="inbox-modal__panel" role="dialog" aria-modal="true" aria-labelledby="banTitle">
+    <h3 class="inbox-modal__title" id="banTitle">Account Banned</h3>
+    <div class="inbox-modal__meta">Your access has been restricted by an administrator.</div>
+    <div class="inbox-modal__body"><%= ban?.comment || 'No additional details provided.' %></div>
+    <div class="inbox-modal__actions">
+      <form method="post" action="/logout">
+        <button class="btn danger" type="submit">Log out</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<%- include('partials/footer') %>
