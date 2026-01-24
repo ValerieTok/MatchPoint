@@ -18,8 +18,9 @@ const CoachProfileController = require('./controllers/CoachProfileController');
 const UserProfileController = require('./controllers/UserProfileController');
 const FeedbackController = require('./controllers/FeedbackController');
 const RevenueController = require('./controllers/RevenueController');
+const Inbox = require('./models/Inbox');
 const activityStore = require('./activityStore');
-const { attachUser, checkAuthenticated, checkAdmin, checkAdminOrCoach, checkCoachApproved } = require('./middleware');
+const { attachUser, getInboxItems, checkAuthenticated, checkAdmin, checkAdminOrCoach, checkCoachApproved } = require('./middleware');
 const netsQr = require('./services/nets');
 
 const app = express();
@@ -184,9 +185,57 @@ app.get('/inbox', checkAuthenticated, (req, res) => {
   if (!user || user.role !== 'user') {
     return res.redirect('/userdashboard');
   }
-  return res.render('inbox', {
-    user,
-    inboxItems: res.locals.inboxItems || []
+  return getInboxItems(user, 50)
+    .then((items) => {
+      return res.render('inbox', {
+        user,
+        inboxItems: items
+      });
+    })
+    .catch((err) => {
+      console.error('Failed to load inbox:', err);
+      req.flash('error', 'Failed to load inbox.');
+      return res.redirect('/userdashboard');
+    });
+});
+
+app.post('/inbox/mark-read', checkAuthenticated, (req, res) => {
+  const user = req.session && req.session.user;
+  if (!user || (user.role !== 'user' && user.role !== 'coach')) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
+  const itemType = req.body && req.body.itemType ? String(req.body.itemType) : '';
+  const itemId = Number(req.body && req.body.itemId);
+  const allowedTypes = new Set(['booking', 'review', 'warning']);
+  if (!allowedTypes.has(itemType) || !Number.isFinite(itemId)) {
+    return res.status(400).json({ error: 'Invalid inbox item' });
+  }
+  return Inbox.markRead(user.id, itemType, itemId, (err) => {
+    if (err) {
+      console.error('Failed to mark inbox item as read:', err);
+      return res.status(500).json({ error: 'Failed to update inbox' });
+    }
+    return res.json({ ok: true });
+  });
+});
+
+app.post('/inbox/delete', checkAuthenticated, (req, res) => {
+  const user = req.session && req.session.user;
+  if (!user || (user.role !== 'user' && user.role !== 'coach')) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
+  const itemType = req.body && req.body.itemType ? String(req.body.itemType) : '';
+  const itemId = Number(req.body && req.body.itemId);
+  const allowedTypes = new Set(['booking', 'review', 'warning']);
+  if (!allowedTypes.has(itemType) || !Number.isFinite(itemId)) {
+    return res.status(400).json({ error: 'Invalid inbox item' });
+  }
+  return Inbox.deleteItem(user.id, itemType, itemId, (err) => {
+    if (err) {
+      console.error('Failed to delete inbox item:', err);
+      return res.status(500).json({ error: 'Failed to update inbox' });
+    }
+    return res.json({ ok: true });
   });
 });
 

@@ -1,0 +1,121 @@
+<div class="inbox-modal" id="inboxModal">
+  <div class="inbox-modal__backdrop" data-inbox-close></div>
+  <div class="inbox-modal__panel" role="dialog" aria-modal="true" aria-labelledby="inboxModalTitle">
+    <h3 class="inbox-modal__title" id="inboxModalTitle">Message</h3>
+    <div class="inbox-modal__meta" id="inboxModalMeta"></div>
+    <div class="inbox-modal__body" id="inboxModalBody"></div>
+    <div class="inbox-modal__actions">
+      <button class="btn" type="button" data-inbox-close>Close</button>
+      <button class="btn warn" type="button" id="inboxMarkRead">Mark as read</button>
+      <button class="btn danger" type="button" id="inboxDelete">Mark as read & delete</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const inboxModal = document.getElementById('inboxModal');
+  const inboxModalTitle = document.getElementById('inboxModalTitle');
+  const inboxModalMeta = document.getElementById('inboxModalMeta');
+  const inboxModalBody = document.getElementById('inboxModalBody');
+  const inboxMarkReadBtn = document.getElementById('inboxMarkRead');
+  const inboxDeleteBtn = document.getElementById('inboxDelete');
+  const inboxCloseButtons = inboxModal ? inboxModal.querySelectorAll('[data-inbox-close]') : [];
+  let activeInboxRow = null;
+
+  const getInboxItemData = (row) => ({
+    itemType: row?.dataset?.itemType || '',
+    itemId: Number(row?.dataset?.itemId),
+    title: row?.dataset?.itemTitle || 'Message',
+    body: row?.dataset?.itemBody || '',
+    when: row?.dataset?.itemWhen || '',
+    statusLabel: row?.dataset?.itemStatusLabel || ''
+  });
+
+  const openInboxModal = (row) => {
+    if (!inboxModal || !row) return;
+    const item = getInboxItemData(row);
+    activeInboxRow = row;
+    inboxModalTitle.textContent = item.title || 'Message';
+    inboxModalMeta.textContent = item.when ? `${item.when} • ${item.statusLabel || ''}` : (item.statusLabel || '');
+    inboxModalBody.textContent = item.body || 'No additional details.';
+    inboxModal.classList.add('is-open');
+  };
+
+  const closeInboxModal = () => {
+    inboxModal?.classList.remove('is-open');
+    activeInboxRow = null;
+  };
+
+  const updateEmptyState = (container) => {
+    if (!container) return;
+    if (container.querySelector('.inbox__item')) return;
+    if (container.dataset.inboxContainer === 'main') {
+      const empty = document.createElement('div');
+      empty.className = 'inbox__empty';
+      empty.textContent = 'No messages yet.';
+      container.replaceWith(empty);
+      return;
+    }
+    const empty = document.createElement('div');
+    empty.className = 'inbox__empty';
+    empty.textContent = 'No messages yet.';
+    container.appendChild(empty);
+  };
+
+  const updateRowState = ({ deleted } = {}) => {
+    if (!activeInboxRow) return;
+    if (deleted) {
+      const container = activeInboxRow.closest('.inbox');
+      activeInboxRow.remove();
+      updateEmptyState(container);
+      return;
+    }
+    activeInboxRow.classList.add('inbox__item--read');
+  };
+
+  const sendInboxUpdate = async (endpoint) => {
+    if (!activeInboxRow) return false;
+    const item = getInboxItemData(activeInboxRow);
+    if (!item.itemType || !Number.isFinite(item.itemId)) return false;
+    try {
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ itemType: item.itemType, itemId: item.itemId })
+      });
+      if (!res.ok) return false;
+      return true;
+    } catch (err) {
+      console.error('Inbox update failed:', err);
+      return false;
+    }
+  };
+
+  document.addEventListener('click', (event) => {
+    const row = event.target.closest('.inbox__item--clickable');
+    if (!row) return;
+    openInboxModal(row);
+  });
+
+  inboxMarkReadBtn?.addEventListener('click', async () => {
+    const ok = await sendInboxUpdate('/inbox/mark-read');
+    if (!ok) return;
+    updateRowState();
+    closeInboxModal();
+  });
+
+  inboxDeleteBtn?.addEventListener('click', async () => {
+    const ok = await sendInboxUpdate('/inbox/delete');
+    if (!ok) return;
+    updateRowState({ deleted: true });
+    closeInboxModal();
+  });
+
+  inboxCloseButtons.forEach((btn) => {
+    btn.addEventListener('click', closeInboxModal);
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') closeInboxModal();
+  });
+</script>

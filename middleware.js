@@ -1,6 +1,7 @@
 // Centralized middleware helpers for auth and view locals
 const Booking = require('./models/Booking');
 const Warnings = require('./models/Warnings');
+const Inbox = require('./models/Inbox');
 
 const formatInboxDate = (input) => {
   const date = new Date(input);
@@ -23,6 +24,8 @@ const buildUserInboxItems = (rows) =>
     const when = formatInboxDate(row.created_at);
     const statusInfo = toInboxStatus(row);
     return {
+      itemType: 'booking',
+      itemId: row.id,
       title,
       when,
       status: statusInfo.status,
@@ -33,12 +36,15 @@ const buildUserInboxItems = (rows) =>
 
 const buildCoachInboxItems = (rows) =>
   (rows || []).map((row) => {
+    const reviewId = row.review_id || row.id;
     const who = row.student_name;
     const title = who
       ? `New review from ${who} (Booking #${row.booking_id})`
       : `New review (Booking #${row.booking_id})`;
     const when = formatInboxDate(row.created_at);
     return {
+      itemType: 'review',
+      itemId: reviewId,
       title,
       when,
       status: 'submitted',
@@ -49,6 +55,8 @@ const buildCoachInboxItems = (rows) =>
 
 const buildWarningItems = (rows) =>
   (rows || []).map((row) => ({
+    itemType: 'warning',
+    itemId: row.id,
     title: 'Warning from admin',
     body: row.comment,
     when: formatInboxDate(row.created_at),
@@ -64,6 +72,69 @@ const sortInboxItems = (items) =>
     return bTime - aTime;
   });
 
+const getInboxItems = (user, limit = 3) => {
+  if (!user || (user.role !== 'user' && user.role !== 'coach')) {
+    return Promise.resolve([]);
+  }
+
+  const capped = Number.isFinite(Number(limit)) ? Number(limit) : 3;
+  const loader = user.role === 'coach'
+    ? Booking.getRecentCoachInbox
+    : Booking.getRecentUserInbox;
+
+  const inboxPromise = new Promise((resolve, reject) => {
+    loader(user.id, capped, (err, rows) => (err ? reject(err) : resolve(rows || [])));
+  });
+
+  const warningsPromise = new Promise((resolve, reject) => {
+    Warnings.getRecentWarnings(user.id, capped, (err, rows) => (err ? reject(err) : resolve(rows || [])));
+  });
+
+  const statusPromise = new Promise((resolve) => {
+    Inbox.getStatuses(user.id, (err, rows) => {
+      if (err) {
+        console.error('Failed to load inbox status:', err);
+        return resolve([]);
+      }
+      return resolve(rows || []);
+    });
+  });
+
+  return Promise.all([inboxPromise, warningsPromise, statusPromise])
+    .then(([inboxRows, warningRows, statusRows]) => {
+      const baseItems = user.role === 'coach'
+        ? buildCoachInboxItems(inboxRows)
+        : buildUserInboxItems(inboxRows);
+      const warningItems = buildWarningItems(warningRows);
+      const merged = sortInboxItems([...warningItems, ...baseItems]);
+
+      const statusMap = new Map();
+      statusRows.forEach((row) => {
+        const key = `${row.item_type}:${row.item_id}`;
+        statusMap.set(key, {
+          isRead: Boolean(row.is_read),
+          isDeleted: Boolean(row.is_deleted)
+        });
+      });
+
+      return merged
+        .filter((item) => {
+          const key = `${item.itemType}:${item.itemId}`;
+          const status = statusMap.get(key);
+          return !(status && status.isDeleted);
+        })
+        .map((item) => {
+          const key = `${item.itemType}:${item.itemId}`;
+          const status = statusMap.get(key);
+          return {
+            ...item,
+            isRead: status ? status.isRead : false
+          };
+        })
+        .slice(0, capped);
+    });
+};
+
 const attachUser = (req, res, next) => {
   const user = req.session && req.session.user;
   res.locals.user = user;
@@ -73,31 +144,9 @@ const attachUser = (req, res, next) => {
     info: req.flash('info')
   };
 
-  if (!user || (user.role !== 'user' && user.role !== 'coach')) {
-    res.locals.inboxItems = [];
-    return next();
-  }
-
-  const limit = 3;
-  const loader = user.role === 'coach'
-    ? Booking.getRecentCoachInbox
-    : Booking.getRecentUserInbox;
-
-  const inboxPromise = new Promise((resolve, reject) => {
-    loader(user.id, limit, (err, rows) => (err ? reject(err) : resolve(rows || [])));
-  });
-
-  const warningsPromise = new Promise((resolve, reject) => {
-    Warnings.getRecentWarnings(user.id, limit, (err, rows) => (err ? reject(err) : resolve(rows || [])));
-  });
-
-  return Promise.all([inboxPromise, warningsPromise])
-    .then(([inboxRows, warningRows]) => {
-      const baseItems = user.role === 'coach'
-        ? buildCoachInboxItems(inboxRows)
-        : buildUserInboxItems(inboxRows);
-      const warningItems = buildWarningItems(warningRows);
-      res.locals.inboxItems = sortInboxItems([...warningItems, ...baseItems]).slice(0, limit);
+  return getInboxItems(user, 3)
+    .then((items) => {
+      res.locals.inboxItems = items;
       return next();
     })
     .catch((err) => {
@@ -140,6 +189,7 @@ const checkCoachApproved = (req, res, next) => {
 
 module.exports = {
   attachUser,
+  getInboxItems,
   checkAuthenticated,
   checkAdmin,
   checkAdminOrCoach,

@@ -1,0 +1,58 @@
+<%- include('partials/head', {
+  title: 'Inbox - MatchPoint',
+  bodyClass: 'admin-page user-dashboard',
+  extraHead: `
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  `
+}) %>
+
+<div class="app">
+  <%- include("partials/userSidebar", {
+    active: "inbox",
+    courseCount: undefined
+  }) %>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="crumb">INBOX</div>
+    </header>
+
+    <section class="card">
+      <div class="card__head">
+        <div class="card__title">Messages</div>
+      </div>
+
+      <div class="card__body">
+        <% const inboxRows = Array.isArray(inboxItems) ? inboxItems : []; %>
+        <% if (!inboxRows.length) { %>
+          <div class="inbox__empty">No messages yet.</div>
+        <% } else { %>
+          <div class="inbox" data-inbox-container="main">
+            <% inboxRows.forEach((item) => { %>
+              <div
+                class="inbox__item inbox__item--clickable <%= item.isRead ? 'inbox__item--read' : '' %>"
+                data-item-type="<%= item.itemType %>"
+                data-item-id="<%= item.itemId %>"
+                data-item-title="<%= item.title %>"
+                data-item-body="<%= item.body || '' %>"
+                data-item-when="<%= item.when %>"
+                data-item-status-label="<%= item.statusLabel %>"
+              >
+                <div class="inbox__title"><%= item.title %></div>
+                <% if (item.body) { %>
+                  <div class="inbox__body"><%= item.body %></div>
+                <% } %>
+                <div class="inbox__meta">
+                  <span class="inbox__time"><%= item.when %></span>
+                  <span class="inbox__pill inbox__pill--<%= item.status %>"><%= item.statusLabel %></span>
+                </div>
+              </div>
+            <% }) %>
+          </div>
+        <% } %>
+      </div>
+    </section>
+  </main>
+</div>
+
+<%- include('partials/footer') %>

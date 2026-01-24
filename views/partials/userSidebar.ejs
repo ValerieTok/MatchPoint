@@ -25,6 +25,11 @@
       <span>Dashboard</span>
     </a>
 
+    <a class="nav__item <%= active === 'inbox' ? 'nav__item--active' : '' %>" href="/inbox">
+      <i class="fa-solid fa-inbox"></i>
+      <span>Inbox</span>
+    </a>
+
     <a class="nav__item <%= active === 'ratings' ? 'nav__item--active' : '' %>" href="/ratingsUser">
       <i class="fa-solid fa-star"></i>
       <span>Ratings</span>
@@ -41,9 +46,35 @@
       <span>Inbox</span>
       <i class="fa-solid fa-inbox"></i>
     </div>
-    <div class="inbox">
+    <% const inboxRows = Array.isArray(inboxItems) ? inboxItems : []; %>
+    <% if (!inboxRows.length) { %>
+    <div class="inbox" data-inbox-container="sidebar">
       <div class="inbox__empty">No messages yet.</div>
     </div>
+  <% } else { %>
+      <div class="inbox" data-inbox-container="sidebar">
+        <% inboxRows.forEach((item) => { %>
+          <div
+            class="inbox__item inbox__item--clickable <%= item.isRead ? 'inbox__item--read' : '' %>"
+            data-item-type="<%= item.itemType %>"
+            data-item-id="<%= item.itemId %>"
+            data-item-title="<%= item.title %>"
+            data-item-body="<%= item.body || '' %>"
+            data-item-when="<%= item.when %>"
+            data-item-status-label="<%= item.statusLabel %>"
+          >
+            <div class="inbox__title"><%= item.title %></div>
+            <% if (item.body) { %>
+              <div class="inbox__body"><%= item.body %></div>
+            <% } %>
+            <div class="inbox__meta">
+              <span class="inbox__time"><%= item.when %></span>
+              <span class="inbox__pill inbox__pill--<%= item.status %>"><%= item.statusLabel %></span>
+            </div>
+          </div>
+        <% }) %>
+      </div>
+    <% } %>
   </div>
 
   <div class="sidebar__footer">
@@ -55,3 +86,5 @@
     </form>
   </div>
 </aside>
+
+<%- include('./inboxModal') %>
