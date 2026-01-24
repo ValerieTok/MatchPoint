@@ -45,6 +45,23 @@
           <div>
             <h1 class="detail-title"><%= product.listing_title %></h1>
             <div class="detail-coach">Coach: <%= product.username %></div>
+            <% const detailRating = product.rating ? Math.round(Number(product.rating || 0) * 2) / 2 : 0; %>
+            <div class="detail-coach star-rating <%= product.rating ? '' : 'star-rating--empty' %>" aria-label="Rating <%= product.rating ? `${detailRating} out of 5` : 'No reviews' %>">
+              <% for (let i = 1; i <= 5; i += 1) { %>
+                <% if (detailRating >= i) { %>
+                  <i class="fa-solid fa-star star-filled"></i>
+                <% } else if (detailRating >= i - 0.5) { %>
+                  <i class="fa-solid fa-star-half-stroke star-half"></i>
+                <% } else { %>
+                  <i class="fa-regular fa-star star-empty"></i>
+                <% } %>
+              <% } %>
+              <% if (product.rating) { %>
+                <span class="star-score"><%= detailRating.toFixed(1) %> / 5</span>
+              <% } else { %>
+                <span class="star-score">No reviews</span>
+              <% } %>
+            </div>
           </div>
           <% if (user && user.role === 'user') { %>
             <form action="/favorite/<%= product.id %>" method="POST" class="fav-form">

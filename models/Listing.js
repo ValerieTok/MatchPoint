@@ -17,7 +17,14 @@ const baseSelect = `
     l.duration_minutes,
     l.skill_level,
     l.session_location,
-    l.is_active
+    l.is_active,
+    (
+      SELECT ROUND(AVG(r.rating), 1)
+      FROM coach_reviews r
+      JOIN booking_items bi ON bi.booking_id = r.booking_id
+      WHERE bi.listing_id = l.id
+        AND r.review_status = 'approved'
+    ) AS rating
   FROM coach_listings l
   JOIN users u ON u.id = l.coach_id
   LEFT JOIN user_profiles up ON up.user_id = u.id

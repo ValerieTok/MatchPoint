@@ -696,6 +696,28 @@ body{
 .fav-btn.is-fav::before{ content:'\2665'; }
 .fav-btn:hover{ background:#ffd257; color:#111; }
 
+.star-rating{
+  display:flex;
+  align-items:center;
+  gap:4px;
+  font-size:14px;
+  color:#f59e0b;
+}
+.star-rating .star-empty{
+  color:#2f2f2f;
+  text-shadow:0 1px 2px rgba(0, 0, 0, 0.35);
+}
+.star-rating .star-score{
+  margin-left:6px;
+  font-weight:700;
+  color:var(--text);
+  font-size:12px;
+}
+.star-rating--empty .star-score{
+  color:#6b7280;
+  font-weight:600;
+}
+
 .warn-modal{
   position:fixed;
   inset:0;
@@ -3085,6 +3107,16 @@ body.user-courses .course-card__sport {
   border-radius: 20px;
   font-size: 12px;
   font-weight: 700;
+}
+body.user-courses .course-card__fav{
+  position: absolute;
+  top: 12px;
+  left: 12px;
+}
+body.user-courses .course-card__fav .fav-btn{
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
 }
 
 body.user-courses .course-card__content {

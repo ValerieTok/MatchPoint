@@ -2,6 +2,7 @@
   const netsAmount = (cart && cart.length)
     ? Number(cart[0].price || 0).toFixed(2)
     : '0.00';
+  const netsSelected = Boolean(qrCodeUrl || txnRetrievalRef);
 %>
 
 <%- include('partials/head', {
@@ -39,16 +40,16 @@
                     <div class="mb-4">
                       <h6 class="fw-semibold mb-3">Payment Method</h6>
 
-                      <label class="payment-method active">
-                        <input type="radio" name="paymentMethod" value="paypal" checked>
+                      <label class="payment-method <%= netsSelected ? '' : 'active' %>">
+                        <input type="radio" name="paymentMethod" value="paypal" <%= netsSelected ? '' : 'checked' %>>
                         <span class="payment-icon"><i class="fa-brands fa-paypal"></i></span>
                         <span class="fw-semibold">PayPal</span>
                         <div class="card-logos">
                           <img src="https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg" alt="PayPal" class="card-logo">
                         </div>
                       </label>
-                      <label class="payment-method">
-                        <input type="radio" name="paymentMethod" value="netsqr">
+                      <label class="payment-method <%= netsSelected ? 'active' : '' %>">
+                        <input type="radio" name="paymentMethod" value="netsqr" <%= netsSelected ? 'checked' : '' %>>
                         <span class="payment-icon"><i class="fa-solid fa-qrcode"></i></span>
                         <span class="fw-semibold">NETS QR</span>
                       </label>
@@ -211,6 +212,11 @@
     if (cardDetails) cardDetails.style.display = isNets ? "none" : "block";
     if (netsqrDetails) netsqrDetails.style.display = isNets ? "block" : "none";
     if (confirmPaymentBtn) confirmPaymentBtn.disabled = isNets;
+    paymentMethodInputs.forEach((input) => {
+      const label = input.closest('.payment-method');
+      if (!label) return;
+      label.classList.toggle('active', input.value === selected);
+    });
   };
 
   paymentMethodInputs.forEach((input) => input.addEventListener("change", syncPaymentUi));

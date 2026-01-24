@@ -129,6 +129,12 @@
             <div class="course-card__image">
               <img src="<%= img %>" alt="<%= coach %>" />
               <span class="course-card__sport"><%= coach %></span>
+              <% if (user && user.role === 'user' && listingId) { %>
+                <form action="/favorite/<%= listingId %>" method="POST" class="fav-form course-card__fav">
+                  <input type="hidden" name="returnTo" value="/viewcourses#top">
+                  <button type="submit" class="fav-btn <%= p.isFavorited ? 'is-fav' : '' %>" title="Favourite"></button>
+                </form>
+              <% } %>
             </div>
 
             <div class="course-card__content">
@@ -137,18 +143,23 @@
                   <h3 class="course-card__name"><%= sportName || (p.listing_title || "") %></h3>
                   <p class="course-card__level"><%= level ? (level.charAt(0).toUpperCase() + level.slice(1)) : "Not set" %> Level</p>
                 </div>
-                <% if (user && user.role === 'user' && listingId) { %>
-                  <form action="/favorite/<%= listingId %>" method="POST" class="fav-form">
-                    <input type="hidden" name="returnTo" value="/viewcourses#top">
-                    <button type="submit" class="fav-btn <%= p.isFavorited ? 'is-fav' : '' %>" title="Favourite"></button>
-                  </form>
-                <% } %>
-                <% if (rating !== null) { %>
-                  <div class="course-card__rating">
-                    <i class="fa-solid fa-star"></i>
-                    <span><%= rating %></span>
-                  </div>
-                <% } %>
+                <% const displayRating = rating !== null ? Math.round(Number(rating || 0) * 2) / 2 : 0; %>
+                <div class="course-card__rating star-rating <%= rating === null ? 'star-rating--empty' : '' %>" aria-label="Rating <%= rating === null ? 'No reviews' : `${displayRating} out of 5` %>">
+                  <% for (let i = 1; i <= 5; i += 1) { %>
+                    <% if (displayRating >= i) { %>
+                      <i class="fa-solid fa-star star-filled"></i>
+                    <% } else if (displayRating >= i - 0.5) { %>
+                      <i class="fa-solid fa-star-half-stroke star-half"></i>
+                    <% } else { %>
+                      <i class="fa-regular fa-star star-empty"></i>
+                    <% } %>
+                  <% } %>
+                  <% if (rating !== null) { %>
+                    <span class="star-score"><%= displayRating.toFixed(1) %></span>
+                  <% } else { %>
+                    <span class="star-score">No reviews</span>
+                  <% } %>
+                </div>
               </div>
 
               <% if (p.description) { %>
