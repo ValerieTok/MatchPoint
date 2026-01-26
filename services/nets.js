@@ -84,6 +84,7 @@ exports.generateQrCode = async (req, res) => {
       const cart = req.session.pendingPayment?.cart || [];
       const deliveryAddress = req.session.pendingPayment?.deliveryAddress || '';
       const total = req.session.pendingPayment?.total || 0;
+      const paypalAmount = Number((Number(total || 0) + serviceFee).toFixed(2));
 
       req.session.pendingPayment = {
         ...(req.session.pendingPayment || {}),
@@ -105,6 +106,9 @@ exports.generateQrCode = async (req, res) => {
         timer: 300,
         webhookUrl,
         fullNetsResponse: response.data,
+        paypalClientId: process.env.PAYPAL_CLIENT_ID || '',
+        paypalCurrency: 'SGD',
+        paypalAmount,
         messages: req.flash()
       });
     } else {

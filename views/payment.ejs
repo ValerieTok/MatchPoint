@@ -3,6 +3,10 @@
     ? Number(cart[0].price || 0).toFixed(2)
     : '0.00';
   const netsSelected = Boolean(qrCodeUrl || txnRetrievalRef);
+  const paypalAvailable = Boolean(paypalClientId);
+  const paypalScript = paypalAvailable
+    ? `<script src="https://www.paypal.com/sdk/js?client-id=${paypalClientId}&currency=${paypalCurrency}"></script>`
+    : '';
 %>
 
 <%- include('partials/head', {
@@ -10,6 +14,7 @@
   bodyClass: 'admin-page payment-page',
   extraHead: `
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    ${paypalScript}
   `
 }) %>
 
@@ -40,41 +45,28 @@
                     <div class="mb-4">
                       <h6 class="fw-semibold mb-3">Payment Method</h6>
 
-                      <label class="payment-method <%= netsSelected ? '' : 'active' %>">
-                        <input type="radio" name="paymentMethod" value="paypal" <%= netsSelected ? '' : 'checked' %>>
-                        <span class="payment-icon"><i class="fa-brands fa-paypal"></i></span>
-                        <span class="fw-semibold">PayPal</span>
-                        <div class="card-logos">
-                          <img src="https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg" alt="PayPal" class="card-logo">
-                        </div>
-                      </label>
-                      <label class="payment-method <%= netsSelected ? 'active' : '' %>">
-                        <input type="radio" name="paymentMethod" value="netsqr" <%= netsSelected ? 'checked' : '' %>>
-                        <span class="payment-icon"><i class="fa-solid fa-qrcode"></i></span>
-                        <span class="fw-semibold">NETS QR</span>
-                      </label>
+                      <div class="d-flex flex-column gap-2">
+                        <button type="button" class="payment-method" id="selectPaypal" aria-label="PayPal" <%= paypalAvailable ? '' : 'disabled' %>>
+                          <div class="card-logos">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg" alt="PayPal" class="card-logo">
+                          </div>
+                        </button>
+                        <button type="button" class="payment-method" id="selectNets" aria-label="NETS QR">
+                          <div class="card-logos">
+                            <img src="/images/NETS.webp" alt="NETS" class="card-logo nets-logo">
+                          </div>
+                        </button>
+                        <input type="hidden" name="paymentMethod" id="paymentMethodInput" value="">
+                      </div>
                     </div>
 
-                <div class="payment-form-details" id="cardDetails" style="display: none;">
+                <div class="payment-form-details" id="paypalDetails" style="display: none;">
                   <div class="mb-3">
-                    <label class="form-label fw-semibold">Cardholder Name</label>
-                    <input type="text" class="form-control" name="cardholderName" placeholder="Yuwarane Sri">
-                  </div>
-
-                    <div class="mb-3">
-                      <label class="form-label fw-semibold">Card Number</label>
-                      <input type="text" class="form-control" name="cardNumber" placeholder="1234 5678 9012 3456" maxlength="19">
-                    </div>
-
-                    <div class="row g-3 mb-3">
-                      <div class="col-md-6">
-                        <label class="form-label fw-semibold">Expiry Date</label>
-                        <input type="text" class="form-control" name="expiryDate" placeholder="MM/YY" maxlength="5">
-                      </div>
-                      <div class="col-md-6">
-                        <label class="form-label fw-semibold">CVV</label>
-                        <input type="text" class="form-control" name="cvv" placeholder="123" maxlength="3">
-                      </div>
+                    <div id="paypal-button-container"></div>
+                    <p class="text-muted small mt-2 mb-0">You will be charged $<%= paypalAmount %> via PayPal.</p>
+                    <p id="paypal-config-warning" class="text-muted small mt-2" style="display: none;">
+                      PayPal is not configured. Add your PayPal client ID in the environment to enable checkout.
+                    </p>
                   </div>
                 </div>
 
@@ -82,18 +74,13 @@
                     <div class="mb-4">
                       <h6 class="fw-semibold mb-3">Scan QR Code to Pay</h6>
 
-                      <div class="text-center mb-3">
-                        <button type="submit" form="netsQrForm" class="btn btn-outline-dark">Generate NETS QR</button>
-                      </div>
-
                       <% if (qrCodeUrl) { %>
                         <div class="d-flex justify-content-center">
                           <img src="<%= qrCodeUrl %>" alt="NETS QR Code" style="max-width: 260px; width: 100%;">
                         </div>
-                        <p id="timer" class="text-muted mt-3 small text-center">Time remaining: 5:00</p>
                         <p class="text-muted mt-2 small text-center">Scan this code with your mobile banking app to complete the payment</p>
                       <% } else { %>
-                        <p class="text-muted mt-3 small text-center">Generate a NETS QR code to proceed.</p>
+                        <p class="text-muted mt-3 small text-center">Generating NETS QR code...</p>
                       <% } %>
 
                       <div class="mt-3 text-center">
@@ -138,6 +125,8 @@
               cart.forEach(item => { 
                 const sessionDate = item.session_date ? new Date(item.session_date).toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : 'TBC';
                 const sessionTime = item.session_time ? String(item.session_time).slice(0, 5) : 'TBC';
+                const quantity = Number(item.quantity || 1);
+                const lineTotal = Number(item.price || 0) * quantity;
             %>
               <div class="mb-3">
                 <h6 class="fw-semibold mb-2"><%= item.listing_title %></h6>
@@ -157,13 +146,17 @@
                   <div class="icon-circle"><i class="fa-solid fa-location-dot"></i></div>
                   <span class="text-muted"><%= item.session_location || 'TBC' %></span>
                 </div>
+                <div class="summary-item small">
+                  <div class="icon-circle"><i class="fa-solid fa-layer-group"></i></div>
+                  <span class="text-muted">Slots: <%= quantity %></span>
+                </div>
               </div>
 
               <hr>
 
               <div class="d-flex justify-content-between mb-2">
                 <span class="text-muted">Session fee</span>
-                <span class="fw-semibold">$<%= Number(item.price || 0).toFixed(2) %></span>
+                <span class="fw-semibold">$<%= lineTotal.toFixed(2) %></span>
               </div>
               <% }) %>
 
@@ -200,27 +193,141 @@
 <script>
   const txnRetrievalRef = "<%= txnRetrievalRef || '' %>";
   const fullNetsResponse = <%- JSON.stringify(fullNetsResponse || {}) %>;
+  const paypalAvailable = <%- JSON.stringify(paypalAvailable) %>;
+  const netsSelected = <%- JSON.stringify(netsSelected) %>;
+  const cartHasItems = <%- JSON.stringify(Boolean(cart && cart.length)) %>;
+  const qrCodeUrl = "<%= qrCodeUrl || '' %>";
 
-  const paymentMethodInputs = document.querySelectorAll('input[name="paymentMethod"]');
-  const cardDetails = document.getElementById("cardDetails");
+  const selectPaypalBtn = document.getElementById("selectPaypal");
+  const selectNetsBtn = document.getElementById("selectNets");
+  const paymentMethodInput = document.getElementById("paymentMethodInput");
+  const paypalDetails = document.getElementById("paypalDetails");
   const netsqrDetails = document.getElementById("netsqrDetails");
   const confirmPaymentBtn = document.getElementById("confirmPaymentBtn");
+  const paypalWarning = document.getElementById("paypal-config-warning");
+  let paypalButtonsRendered = false;
+  let paypalRenderQueued = false;
 
-  const syncPaymentUi = () => {
-    const selected = document.querySelector('input[name="paymentMethod"]:checked')?.value;
-    const isNets = selected === "netsqr";
-    if (cardDetails) cardDetails.style.display = isNets ? "none" : "block";
-    if (netsqrDetails) netsqrDetails.style.display = isNets ? "block" : "none";
-    if (confirmPaymentBtn) confirmPaymentBtn.disabled = isNets;
-    paymentMethodInputs.forEach((input) => {
-      const label = input.closest('.payment-method');
-      if (!label) return;
-      label.classList.toggle('active', input.value === selected);
-    });
+  const setPaymentMethod = (value) => {
+    if (paymentMethodInput) {
+      paymentMethodInput.value = value || "";
+    }
+    if (selectPaypalBtn) selectPaypalBtn.classList.toggle('active', value === "paypal");
+    if (selectNetsBtn) selectNetsBtn.classList.toggle('active', value === "netsqr");
+    syncPaymentUi();
   };
 
-  paymentMethodInputs.forEach((input) => input.addEventListener("change", syncPaymentUi));
-  syncPaymentUi();
+  const syncPaymentUi = () => {
+    const selected = paymentMethodInput ? paymentMethodInput.value : "";
+    const isNets = selected === "netsqr";
+    const isPaypal = selected === "paypal";
+    if (paypalDetails) paypalDetails.style.display = isPaypal ? "block" : "none";
+    if (netsqrDetails) netsqrDetails.style.display = isNets ? "block" : "none";
+    if (confirmPaymentBtn) confirmPaymentBtn.disabled = isNets || isPaypal || !selected;
+
+    if (isPaypal && paypalAvailable) {
+      setTimeout(renderPaypalButtons, 0);
+    }
+  };
+
+  if (selectPaypalBtn) {
+    selectPaypalBtn.addEventListener("click", () => setPaymentMethod("paypal"));
+  }
+  if (selectNetsBtn) {
+    selectNetsBtn.addEventListener("click", () => {
+      setPaymentMethod("netsqr");
+      if (!qrCodeUrl) {
+        const form = document.getElementById("netsQrForm");
+        if (form) {
+          form.submit();
+        }
+      }
+    });
+  }
+  const initialMethod = netsSelected ? "netsqr" : "";
+  setPaymentMethod(initialMethod);
+
+  const renderPaypalButtons = () => {
+    if (paypalButtonsRendered || !paypalAvailable) {
+      if (!paypalAvailable && paypalWarning) {
+        paypalWarning.style.display = "block";
+      }
+      return;
+    }
+    if (!window.paypal) {
+      if (!paypalRenderQueued) {
+        paypalRenderQueued = true;
+        const waitForPaypal = () => {
+          if (window.paypal) {
+            paypalRenderQueued = false;
+            renderPaypalButtons();
+            return;
+          }
+          setTimeout(waitForPaypal, 200);
+        };
+        waitForPaypal();
+      }
+      return;
+    }
+    if (!cartHasItems) {
+      return;
+    }
+
+    const paypalContainer = document.getElementById('paypal-button-container');
+    if (!paypalContainer) {
+      return;
+    }
+    const isHidden = paypalContainer.offsetParent === null;
+    if (isHidden) {
+      if (!paypalRenderQueued) {
+        paypalRenderQueued = true;
+        setTimeout(() => {
+          paypalRenderQueued = false;
+          renderPaypalButtons();
+        }, 100);
+      }
+      return;
+    }
+
+    paypalButtonsRendered = true;
+    paypal.Buttons({
+      createOrder: function () {
+        return fetch('/api/paypal/create-order', {
+          method: 'post',
+          headers: {
+            'content-type': 'application/json'
+          },
+          body: JSON.stringify({})
+        })
+          .then(res => res.json())
+          .then(data => data.id);
+      },
+      onApprove: function (data) {
+        return fetch('/api/paypal/capture-order', {
+          method: 'post',
+          headers: {
+            'content-type': 'application/json'
+          },
+          body: JSON.stringify({ orderID: data.orderID })
+        })
+          .then(res => res.json())
+          .then(result => {
+            if (result.success && result.redirectUrl) {
+              window.location.href = result.redirectUrl;
+              return;
+            }
+            alert('Payment not completed.');
+          });
+      },
+      onClick: function (data, actions) {
+        if (!cartHasItems) {
+          alert('Your booking cart is empty. Please add items before paying.');
+          return actions.reject();
+        }
+        return actions.resolve();
+      }
+    }).render('#paypal-button-container');
+  };
 
   if (txnRetrievalRef) {
     const url = `/sse/payment-status/${txnRetrievalRef}`;
@@ -237,24 +344,6 @@
       }
     });
 
-    // Countdown
-    const timerElement = document.getElementById("timer");
-    if (timerElement) {
-      let remainingTime = 300;
-      const timerInterval = setInterval(() => {
-        const minutes = Math.floor(remainingTime / 60);
-        const seconds = remainingTime % 60;
-        timerElement.textContent = `Time remaining: ${minutes}:${seconds.toString().padStart(2, "0")}`;
-        remainingTime--;
-
-        if (remainingTime < 0) {
-          clearInterval(timerInterval);
-          timerElement.textContent = "Transaction timed out.";
-          s2sNetsTxnStatus.close();
-          window.location.href = `/nets-qr/fail?txn_retrieval_ref=${txnRetrievalRef}`;
-        }
-      }, 1000);
-    }
   }
 </script>
 

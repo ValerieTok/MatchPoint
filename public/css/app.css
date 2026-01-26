@@ -2658,8 +2658,16 @@ body.payment-page .payment-container .row {
 }
 
 .card-logo {
-  height: 20px;
+  height: 28px;
+  width: 100px;
+  object-fit: contain;
+  display: block;
 }
+
+.card-logo.nets-logo {
+  object-fit: cover;
+}
+
 
 .summary-item {
   display: flex;

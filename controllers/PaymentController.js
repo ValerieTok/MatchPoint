@@ -1,6 +1,9 @@
 const axios = require('axios');
 const Booking = require('../models/Booking');
 const BookingCart = require('../models/BookingCart');
+const paypal = require('../services/paypal');
+
+const SERVICE_FEE = 2.5;
 
 const ensureShopperRole = (req, res) => {
   const user = req.session && req.session.user;
@@ -17,7 +20,15 @@ const ensureShopperRole = (req, res) => {
   return true;
 };
 
-const finalizeBookingPayment = async (req, res, paymentMethod) => {
+const getPayableTotal = (req) => {
+  const sessionTotal = Number.parseFloat(req.session.pendingPayment?.total);
+  if (!Number.isFinite(sessionTotal) || sessionTotal <= 0) {
+    return null;
+  }
+  return Number((sessionTotal + SERVICE_FEE).toFixed(2));
+};
+
+const finalizeBookingPaymentData = async (req, paymentMethod) => {
   const userId = req.session.user.id;
   const cart = req.session.pendingPayment?.cart || [];
   const deliveryAddress = req.session.pendingPayment?.deliveryAddress || '';
@@ -53,18 +64,26 @@ const finalizeBookingPayment = async (req, res, paymentMethod) => {
 
   req.flash('success', 'Payment successful! Your booking has been confirmed.');
 
+  return {
+    cart,
+    user: req.session.user,
+    deliveryAddress,
+    total: total || 0,
+    orderId,
+    mode: 'receipt',
+    paymentMethod
+  };
+};
+
+const finalizeBookingPayment = async (req, res, paymentMethod) => {
+  const receiptData = await finalizeBookingPaymentData(req, paymentMethod);
+
   req.session.save((saveErr) => {
     if (saveErr) {
       console.error('Session save error:', saveErr);
     }
     return res.render('bookingReceipt', {
-      cart,
-      user: req.session.user,
-      deliveryAddress,
-      total: total || 0,
-      orderId,
-      mode: 'receipt',
-      paymentMethod,
+      ...receiptData,
       messages: req.flash()
     });
   });
@@ -92,68 +111,59 @@ module.exports = {
     
     try {
       const orderId = req.params.orderId || req.query.orderId;
-      let cart = req.session.pendingPayment?.cart || [];
-      let deliveryAddress = req.session.pendingPayment?.deliveryAddress || '';
-      let total = req.session.pendingPayment?.total || 0;
-
-      if (!cart.length) {
-        const userId = req.session.user.id;
-        const dbCart = await new Promise((resolve, reject) => {
-          BookingCart.getCart(userId, (err, rows) => (err ? reject(err) : resolve(rows || [])));
-        });
-        if (!dbCart.length) {
-          req.flash('error', 'No items to pay for');
-          return res.redirect('/bookingCart');
-        }
-
-        const pricedCart = dbCart.map((item) => {
-          const basePrice = Number.parseFloat(item.price) || 0;
-          const discountPercentage = Math.min(
-            100,
-            Math.max(0, Number.parseFloat(item.discount_percentage) || 0)
-          );
-          const hasDiscount = discountPercentage > 0;
-          const discountedPrice = hasDiscount
-            ? Number((basePrice * (1 - discountPercentage / 100)).toFixed(2))
-            : Number(basePrice.toFixed(2));
-
-          let sessionDate = item.session_date || null;
-          if (sessionDate) {
-            if (sessionDate instanceof Date) {
-              sessionDate = sessionDate.toISOString().split('T')[0];
-            } else if (typeof sessionDate === 'string' && sessionDate.includes('T')) {
-              sessionDate = sessionDate.split('T')[0];
-            }
-          }
-
-          return {
-            ...item,
-            price: discountedPrice,
-            listPrice: Number(basePrice.toFixed(2)),
-            discountPercentage,
-            offerMessage: item.offer_message,
-            session_date: sessionDate
-          };
-        });
-
-        total = pricedCart.reduce((sum, item) => {
-          return sum + Number(item.price) * Number(item.quantity || 0);
-        }, 0);
-
-        cart = pricedCart;
-        deliveryAddress = dbCart[0] && dbCart[0].session_location ? String(dbCart[0].session_location).trim() : '';
-
-        req.session.pendingPayment = {
-          cart,
-          deliveryAddress,
-          total
-        };
-      }
-
-      if (!cart || cart.length === 0) {
+      const userId = req.session.user.id;
+      const dbCart = await new Promise((resolve, reject) => {
+        BookingCart.getCart(userId, (err, rows) => (err ? reject(err) : resolve(rows || [])));
+      });
+      if (!dbCart.length) {
         req.flash('error', 'No items to pay for');
         return res.redirect('/bookingCart');
       }
+
+      const pricedCart = dbCart.map((item) => {
+        const basePrice = Number.parseFloat(item.price) || 0;
+        const discountPercentage = Math.min(
+          100,
+          Math.max(0, Number.parseFloat(item.discount_percentage) || 0)
+        );
+        const hasDiscount = discountPercentage > 0;
+        const discountedPrice = hasDiscount
+          ? Number((basePrice * (1 - discountPercentage / 100)).toFixed(2))
+          : Number(basePrice.toFixed(2));
+
+        let sessionDate = item.session_date || null;
+        if (sessionDate) {
+          if (sessionDate instanceof Date) {
+            sessionDate = sessionDate.toISOString().split('T')[0];
+          } else if (typeof sessionDate === 'string' && sessionDate.includes('T')) {
+            sessionDate = sessionDate.split('T')[0];
+          }
+        }
+
+        return {
+          ...item,
+          price: discountedPrice,
+          listPrice: Number(basePrice.toFixed(2)),
+          discountPercentage,
+          offerMessage: item.offer_message,
+          session_date: sessionDate
+        };
+      });
+
+      const total = pricedCart.reduce((sum, item) => {
+        return sum + Number(item.price) * Number(item.quantity || 0);
+      }, 0);
+
+      const cart = pricedCart;
+      const deliveryAddress = dbCart[0] && dbCart[0].session_location ? String(dbCart[0].session_location).trim() : '';
+
+      req.session.pendingPayment = {
+        cart,
+        deliveryAddress,
+        total
+      };
+
+      const paypalAmount = Number((Number(total || 0) + SERVICE_FEE).toFixed(2));
 
       return res.render('payment', {
         cart,
@@ -164,6 +174,9 @@ module.exports = {
         txnRetrievalRef: '',
         fullNetsResponse: {},
         qrCodeUrl: '',
+        paypalClientId: process.env.PAYPAL_CLIENT_ID || '',
+        paypalCurrency: 'SGD',
+        paypalAmount,
         messages: req.flash()
       });
     } catch (err) {
@@ -177,7 +190,7 @@ module.exports = {
     if (!ensureShopperRole(req, res)) return;
     
     try {
-      const { paymentMethod, cardholderName, cardNumber, expiryDate, cvv, email, phone } = req.body;
+      const { paymentMethod, email, phone } = req.body;
 
       // Validate payment details
       if (!paymentMethod) {
@@ -186,10 +199,8 @@ module.exports = {
       }
 
       if (paymentMethod === 'paypal') {
-        if (!cardholderName || !cardNumber || !expiryDate || !cvv) {
-          req.flash('error', 'Please fill in all PayPal payment details');
-          return res.redirect('/payment');
-        }
+        req.flash('info', 'Please complete the PayPal checkout to confirm your booking.');
+        return res.redirect('/payment');
       }
 
       if (paymentMethod === 'netsqr') {
@@ -240,5 +251,75 @@ module.exports = {
     if (!ensureShopperRole(req, res)) return;
     req.flash('error', 'NETS transaction failed or timed out. Please try again.');
     return res.redirect('/payment');
+  },
+
+  async paypalCreateOrder(req, res) {
+    if (!ensureShopperRole(req, res)) return;
+
+    try {
+      if (!process.env.PAYPAL_CLIENT_ID || !process.env.PAYPAL_CLIENT_SECRET || !process.env.PAYPAL_API) {
+        return res.status(400).json({ error: 'PayPal is not configured' });
+      }
+      const amount = getPayableTotal(req);
+      if (!amount) {
+        return res.status(400).json({ error: 'Invalid payment amount' });
+      }
+
+      const order = await paypal.createOrder(amount, 'SGD');
+      if (order && order.id) {
+        return res.json({ id: order.id });
+      }
+      return res.status(500).json({ error: 'Failed to create PayPal order', details: order });
+    } catch (err) {
+      console.error('PayPal create order error:', err);
+      return res.status(500).json({ error: 'Failed to create PayPal order', message: err.message });
+    }
+  },
+
+  async paypalCaptureOrder(req, res) {
+    if (!ensureShopperRole(req, res)) return;
+
+    try {
+      if (!process.env.PAYPAL_CLIENT_ID || !process.env.PAYPAL_CLIENT_SECRET || !process.env.PAYPAL_API) {
+        return res.status(400).json({ error: 'PayPal is not configured' });
+      }
+      const { orderID } = req.body || {};
+      if (!orderID) {
+        return res.status(400).json({ error: 'Missing PayPal order ID' });
+      }
+
+      const capture = await paypal.captureOrder(orderID);
+      if (capture && capture.status === 'COMPLETED') {
+        const receiptData = await finalizeBookingPaymentData(req, 'paypal');
+        req.session.lastReceipt = receiptData;
+        return req.session.save((saveErr) => {
+          if (saveErr) {
+            console.error('Session save error:', saveErr);
+          }
+          return res.json({ success: true, redirectUrl: '/payment/receipt' });
+        });
+      }
+
+      return res.status(400).json({ error: 'Payment not completed', details: capture });
+    } catch (err) {
+      console.error('PayPal capture error:', err);
+      return res.status(500).json({ error: 'Failed to capture PayPal order', message: err.message });
+    }
+  },
+
+  async showReceipt(req, res) {
+    if (!ensureShopperRole(req, res)) return;
+
+    const receipt = req.session.lastReceipt;
+    if (!receipt) {
+      req.flash('error', 'No recent payment found.');
+      return res.redirect('/userdashboard');
+    }
+
+    delete req.session.lastReceipt;
+    return res.render('bookingReceipt', {
+      ...receipt,
+      messages: req.flash()
+    });
   }
 };

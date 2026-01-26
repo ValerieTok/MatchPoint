@@ -294,6 +294,9 @@ app.post('/bookingCart/remove/:id', checkAuthenticated, BookingCartController.re
 // Payment routes
 app.get('/payment', checkAuthenticated, PaymentController.showPaymentPage);
 app.post('/payment/confirm', checkAuthenticated, PaymentController.confirmPayment);
+app.get('/payment/receipt', checkAuthenticated, PaymentController.showReceipt);
+app.post('/api/paypal/create-order', checkAuthenticated, PaymentController.paypalCreateOrder);
+app.post('/api/paypal/capture-order', checkAuthenticated, PaymentController.paypalCaptureOrder);
 
 app.post('/bookingsManage/:id/review/delete', checkAuthenticated, checkAdmin, BookingController.deleteReview);
 app.post('/bookingsManage/:id/status', checkAuthenticated, checkAdminOrCoach, BookingController.updateStatus);
