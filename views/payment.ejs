@@ -28,9 +28,8 @@
     </header>
 
     <div class="payment-container">
-      <div class="payment-title">USER WALLET PAGE</div>
 
-      <div class="payment-layout" style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(240px, 320px); gap: 24px; align-items: start;">
+      <div class="payment-layout">
         <div class="payment-main">
           <div class="payment-panel">
             <div class="payment-card">
@@ -42,28 +41,50 @@
               <form id="paymentForm" action="/payment/confirm" method="POST">
                 <div class="payment-form-grid">
                   <div class="payment-form-left">
+                    <div class="payment-wallet mb-4">
+                      <div class="payment-wallet__head">
+                        <div>
+                          <h6 class="fw-semibold mb-1">Use Wallet Balance</h6>
+                          <p class="text-muted small mb-0">Available: $<span id="walletBalanceDisplay"><%= Number(walletBalance || 0).toFixed(2) %></span></p>
+                        </div>
+                        <span class="wallet-badge">$<%= Number(walletBalance || 0).toFixed(2) %></span>
+                      </div>
+                      <div class="wallet-input">
+                        <span class="wallet-input__prefix">$</span>
+                        <input
+                          id="walletDeductionInput"
+                          name="walletDeduction"
+                          class="form-control"
+                          type="number"
+                          inputmode="decimal"
+                          min="0"
+                          step="0.01"
+                          max="<%= Number(walletBalance || 0).toFixed(2) %>"
+                          value="<%= Number(walletDeduction || 0).toFixed(2) %>"
+                          aria-label="Wallet amount to apply"
+                        >
+                        <button type="button" class="wallet-max" id="walletMaxBtn">Max</button>
+                      </div>
+                      <p class="text-muted small mb-0">Apply part of your wallet balance and pay the rest using PayPal or NETS.</p>
+                    </div>
+
                     <div class="mb-4">
-                      <h6 class="fw-semibold mb-3">Payment Method</h6>
+                      <h6 class="fw-semibold mb-3">Payment Methods</h6>
 
                       <div class="d-flex flex-column gap-2">
-                        <button type="button" class="payment-method" id="selectPaypal" aria-label="PayPal" <%= paypalAvailable ? '' : 'disabled' %>>
-                          <div class="card-logos">
-                            <img src="https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg" alt="PayPal" class="card-logo">
-                          </div>
-                        </button>
                         <button type="button" class="payment-method" id="selectNets" aria-label="NETS QR">
                           <div class="card-logos">
                             <img src="/images/NETS.webp" alt="NETS" class="card-logo nets-logo">
                           </div>
                         </button>
-                        <input type="hidden" name="paymentMethod" id="paymentMethodInput" value="">
+                        <input type="hidden" name="paymentMethod" id="paymentMethodInput" value="<%= paypalAvailable ? 'paypal' : '' %>">
                       </div>
                     </div>
 
-                <div class="payment-form-details" id="paypalDetails" style="display: none;">
+                <div class="payment-form-details" id="paypalDetails">
                   <div class="mb-3">
                     <div id="paypal-button-container"></div>
-                    <p class="text-muted small mt-2 mb-0">You will be charged $<%= paypalAmount %> via PayPal.</p>
+                    <p class="text-muted small mt-2 mb-0">You will be charged $<span id="paypalAmountDisplay"><%= paypalAmount %></span> via PayPal.</p>
                     <p id="paypal-config-warning" class="text-muted small mt-2" style="display: none;">
                       PayPal is not configured. Add your PayPal client ID in the environment to enable checkout.
                     </p>
@@ -161,14 +182,19 @@
               </div>
               <% }) %>
 
-              <div class="d-flex justify-content-between mb-3">
+              <div class="d-flex justify-content-between mb-2">
                 <span class="text-muted">Service fee</span>
                 <span class="fw-semibold">$2.50</span>
               </div>
 
+              <div class="d-flex justify-content-between mb-2">
+                <span class="text-muted">Wallet applied</span>
+                <span class="fw-semibold text-danger">-$<span id="walletAppliedDisplay"><%= Number(walletDeduction || 0).toFixed(2) %></span></span>
+              </div>
+
               <div class="summary-total d-flex justify-content-between">
-                <span>Total</span>
-                <span class="text-success">$<%= (Number(total || 0) + 2.50).toFixed(2) %></span>
+                <span>Amount due</span>
+                <span class="text-success">$<span id="amountDueDisplay"><%= (Number(total || 0) + 2.50 - Number(walletDeduction || 0)).toFixed(2) %></span></span>
               </div>
             <% } else { %>
               <p class="text-muted">No items in booking</p>
@@ -187,6 +213,7 @@
 <form id="netsQrForm" action="/generateNETSQR" method="POST">
   <input type="hidden" name="cartTotal" value="<%= (Number(total || 0) + 2.50).toFixed(2) %>">
   <input type="hidden" name="orderId" value="<%= orderId %>">
+  <input type="hidden" name="walletDeduction" id="walletDeductionFieldNets" value="<%= Number(walletDeduction || 0).toFixed(2) %>">
 </form>
 
 <!-- NETS payment -->
@@ -199,54 +226,58 @@
   const cartHasItems = <%- JSON.stringify(Boolean(cart && cart.length)) %>;
   const qrCodeUrl = "<%= qrCodeUrl || '' %>";
 
-  const selectPaypalBtn = document.getElementById("selectPaypal");
   const selectNetsBtn = document.getElementById("selectNets");
   const paymentMethodInput = document.getElementById("paymentMethodInput");
   const paypalDetails = document.getElementById("paypalDetails");
   const netsqrDetails = document.getElementById("netsqrDetails");
   const confirmPaymentBtn = document.getElementById("confirmPaymentBtn");
   const paypalWarning = document.getElementById("paypal-config-warning");
+  const walletDeductionInput = document.getElementById("walletDeductionInput");
+  const walletDeductionFieldNets = document.getElementById("walletDeductionFieldNets");
+  const walletMaxBtn = document.getElementById("walletMaxBtn");
+  const walletAppliedDisplay = document.getElementById("walletAppliedDisplay");
+  const amountDueDisplay = document.getElementById("amountDueDisplay");
+  const paypalAmountDisplay = document.getElementById("paypalAmountDisplay");
   let paypalButtonsRendered = false;
   let paypalRenderQueued = false;
 
-  const setPaymentMethod = (value) => {
-    if (paymentMethodInput) {
-      paymentMethodInput.value = value || "";
-    }
-    if (selectPaypalBtn) selectPaypalBtn.classList.toggle('active', value === "paypal");
-    if (selectNetsBtn) selectNetsBtn.classList.toggle('active', value === "netsqr");
-    syncPaymentUi();
+  const baseTotal = Number(<%= (Number(total || 0) + 2.50).toFixed(2) %>);
+  const walletBalance = Number(<%= Number(walletBalance || 0).toFixed(2) %>);
+
+  const clampMoney = (value, min, max) => {
+    const num = Number(value);
+    if (!Number.isFinite(num)) return min;
+    return Math.min(Math.max(num, min), max);
   };
 
-  const syncPaymentUi = () => {
-    const selected = paymentMethodInput ? paymentMethodInput.value : "";
-    const isNets = selected === "netsqr";
-    const isPaypal = selected === "paypal";
-    if (paypalDetails) paypalDetails.style.display = isPaypal ? "block" : "none";
-    if (netsqrDetails) netsqrDetails.style.display = isNets ? "block" : "none";
-    if (confirmPaymentBtn) confirmPaymentBtn.disabled = isNets || isPaypal || !selected;
+  const updateWalletDeduction = (value) => {
+    const maxDeduction = Math.min(walletBalance, baseTotal);
+    const next = Number(clampMoney(value, 0, maxDeduction).toFixed(2));
+    if (walletDeductionInput) {
+      walletDeductionInput.value = next.toFixed(2);
+    }
+    if (walletDeductionFieldNets) {
+      walletDeductionFieldNets.value = next.toFixed(2);
+    }
+    const due = Math.max(0, Number((baseTotal - next).toFixed(2)));
 
-    if (isPaypal && paypalAvailable) {
-      setTimeout(renderPaypalButtons, 0);
+    if (walletAppliedDisplay) walletAppliedDisplay.textContent = next.toFixed(2);
+    if (amountDueDisplay) amountDueDisplay.textContent = due.toFixed(2);
+    if (paypalAmountDisplay) paypalAmountDisplay.textContent = due.toFixed(2);
+
+    if (confirmPaymentBtn) {
+      confirmPaymentBtn.disabled = due > 0 && paymentMethodInput?.value === "paypal";
+    }
+    if (due <= 0 && paymentMethodInput) {
+      paymentMethodInput.value = "wallet";
+    } else if (paymentMethodInput && paymentMethodInput.value === "wallet") {
+      paymentMethodInput.value = paypalAvailable ? "paypal" : "";
+    }
+    if (selectNetsBtn) {
+      selectNetsBtn.disabled = due <= 0;
+      selectNetsBtn.classList.toggle("is-disabled", due <= 0);
     }
   };
-
-  if (selectPaypalBtn) {
-    selectPaypalBtn.addEventListener("click", () => setPaymentMethod("paypal"));
-  }
-  if (selectNetsBtn) {
-    selectNetsBtn.addEventListener("click", () => {
-      setPaymentMethod("netsqr");
-      if (!qrCodeUrl) {
-        const form = document.getElementById("netsQrForm");
-        if (form) {
-          form.submit();
-        }
-      }
-    });
-  }
-  const initialMethod = netsSelected ? "netsqr" : "";
-  setPaymentMethod(initialMethod);
 
   const renderPaypalButtons = () => {
     if (paypalButtonsRendered || !paypalAvailable) {
@@ -258,8 +289,14 @@
     if (!window.paypal) {
       if (!paypalRenderQueued) {
         paypalRenderQueued = true;
+        const warnTimeout = setTimeout(() => {
+          if (!window.paypal && paypalWarning) {
+            paypalWarning.style.display = "block";
+          }
+        }, 3500);
         const waitForPaypal = () => {
           if (window.paypal) {
+            clearTimeout(warnTimeout);
             paypalRenderQueued = false;
             renderPaypalButtons();
             return;
@@ -278,30 +315,25 @@
     if (!paypalContainer) {
       return;
     }
-    const isHidden = paypalContainer.offsetParent === null;
-    if (isHidden) {
-      if (!paypalRenderQueued) {
-        paypalRenderQueued = true;
-        setTimeout(() => {
-          paypalRenderQueued = false;
-          renderPaypalButtons();
-        }, 100);
-      }
-      return;
-    }
-
     paypalButtonsRendered = true;
     paypal.Buttons({
       createOrder: function () {
+        const walletDeduction = walletDeductionInput ? Number(walletDeductionInput.value || 0) : 0;
         return fetch('/api/paypal/create-order', {
           method: 'post',
           headers: {
             'content-type': 'application/json'
           },
-          body: JSON.stringify({})
+          body: JSON.stringify({ walletDeduction })
         })
           .then(res => res.json())
-          .then(data => data.id);
+          .then(data => {
+            if (data && data.error) {
+              alert(data.error);
+              throw new Error(data.error);
+            }
+            return data.id;
+          });
       },
       onApprove: function (data) {
         return fetch('/api/paypal/capture-order', {
@@ -329,6 +361,57 @@
       }
     }).render('#paypal-button-container');
   };
+
+  const setPaymentMethod = (value) => {
+    if (paymentMethodInput) {
+      paymentMethodInput.value = value || "";
+    }
+    if (selectNetsBtn) selectNetsBtn.classList.toggle('active', value === "netsqr");
+    syncPaymentUi();
+  };
+
+  const syncPaymentUi = () => {
+    const selected = paymentMethodInput ? paymentMethodInput.value : "";
+    const isNets = selected === "netsqr";
+    const walletDeduction = walletDeductionInput ? Number(walletDeductionInput.value || 0) : 0;
+    const due = Math.max(0, Number((baseTotal - walletDeduction).toFixed(2)));
+    if (paypalDetails) paypalDetails.style.display = paypalAvailable ? "block" : "none";
+    if (netsqrDetails) netsqrDetails.style.display = isNets ? "block" : "none";
+    if (confirmPaymentBtn) {
+      confirmPaymentBtn.disabled = isNets || selected === "paypal" || !selected || due > 0 && selected === "paypal";
+    }
+
+    if (paypalAvailable) {
+      setTimeout(renderPaypalButtons, 0);
+    } else if (paypalWarning) {
+      paypalWarning.style.display = "block";
+    }
+  };
+
+  if (selectNetsBtn) {
+    selectNetsBtn.addEventListener("click", () => {
+      setPaymentMethod("netsqr");
+      if (!qrCodeUrl) {
+        const form = document.getElementById("netsQrForm");
+        if (form) {
+          form.submit();
+        }
+      }
+    });
+  }
+  const initialMethod = netsSelected ? "netsqr" : (paypalAvailable ? "paypal" : "");
+  setPaymentMethod(initialMethod);
+  if (paypalAvailable) {
+    renderPaypalButtons();
+  }
+
+  if (walletDeductionInput) {
+    updateWalletDeduction(walletDeductionInput.value);
+    walletDeductionInput.addEventListener("input", (e) => updateWalletDeduction(e.target.value));
+  }
+  if (walletMaxBtn) {
+    walletMaxBtn.addEventListener("click", () => updateWalletDeduction(walletBalance));
+  }
 
   if (txnRetrievalRef) {
     const url = `/sse/payment-status/${txnRetrievalRef}`;

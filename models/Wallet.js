@@ -42,8 +42,8 @@ const Wallet = {
         }
 
         const insertSql = `
-          INSERT INTO wallet_transactions (user_id, amount, method, type, status, order_id)
-          VALUES (?, ?, ?, 'topup', 'completed', NULL)
+          INSERT INTO wallet_transactions (user_id, amount, method, type, status, order_id, description)
+          VALUES (?, ?, ?, 'TOPUP', 'completed', NULL, 'Wallet top up')
         `;
         db.query(insertSql, [userId, amount, method], (insertErr) => {
           if (insertErr) {
@@ -80,8 +80,8 @@ const Wallet = {
         }
 
         const insertSql = `
-          INSERT INTO wallet_transactions (user_id, amount, method, type, status, order_id)
-          VALUES (?, ?, 'wallet', 'payment', 'completed', ?)
+          INSERT INTO wallet_transactions (user_id, amount, method, type, status, order_id, description)
+          VALUES (?, ?, 'wallet', 'DEBIT', 'completed', ?, 'Booking payment')
         `;
         db.query(insertSql, [userId, -amt, orderId || null], (insertErr) => {
           if (insertErr) {

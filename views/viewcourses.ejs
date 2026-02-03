@@ -103,20 +103,15 @@
           const rating = (p.rating != null ? Number(p.rating).toFixed(1) : null);
           const enrolled = (p.students_enrolled != null ? Number(p.students_enrolled) : null);
 
-          // ---- IMAGE LOGIC (Football always uses your local file) ----
-          // Your file is: public/images/football.jpg
-          // Served as: /images/football.jpg
+          // ---- IMAGE LOGIC (no hardcoded sport image) ----
           let img;
-
-          if (sportKey.includes("football")) {
-            img = "/images/football.jpg";
-          } else if (p.image) {
+          if (p.image) {
             const rawImg = String(p.image);
             img = rawImg.startsWith("http") || rawImg.startsWith("/")
               ? rawImg
               : `/images/${rawImg}`;
           } else {
-            img = "/images/football.jpg"; // fallback
+            img = "/images/placeholder-course.jpg"; // fallback placeholder
           }
         %>
 

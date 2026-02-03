@@ -2,16 +2,32 @@ const axios = require("axios");
 const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
+const Wallet = require("../models/Wallet");
 
 exports.generateQrCode = async (req, res) => {
   const { cartTotal } = req.body;
   const serviceFee = 2.5;
   const sessionTotal = Number.parseFloat(req.session.pendingPayment?.total);
-  const amount = Number.isFinite(sessionTotal) && sessionTotal > 0
+  const baseTotal = Number.isFinite(sessionTotal) && sessionTotal > 0
     ? sessionTotal + serviceFee
     : Number.parseFloat(cartTotal);
+  const userId = req.session?.user?.id;
+  let walletBalance = Number(req.session.pendingPayment?.walletBalance || 0);
+  if (userId) {
+    try {
+      const walletRow = await new Promise((resolve, reject) => {
+        Wallet.getWalletByUserId(userId, (err, row) => (err ? reject(err) : resolve(row)));
+      });
+      walletBalance = walletRow && Number.isFinite(Number(walletRow.balance)) ? Number(walletRow.balance) : walletBalance;
+    } catch (err) {
+      console.error('Failed to load wallet for NETS:', err.message);
+    }
+  }
+  const requestedWallet = Number(req.body?.walletDeduction || 0);
+  const walletDeduction = Math.max(0, Math.min(requestedWallet, walletBalance, baseTotal));
+  const amount = Number((baseTotal - walletDeduction).toFixed(2));
   if (!amount || amount <= 0) {
-    req.flash('error', 'Invalid payment amount.');
+    req.flash('error', 'Wallet covers the full amount. No NETS payment required.');
     return res.redirect('/payment');
   }
   try {
@@ -84,10 +100,12 @@ exports.generateQrCode = async (req, res) => {
       const cart = req.session.pendingPayment?.cart || [];
       const deliveryAddress = req.session.pendingPayment?.deliveryAddress || '';
       const total = req.session.pendingPayment?.total || 0;
-      const paypalAmount = Number((Number(total || 0) + serviceFee).toFixed(2));
+      const paypalAmount = Number(Math.max(0, (Number(total || 0) + serviceFee) - walletDeduction).toFixed(2));
 
       req.session.pendingPayment = {
         ...(req.session.pendingPayment || {}),
+        walletDeduction,
+        walletBalance,
         nets: {
           txnRetrievalRef
         }
@@ -109,6 +127,8 @@ exports.generateQrCode = async (req, res) => {
         paypalClientId: process.env.PAYPAL_CLIENT_ID || '',
         paypalCurrency: 'SGD',
         paypalAmount,
+        walletBalance,
+        walletDeduction,
         messages: req.flash()
       });
     } else {

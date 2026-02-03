@@ -1,9 +1,19 @@
 const axios = require('axios');
 const Booking = require('../models/Booking');
 const BookingCart = require('../models/BookingCart');
+const Wallet = require('../models/Wallet');
 const paypal = require('../services/paypal');
 
 const SERVICE_FEE = 2.5;
+
+const clampWalletDeduction = (raw, walletBalance, totalDue) => {
+  let amt = Number(raw);
+  if (!Number.isFinite(amt)) amt = 0;
+  amt = Math.max(0, amt);
+  const max = Math.max(0, Math.min(Number(walletBalance || 0), Number(totalDue || 0)));
+  return Number(Math.min(amt, max).toFixed(2));
+};
+
 
 const ensureShopperRole = (req, res) => {
   const user = req.session && req.session.user;
@@ -25,13 +35,16 @@ const getPayableTotal = (req) => {
   if (!Number.isFinite(sessionTotal) || sessionTotal <= 0) {
     return null;
   }
-  return Number((sessionTotal + SERVICE_FEE).toFixed(2));
+  const baseTotal = Number((sessionTotal + SERVICE_FEE).toFixed(2));
+  const walletDeduction = Number(req.session.pendingPayment?.walletDeduction || 0);
+  return Number(Math.max(0, baseTotal - walletDeduction).toFixed(2));
 };
 
 const finalizeBookingPaymentData = async (req, paymentMethod) => {
   const userId = req.session.user.id;
   const cart = req.session.pendingPayment?.cart || [];
   const deliveryAddress = req.session.pendingPayment?.deliveryAddress || '';
+  const walletDeduction = Number(req.session.pendingPayment?.walletDeduction || 0);
 
   if (!cart || cart.length === 0) {
     req.flash('error', 'Your booking cart is empty');
@@ -58,6 +71,12 @@ const finalizeBookingPaymentData = async (req, paymentMethod) => {
   await new Promise((resolve, reject) => {
     BookingCart.clearCart(userId, (err) => (err ? reject(err) : resolve()));
   });
+
+  if (walletDeduction > 0) {
+    await new Promise((resolve, reject) => {
+      Wallet.deductForBooking(userId, walletDeduction, orderId, (err) => (err ? reject(err) : resolve()));
+    });
+  }
 
   req.session.cart = [];
   delete req.session.pendingPayment;
@@ -112,6 +131,15 @@ module.exports = {
     try {
       const orderId = req.params.orderId || req.query.orderId;
       const userId = req.session.user.id;
+      await new Promise((resolve, reject) => {
+        Wallet.ensureWallet(userId, (err) => (err ? reject(err) : resolve()));
+      });
+      const walletRow = await new Promise((resolve, reject) => {
+        Wallet.getWalletByUserId(userId, (err, row) => (err ? reject(err) : resolve(row)));
+      });
+      const walletBalance = walletRow && Number.isFinite(Number(walletRow.balance))
+        ? Number(walletRow.balance)
+        : 0;
       const dbCart = await new Promise((resolve, reject) => {
         BookingCart.getCart(userId, (err, rows) => (err ? reject(err) : resolve(rows || [])));
       });
@@ -157,13 +185,21 @@ module.exports = {
       const cart = pricedCart;
       const deliveryAddress = dbCart[0] && dbCart[0].session_location ? String(dbCart[0].session_location).trim() : '';
 
+      const baseTotal = Number((Number(total || 0) + SERVICE_FEE).toFixed(2));
+      const walletDeduction = clampWalletDeduction(
+        req.session.pendingPayment?.walletDeduction || 0,
+        walletBalance,
+        baseTotal
+      );
       req.session.pendingPayment = {
         cart,
         deliveryAddress,
-        total
+        total,
+        walletDeduction,
+        walletBalance
       };
 
-      const paypalAmount = Number((Number(total || 0) + SERVICE_FEE).toFixed(2));
+      const paypalAmount = Number(Math.max(0, baseTotal - walletDeduction).toFixed(2));
 
       return res.render('payment', {
         cart,
@@ -177,6 +213,8 @@ module.exports = {
         paypalClientId: process.env.PAYPAL_CLIENT_ID || '',
         paypalCurrency: 'SGD',
         paypalAmount,
+        walletBalance,
+        walletDeduction,
         messages: req.flash()
       });
     } catch (err) {
@@ -190,12 +228,35 @@ module.exports = {
     if (!ensureShopperRole(req, res)) return;
     
     try {
-      const { paymentMethod, email, phone } = req.body;
+      const { paymentMethod, email, phone, walletDeduction } = req.body;
+      const userId = req.session.user.id;
+      const walletRow = await new Promise((resolve, reject) => {
+        Wallet.getWalletByUserId(userId, (err, row) => (err ? reject(err) : resolve(row)));
+      });
+      const walletBalance = walletRow && Number.isFinite(Number(walletRow.balance))
+        ? Number(walletRow.balance)
+        : 0;
+      const baseTotal = Number((Number(req.session.pendingPayment?.total || 0) + SERVICE_FEE).toFixed(2));
+      const safeWalletDeduction = clampWalletDeduction(walletDeduction, walletBalance, baseTotal);
+      req.session.pendingPayment = {
+        ...(req.session.pendingPayment || {}),
+        walletDeduction: safeWalletDeduction,
+        walletBalance
+      };
+      const dueAfterCredits = Number(Math.max(0, baseTotal - safeWalletDeduction).toFixed(2));
 
       // Validate payment details
       if (!paymentMethod) {
         req.flash('error', 'Please select a payment method');
         return res.redirect('/payment');
+      }
+
+      if (paymentMethod === 'wallet') {
+        if (dueAfterCredits > 0) {
+          req.flash('error', 'Wallet balance does not cover the full amount.');
+          return res.redirect('/payment');
+        }
+        return finalizeBookingPayment(req, res, 'wallet');
       }
 
       if (paymentMethod === 'paypal') {
@@ -260,9 +321,20 @@ module.exports = {
       if (!process.env.PAYPAL_CLIENT_ID || !process.env.PAYPAL_CLIENT_SECRET || !process.env.PAYPAL_API) {
         return res.status(400).json({ error: 'PayPal is not configured' });
       }
+      const requestedWallet = req.body && Number(req.body.walletDeduction || 0);
+      const walletBalance = Number(req.session.pendingPayment?.walletBalance || 0);
+      const baseTotal = Number((Number(req.session.pendingPayment?.total || 0) + SERVICE_FEE).toFixed(2));
+      const safeWalletDeduction = clampWalletDeduction(requestedWallet, walletBalance, baseTotal);
+      req.session.pendingPayment = {
+        ...(req.session.pendingPayment || {}),
+        walletDeduction: safeWalletDeduction
+      };
       const amount = getPayableTotal(req);
       if (!amount) {
         return res.status(400).json({ error: 'Invalid payment amount' });
+      }
+      if (amount <= 0) {
+        return res.status(400).json({ error: 'Wallet covers full amount' });
       }
 
       const order = await paypal.createOrder(amount, 'SGD');
