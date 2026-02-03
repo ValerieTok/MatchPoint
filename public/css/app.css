@@ -1621,17 +1621,18 @@ body.admin-students {
   --entry-red-dark: #dc2626;
   --entry-ink: var(--text, #111827);
   --entry-muted: var(--muted, #6b7280);
-  --entry-sand: #fff5f5;
+  --entry-sand: #fff4f4;
   --entry-card: var(--panel, #ffffff);
   --entry-line: var(--line, #e5e7eb);
-  --entry-shadow: var(--shadow, 0 10px 28px rgba(30, 41, 59, 0.08));
-  --entry-radius: var(--radius, 18px);
+  --entry-shadow: var(--shadow, 0 18px 40px rgba(30, 41, 59, 0.12));
+  --entry-radius: var(--radius, 20px);
 }
 
 body.entry-page {
   background:
-    radial-gradient(900px 500px at 10% -10%, rgba(239, 68, 68, 0.18), transparent 55%),
-    radial-gradient(800px 480px at 90% 10%, rgba(239, 68, 68, 0.12), transparent 60%),
+    radial-gradient(900px 520px at 8% -12%, rgba(239, 68, 68, 0.22), transparent 60%),
+    radial-gradient(820px 520px at 92% 8%, rgba(239, 68, 68, 0.14), transparent 60%),
+    repeating-linear-gradient(135deg, rgba(239, 68, 68, 0.06) 0 12px, rgba(255, 255, 255, 0) 12px 26px),
     var(--entry-sand);
   color: var(--entry-ink);
   font-family: "Sora", "Segoe UI", sans-serif;
@@ -1652,10 +1653,10 @@ body.landing-page {
 
 .entry-shell {
   position: relative;
-  padding: 120px 32px 88px;
+  padding: 88px 32px 88px;
   min-height: 100vh;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
 }
 
@@ -1699,6 +1700,21 @@ body.landing-page {
   box-shadow: 0 8px 18px rgba(239, 68, 68, 0.28);
 }
 
+.entry-brand__dot--img {
+  background: #fff;
+  border: 2px solid var(--entry-red);
+  padding: 3px;
+  box-shadow: 0 6px 14px rgba(239, 68, 68, 0.2);
+}
+
+.entry-brand__dot--img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: 999px;
+}
+
 .entry-brand__name {
   font-size: 1.1rem;
 }
@@ -1733,23 +1749,50 @@ body.landing-page {
 .entry-layout {
   position: relative;
   display: grid;
-  gap: 48px;
-  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
-  max-width: 1240px;
+  gap: 40px;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+  max-width: 1200px;
   margin: 0 auto;
   align-items: stretch;
   width: 100%;
+}
+
+.entry-login .entry-layout {
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 680px;
 }
 
 .entry-card {
   background: var(--entry-card);
   color: var(--entry-ink);
   border-radius: var(--entry-radius);
-  padding: 56px 54px;
-  min-height: 560px;
+  padding: 54px 52px;
+  min-height: 520px;
   box-shadow: var(--entry-shadow);
-  border: 1px solid var(--entry-line);
+  border: 2px solid rgba(239, 68, 68, 0.1);
   animation: liftIn 0.5s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.entry-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 5px;
+  background: linear-gradient(90deg, var(--entry-red-dark), var(--entry-red));
+}
+
+.entry-card::after {
+  content: '';
+  position: absolute;
+  top: -40px;
+  right: -40px;
+  width: 160px;
+  height: 160px;
+  border-radius: 36px;
+  background: radial-gradient(circle, rgba(239, 68, 68, 0.25), rgba(239, 68, 68, 0));
+  transform: rotate(18deg);
 }
 
 .entry-hero {
@@ -1758,31 +1801,18 @@ body.landing-page {
   flex-direction: column;
   justify-content: flex-end;
   gap: 18px;
-  padding: 36px;
-  border-radius: 28px;
-  border: 1px solid rgba(239, 68, 68, 0.25);
-  background: #fff;
+  padding: 38px;
+  border-radius: 26px;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  background: rgba(255, 255, 255, 0.9);
   overflow: hidden;
   min-height: 520px;
   box-shadow: var(--entry-shadow);
 }
 
-.entry-hero::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image: url('/images/football.jpg');
-  background-size: cover;
-  background-position: center;
-  filter: grayscale(1) contrast(1.1);
-  opacity: 0.35;
-}
-
+.entry-hero::before,
 .entry-hero::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.35) 0%, rgba(255, 255, 255, 0.92) 62%);
+  content: none;
 }
 
 .entry-hero > * {
@@ -1792,10 +1822,10 @@ body.landing-page {
 
 .entry-hero h3 {
   font-size: 28px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  text-transform: none;
   margin: 0;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .entry-hero p {
@@ -1809,10 +1839,11 @@ body.landing-page {
 }
 
 .entry-stat {
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.9);
   border-radius: 16px;
-  padding: 12px 14px;
-  border: 1px solid rgba(15, 23, 42, 0.08);
+  padding: 14px 16px;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
 }
 
 .entry-stat strong {
@@ -1837,8 +1868,8 @@ body.landing-page {
 }
 
 .entry-title {
-  font-size: 34px;
-  letter-spacing: 0.02em;
+  font-size: 36px;
+  letter-spacing: -0.01em;
   margin: 12px 0 10px;
   color: var(--entry-ink);
   font-weight: 800;
@@ -1848,14 +1879,47 @@ body.landing-page {
   color: var(--entry-muted);
   font-size: 15px;
   margin-bottom: 28px;
+  line-height: 1.6;
+}
+
+.entry-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.entry-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(239, 68, 68, 0.1);
+  color: #b91c1c;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.entry-chip i {
+  font-size: 12px;
 }
 
 .entry-form {
+  display: grid;
+  gap: 18px;
+}
+
+.entry-form__row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px;
 }
 
 .entry-form > div {
-  margin-bottom: 18px;
+  margin-bottom: 0;
 }
 
 .entry-form > div:last-of-type {
@@ -1869,17 +1933,21 @@ body.landing-page {
 
 .entry-form .form-control,
 .entry-form .form-select {
-  border-radius: 12px;
-  border: 1px solid var(--entry-line);
-  padding: 14px 18px;
+  border-radius: 14px;
+  border: 1px solid rgba(17, 24, 39, 0.12);
+  padding: 14px 16px 14px 46px;
   background: #fff;
   color: var(--entry-ink);
+}
+
+.entry-form .form-select {
+  padding-left: 16px;
 }
 
 .entry-form .form-control:focus,
 .entry-form .form-select:focus {
   border-color: var(--entry-red);
-  box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.18);
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.18);
 }
 
 .cert-section {
@@ -1910,8 +1978,25 @@ body.landing-page {
   color: #fff;
   font-weight: 700;
   padding: 14px 18px;
-  border-radius: 12px;
+  border-radius: 14px;
   transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 12px;
+}
+
+.input-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-icon i {
+  position: absolute;
+  left: 16px;
+  color: var(--entry-red-dark);
+  font-size: 14px;
+  pointer-events: none;
 }
 
 .entry-btn:hover {
@@ -1931,6 +2016,14 @@ body.landing-page {
   text-align: center;
   color: var(--entry-muted);
   font-size: 13px;
+}
+
+.entry-form .form-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--entry-muted);
+  font-weight: 600;
 }
 
 
@@ -2144,6 +2237,10 @@ body.landing-page {
   .entry-hero {
     min-height: 320px;
     order: 2;
+  }
+
+  .entry-form__row {
+    grid-template-columns: 1fr;
   }
 
   .landing-title {

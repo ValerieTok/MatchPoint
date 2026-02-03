@@ -1,6 +1,6 @@
 <%- include('partials/head', {
   title: 'Create account',
-  bodyClass: 'entry-page admin-page',
+  bodyClass: 'entry-page admin-page entry-login',
   extraHead: `
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   `
@@ -8,7 +8,9 @@
 <section class="entry-shell">
   <div class="entry-topbar">
     <a class="entry-brand" href="/">
-      <span class="entry-brand__dot"><i class="fa-solid fa-bullseye"></i></span>
+      <span class="entry-brand__dot entry-brand__dot--img">
+        <img src="/images/soccer.png.png" alt="Soccer ball">
+      </span>
       <span class="entry-brand__name">MatchPoint</span>
     </a>
     <div class="entry-topbar__actions">
@@ -21,29 +23,50 @@
       <div class="entry-eyebrow">MatchPoint</div>
       <h1 class="entry-title">Create account</h1>
       <p class="entry-subtitle">Join the training floor and book sessions with coaches that fit your game.</p>
+      <div class="entry-chips">
+        <span class="entry-chip"><i class="fa-solid fa-dumbbell"></i> Athlete ready</span>
+        <span class="entry-chip"><i class="fa-solid fa-user-check"></i> Coach verified</span>
+        <span class="entry-chip"><i class="fa-solid fa-stopwatch"></i> Smart scheduling</span>
+      </div>
 
       <%- include('partials/flashMessages', { messages }) %>
 
-      <form action="/register" method="post" enctype="multipart/form-data" class="entry-form d-grid gap-3">
-        <div>
-          <label class="form-label">Full name</label>
-          <input class="form-control" type="text" name="username" value="<%= (formData && formData.username) || '' %>" required>
+      <form action="/register" method="post" enctype="multipart/form-data" class="entry-form">
+        <div class="entry-form__row">
+          <div>
+            <label class="form-label" for="register-name">Full name</label>
+            <div class="input-icon">
+              <i class="fa-solid fa-user"></i>
+              <input id="register-name" class="form-control" type="text" name="username" value="<%= (formData && formData.username) || '' %>" required>
+            </div>
+          </div>
+          <div>
+            <label class="form-label" for="register-email">Email</label>
+            <div class="input-icon">
+              <i class="fa-solid fa-envelope"></i>
+              <input id="register-email" class="form-control" type="email" name="email" value="<%= (formData && formData.email) || '' %>" required autocomplete="email">
+            </div>
+          </div>
         </div>
-        <div>
-          <label class="form-label">Email</label>
-          <input class="form-control" type="email" name="email" value="<%= (formData && formData.email) || '' %>" required>
-        </div>
-        <div>
-          <label class="form-label">Password</label>
-          <input class="form-control register-password-input" type="password" name="password" minlength="8" required>
+        <div class="entry-form__row">
+          <div>
+            <label class="form-label" for="register-password">Password</label>
+            <div class="input-icon">
+              <i class="fa-solid fa-lock"></i>
+              <input id="register-password" class="form-control register-password-input" type="password" name="password" minlength="8" required autocomplete="new-password">
+            </div>
+          </div>
+          <div>
+            <label class="form-label" for="register-phone">Phone number</label>
+            <div class="input-icon">
+              <i class="fa-solid fa-phone"></i>
+              <input id="register-phone" class="form-control" type="tel" name="contact" value="<%= (formData && formData.contact) || '' %>">
+            </div>
+          </div>
         </div>
         <div class="form-check">
           <input class="form-check-input" type="checkbox" id="show-password-register" data-show-password-target=".register-password-input">
           <label class="form-check-label" for="show-password-register">Show password</label>
-        </div>
-        <div>
-          <label class="form-label">Phone number</label>
-          <input class="form-control" type="tel" name="contact" value="<%= (formData && formData.contact) || '' %>">
         </div>
         <div>
           <label class="form-label">Profile photo (optional)</label>
@@ -79,26 +102,6 @@
       </form>
     </div>
 
-    <div class="entry-hero">
-      <div>
-        <h3>Built for athletes.</h3>
-        <p>Pick your sport, choose your coach, and keep every session organized.</p>
-      </div>
-      <div class="entry-hero__stats">
-        <div class="entry-stat">
-          <strong>Flexible scheduling</strong>
-          <span>Any time, any place</span>
-        </div>
-        <div class="entry-stat">
-          <strong>Coach ratings</strong>
-          <span>Train with the best</span>
-        </div>
-        <div class="entry-stat">
-          <strong>Performance focus</strong>
-          <span>Skill-based sessions</span>
-        </div>
-      </div>
-    </div>
   </div>
 </section>
 <%- include('partials/showPasswordToggle') %>
