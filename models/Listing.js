@@ -51,6 +51,11 @@ module.exports = {
     db.query(sql, [id], (err, results) => callback(err, results && results[0] ? results[0] : null));
   },
 
+  getFavoritesByUser: function (userId, callback) {
+    const sql = `${baseSelect} JOIN favorites f ON f.productId = l.id WHERE f.userId = ? AND l.is_active = 1 AND u.coach_status = 'approved' ORDER BY l.created_at DESC, l.id DESC`;
+    db.query(sql, [userId], (err, results) => callback(err, results || []));
+  },
+
   addProduct: function (productData, callback) {
     const sql = `
       INSERT INTO coach_listings

@@ -13,6 +13,7 @@ const ListingController = require('./controllers/ListingController');
 const BookingCartController = require('./controllers/BookingCartController');
 const BookingController = require('./controllers/BookingController');
 const PaymentController = require('./controllers/PaymentController');
+const WalletController = require('./controllers/WalletController');
 const AdminController = require('./controllers/AdminController');
 const CoachProfileController = require('./controllers/CoachProfileController');
 const UserProfileController = require('./controllers/UserProfileController');
@@ -259,6 +260,12 @@ app.post('/inbox/delete', checkAuthenticated, (req, res) => {
 app.get('/userdashboard', checkAuthenticated, ListingController.listAllProducts);
 app.get('/viewcourses', checkAuthenticated, ListingController.listAllProducts);
 app.get('/listingDetail/:id', checkAuthenticated, ListingController.getProductById);
+app.get('/wallet', checkAuthenticated, WalletController.showWallet);
+app.get('/wallet/nets/qr', checkAuthenticated, WalletController.netsQr);
+app.post('/wallet/nets/qr', checkAuthenticated, WalletController.netsQr);
+app.get('/wallet/nets/success', checkAuthenticated, WalletController.netsSuccess);
+app.get('/wallet/nets/fail', checkAuthenticated, WalletController.netsFail);
+app.get('/favorites', checkAuthenticated, FavoriteController.list);
 
 // Admin/coach listing pages
 app.get('/admindashboard', checkAuthenticated, checkAdmin, AdminController.dashboard);
@@ -312,6 +319,9 @@ app.post('/profile/password', checkAuthenticated, UserProfileController.updatePa
 app.post('/profile/photo', checkAuthenticated, upload.single('photo'), UserProfileController.updatePhoto);
 
 app.post('/favorite/:id', checkAuthenticated, FavoriteController.toggle);
+app.post('/wallet/topup', checkAuthenticated, WalletController.topUp);
+app.post('/api/wallet/paypal/create-order', checkAuthenticated, WalletController.paypalCreateOrder);
+app.post('/api/wallet/paypal/capture-order', checkAuthenticated, WalletController.paypalCaptureOrder);
 
 app.get('/banned', checkAuthenticated, (req, res) => {
   const user = req.session && req.session.user;

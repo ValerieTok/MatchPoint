@@ -2557,15 +2557,15 @@ body.payment-page .main {
 
 body.payment-page .topbar {
   width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
+  max-width: none;
+  margin: 0;
 }
 
 .payment-container {
-  max-width: 1200px;
-  margin: 0 auto 32px;
+  max-width: 100%;
+  margin: 0 0 32px;
   width: 100%;
-  padding-top: 0;
+  padding: 0;
 }
 
 body.payment-page .payment-layout {
@@ -2700,13 +2700,16 @@ body.payment-page .payment-panel {
 }
 
 .card-logos {
-  margin-left: auto;
-  display: inline-flex;
+  margin-left: 0;
+  display: flex;
   gap: 8px;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
 }
 
 .card-logo {
-  height: 28px;
+  height: 24px;
   width: 100px;
   object-fit: contain;
   display: block;
@@ -3730,3 +3733,385 @@ body.user-profile .session-empty {
   }
 }
 
+
+
+/* wallet page */
+body.wallet-page {
+  background: #eef0f3;
+}
+
+body.wallet-page .wallet-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 18px;
+  margin-bottom: 24px;
+}
+
+body.wallet-page .wallet-card {
+  background: #f4f5f7;
+  border-radius: 18px;
+  padding: 18px 20px;
+  box-shadow: 0 14px 40px rgba(16, 24, 40, 0.06);
+}
+
+body.wallet-page .wallet-card__label {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6b7280;
+  margin-bottom: 8px;
+}
+
+body.wallet-page .wallet-card__value {
+  font-size: 28px;
+  font-weight: 700;
+  color: #111827;
+}
+
+body.wallet-page .wallet-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
+  gap: 22px;
+}
+
+/* payment page: keep two columns and center container */
+body.payment-page .wallet-grid {
+  grid-template-columns: minmax(0, 1fr) 360px !important;
+  gap: 22px;
+  align-items: start;
+  width: 100%;
+  margin: 0;
+}
+
+/* keep payment grid two-column even when wallet page collapses */
+@media (max-width: 960px) {
+  body.payment-page .wallet-grid {
+    grid-template-columns: minmax(0, 1fr) 320px !important;
+  }
+}
+
+body.payment-page .wallet-summary,
+body.payment-page .payment-title {
+  width: 100%;
+}
+
+body.wallet-page .wallet-panel {
+  background: #f4f5f7;
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 14px 40px rgba(16, 24, 40, 0.06);
+}
+
+body.wallet-page .wallet-panel__header h3 {
+  margin: 0 0 4px;
+  font-size: 18px;
+}
+
+body.wallet-page .wallet-panel__header p {
+  margin: 0 0 18px;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+body.wallet-page .wallet-amounts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+body.wallet-page .amount-chip {
+  border: 1px solid #d1d5db;
+  background: #e5e7eb;
+  color: #111827;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+body.wallet-page .amount-chip.is-active {
+  background: #b42318;
+  color: #fff;
+  border-color: #b42318;
+}
+
+body.wallet-page .wallet-selected {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #e8eaee;
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 18px;
+  font-weight: 600;
+}
+
+body.wallet-page .wallet-methods {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+body.wallet-page .method-card {
+  border: 1px solid #d1d5db;
+  background: #fff;
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+body.wallet-page .method-card.is-active {
+  border-color: #111827;
+  box-shadow: inset 0 0 0 1px #111827;
+}
+
+body.wallet-page .method-card img {
+  max-height: 32px;
+}
+
+body.wallet-page .wallet-cta {
+  width: 100%;
+  border: none;
+  padding: 12px 16px;
+  background: #111827;
+  color: #fff;
+  font-weight: 600;
+  border-radius: 12px;
+}
+
+body.wallet-page .wallet-transactions {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+body.wallet-page .tx-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #e8eaee;
+  padding: 12px 14px;
+  border-radius: 14px;
+}
+
+body.wallet-page .tx-title {
+  font-weight: 600;
+}
+
+body.wallet-page .tx-meta {
+  display: flex;
+  gap: 6px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+body.wallet-page .tx-amount {
+  font-weight: 700;
+}
+
+body.wallet-page .tx-amount--in {
+  color: #067647;
+}
+
+body.wallet-page .tx-amount--out {
+  color: #b42318;
+}
+
+@media (max-width: 960px) {
+  body.wallet-page .wallet-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* payment page - wallet-like layout */
+body.payment-page {
+  background: #eef0f3;
+}
+
+body.payment-page .main {
+  background: transparent;
+  padding: 12px;
+  align-items: stretch;
+}
+
+body.payment-page .payment-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
+  gap: 22px;
+  align-items: start;
+}
+
+body.payment-page .payment-card,
+body.payment-page .summary-card,
+body.payment-page .payment-panel {
+  background: #f4f5f7;
+  border: 1px solid #e5e7eb;
+  border-radius: 20px;
+  box-shadow: 0 14px 40px rgba(16, 24, 40, 0.06);
+}
+
+body.payment-page .summary-card {
+  padding: 22px;
+}
+
+body.payment-page .payment-summary {
+  align-self: flex-start;
+  justify-self: end;
+  width: 100%;
+}
+
+
+body.payment-page .payment-summary-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 18px;
+  margin-bottom: 24px;
+}
+
+body.payment-page .payment-card-mini {
+  background: #f4f5f7;
+  border-radius: 18px;
+  padding: 18px 20px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 14px 40px rgba(16, 24, 40, 0.06);
+}
+
+body.payment-page .payment-card-mini__label {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6b7280;
+  margin-bottom: 8px;
+}
+
+body.payment-page .payment-card-mini__value {
+  font-size: 26px;
+  font-weight: 700;
+  color: #111827;
+}
+
+body.payment-page .payment-method {
+  background: #e5e7eb;
+  border: 1px solid #d1d5db;
+  border-radius: 14px;
+  width: 100%;
+  justify-content: center;
+  height: 45px;
+  padding: 0;
+}
+
+/* PayPal SDK buttons container styling */
+body.payment-page #paypal-button-container {
+  background: #f4f5f7;
+  border: 1px solid #d1d5db;
+  border-radius: 14px;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  max-width: 100%;
+}
+
+body.payment-page #paypal-button-container > div {
+  width: 100% !important;
+  min-width: 100%;
+  max-width: 100% !important;
+}
+
+body.payment-page #paypal-button-container iframe {
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* wallet PayPal buttons */
+body.wallet-page #wallet-paypal-button-container {
+  width: 100%;
+}
+
+body.wallet-page #wallet-paypal-button-container iframe,
+body.wallet-page #wallet-paypal-button-container > div {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+body.payment-page .payment-method.active {
+  background: #f7eded;
+  border-color: #b42318;
+}
+
+body.payment-page .btn-payment {
+  background: #111827 !important;
+  border-color: #111827 !important;
+}
+
+/* payment layout hard override */
+body.payment-page .payment-layout,
+body.payment-page .payment-layout--row {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: flex-start !important;
+  gap: 22px !important;
+}
+
+body.payment-page .payment-main {
+  flex: 1 1 0% !important;
+  min-width: 0 !important;
+}
+
+body.payment-page .payment-summary {
+  flex: 0 0 320px !important;
+  width: 320px !important;
+  max-width: 320px !important;
+  align-self: flex-start !important;
+}
+
+body.payment-page .summary-card {
+  background: #f4f5f7 !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 20px !important;
+  box-shadow: 0 14px 40px rgba(16, 24, 40, 0.06) !important;
+}
+
+
+
+
+body.payment-page .payment-layout {
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+}
+
+
+/* payment page alignment override */
+body.payment-page .payment-layout {
+  display: flex !important;
+  flex-wrap: nowrap;
+  align-items: flex-start;
+  gap: 22px;
+}
+
+body.payment-page .payment-main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+body.payment-page .payment-summary {
+  flex: 0 0 320px;
+  max-width: 320px;
+  width: 320px;
+  align-self: flex-start;
+}
+
+body.payment-page .payment-card,
+body.payment-page .summary-card,
+body.payment-page .payment-panel {
+  background: #f4f5f7;
+  border: 1px solid #e5e7eb;
+  border-radius: 20px;
+  box-shadow: 0 14px 40px rgba(16, 24, 40, 0.06);
+}

@@ -1,6 +1,42 @@
 const Favorite = require('../models/Favorite');
+const Listing = require('../models/Listing');
+const UserProfile = require('../models/UserProfile');
 
 const FavoriteController = {
+
+  async list(req, res) {
+    const user = req.session && req.session.user;
+    if (!user || user.role !== 'user') {
+      req.flash('error', 'Access denied');
+      return res.redirect('/userdashboard');
+    }
+    try {
+      const [favorites, profile] = await Promise.all([
+        new Promise((resolve, reject) => {
+          Listing.getFavoritesByUser(user.id, (err, rows) => (err ? reject(err) : resolve(rows || [])));
+        }),
+        new Promise((resolve) => {
+          UserProfile.getByUserId(user.id, (err, profileRow) => {
+            if (err) {
+              console.error('Failed to load profile photo:', err);
+              return resolve(null);
+            }
+            return resolve(profileRow);
+          });
+        })
+      ]);
+      const profilePhoto = profile && profile.photo ? profile.photo : null;
+      const products = (favorites || []).map((row) => ({
+        ...row,
+        isFavorited: true
+      }));
+      return res.render('favorites', { products, user, profilePhoto });
+    } catch (err) {
+      console.error('Failed to load favorites:', err);
+      req.flash('error', 'Failed to load favourites');
+      return res.render('favorites', { products: [], user, profilePhoto: null });
+    }
+  },
   toggle(req, res) {
     const user = req.session && req.session.user;
     if (!user || user.role !== 'user') {
@@ -33,6 +69,9 @@ const FavoriteController = {
       }
       if (req.headers.accept && req.headers.accept.includes('application/json')) {
         return res.json({ success: true, action: info.action });
+      }
+      if (info && info.action === 'added') {
+        return res.redirect('/favorites');
       }
       return res.redirect(safeReturnTo || fallbackReturnTo);
     });

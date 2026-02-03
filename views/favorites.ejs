@@ -1,0 +1,151 @@
+<%- include('partials/head', {
+  title: 'MatchPoint - Favourites',
+  bodyClass: 'admin-page user-courses user-favorites',
+  extraHead: `
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  `
+}) %>
+
+<div class="app" id="top">
+    <!-- SIDEBAR -->
+    <%- include("partials/userSidebar", {
+      active: "favorites",
+    }) %>
+
+    <!-- MAIN -->
+    <main class="main">
+      <header class="topbar">
+        <div class="crumb">FAVOURITES</div>
+        <div class="topbar__right">
+          <div class="topbar__avatar topbar__avatar--lg">
+            <% if (profilePhoto) { %>
+              <img src="/images/<%= profilePhoto %>" alt="Profile photo">
+            <% } else { %>
+              <i class="fa-regular fa-user"></i>
+            <% } %>
+          </div>
+          <div class="topbar__pill"><i class="fa-solid fa-heart"></i></div>
+        </div>
+      </header>
+
+      <section class="courses-header">
+        <h2 class="courses-header__title">
+          Your <strong class="hello__name">favourites</strong>
+        </h2>
+      </section>
+
+      <section class="courses-grid" id="grid">
+        <% const list = products || []; %>
+
+        <% if (list.length === 0) { %>
+          <div class="empty-state">
+            <div class="empty-state__icon"><i class="fa-solid fa-heart-crack"></i></div>
+            <div class="empty-state__title">No favourites yet</div>
+            <div class="empty-state__hint">Browse courses and tap the heart to save your favourites.</div>
+            <a class="course-card__btn" href="/viewcourses">Browse Courses</a>
+          </div>
+        <% } %>
+
+        <% list.forEach((p) => {
+          const listingId = p.id || p.listing_id;
+          const title = p.listing_title || p.title || "Coach Session";
+          const coach = p.coach_name || p.username || title;
+          const levelRaw = (p.skill_level != null ? String(p.skill_level).trim() : "");
+          const level = levelRaw ? levelRaw.toLowerCase() : "";
+          const mins = (p.duration_minutes != null ? Number(p.duration_minutes) : null);
+          const loc = (p.session_location != null ? String(p.session_location).trim() : "");
+          const sportRaw = (p.sport != null ? p.sport : (p.listing_title != null ? p.listing_title : ""));
+          const sportName = String(sportRaw).trim();                // for display
+          const sportKey  = String(sportRaw).trim().toLowerCase();  // for logic/filtering
+
+          const price = (p.price != null ? Number(p.price) : 0);
+          const rating = (p.rating != null ? Number(p.rating).toFixed(1) : null);
+          const enrolled = (p.students_enrolled != null ? Number(p.students_enrolled) : null);
+
+          // ---- IMAGE LOGIC (Football always uses your local file) ----
+          // Your file is: public/images/football.jpg
+          // Served as: /images/football.jpg
+          let img;
+
+          if (sportKey.includes("football")) {
+            img = "/images/football.jpg";
+          } else if (p.image) {
+            const rawImg = String(p.image);
+            img = rawImg.startsWith("http") || rawImg.startsWith("/")
+              ? rawImg
+              : `/images/${rawImg}`;
+          } else {
+            img = "/images/football.jpg"; // fallback
+          }
+        %>
+
+          <article class="course-card"
+            data-coach="<%= String(coach).toLowerCase() %>"
+            data-sport="<%= sportKey %>"
+            data-loc="<%= String(loc).toLowerCase() %>"
+            data-level="<%= level %>"
+          >
+            <div class="course-card__image">
+              <img src="<%= img %>" alt="<%= coach %>" />
+              <span class="course-card__sport"><%= coach %></span>
+              <% if (user && user.role === 'user' && listingId) { %>
+                <form action="/favorite/<%= listingId %>" method="POST" class="fav-form course-card__fav">
+                  <input type="hidden" name="returnTo" value="/favorites#top">
+                  <button type="submit" class="fav-btn <%= p.isFavorited ? 'is-fav' : '' %>" title="Favourite"></button>
+                </form>
+              <% } %>
+            </div>
+
+            <div class="course-card__content">
+              <div class="course-card__header">
+                <div>
+                  <h3 class="course-card__name"><%= sportName || (p.listing_title || "") %></h3>
+                  <p class="course-card__level"><%= level ? (level.charAt(0).toUpperCase() + level.slice(1)) : "Not set" %> Level</p>
+                </div>
+                <% const displayRating = rating !== null ? Math.round(Number(rating || 0) * 2) / 2 : 0; %>
+                <div class="course-card__rating star-rating <%= rating === null ? 'star-rating--empty' : '' %>" aria-label="Rating <%= rating === null ? 'No reviews' : `${displayRating} out of 5` %>">
+                  <% for (let i = 1; i <= 5; i += 1) { %>
+                    <% if (displayRating >= i) { %>
+                      <i class="fa-solid fa-star star-filled"></i>
+                    <% } else if (displayRating >= i - 0.5) { %>
+                      <i class="fa-solid fa-star-half-stroke star-half"></i>
+                    <% } else { %>
+                      <i class="fa-regular fa-star star-empty"></i>
+                    <% } %>
+                  <% } %>
+                  <% if (rating !== null) { %>
+                    <span class="star-score"><%= displayRating.toFixed(1) %></span>
+                  <% } else { %>
+                    <span class="star-score">No reviews</span>
+                  <% } %>
+                </div>
+              </div>
+
+              <% if (p.description) { %>
+                <p class="course-card__desc"><%= p.description %></p>
+              <% } %>
+
+              <div class="course-card__details">
+                <div class="detail"><i class="fa-regular fa-clock"></i> <span><%= mins != null ? mins : "TBC" %> Minutes</span></div>
+                <div class="detail"><i class="fa-solid fa-location-dot"></i> <span><%= loc || "TBC" %></span></div>
+                <% if (enrolled != null) { %>
+                  <div class="detail"><i class="fa-regular fa-user"></i> <span><%= enrolled %> students enrolled</span></div>
+                <% } %>
+              </div>
+
+              <div class="course-card__footer">
+                <div>
+                  <p class="course-card__price-label">Price per session</p>
+                  <p class="course-card__price">$<%= price %></p>
+                </div>
+                <a href="/listingDetail/<%= listingId || '' %>" class="course-card__btn">Book Now</a>
+              </div>
+            </div>
+          </article>
+
+        <% }) %>
+      </section>
+    </main>
+  </div>
+
+<%- include('partials/footer') %>

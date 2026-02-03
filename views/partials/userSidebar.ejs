@@ -15,6 +15,16 @@
       <span>Courses</span>
     </a>
 
+    <a class="nav__item <%= active === 'favorites' ? 'nav__item--active' : '' %>" href="/favorites">
+      <i class="fa-solid fa-heart"></i>
+      <span>Favourites</span>
+    </a>
+
+    <a class="nav__item <%= active === 'wallet' ? 'nav__item--active' : '' %>" href="/wallet">
+      <i class="fa-solid fa-wallet"></i>
+      <span>Wallet</span>
+    </a>
+
     <a class="nav__item <%= active === 'cart' ? 'nav__item--active' : '' %>" href="/bookingCart">
       <i class="fa-solid fa-cart-shopping"></i>
       <span>Cart</span>

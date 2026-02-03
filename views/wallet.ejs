@@ -1,0 +1,245 @@
+<%
+  const paypalAvailable = Boolean(paypalClientId);
+  const paypalScript = paypalAvailable
+    ? `<script src="https://www.paypal.com/sdk/js?client-id=${paypalClientId}&currency=${paypalCurrency}"></script>`
+    : '';
+%>
+
+<%- include('partials/head', {
+  title: 'MatchPoint - Wallet',
+  bodyClass: 'admin-page wallet-page',
+  extraHead: `
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    ${paypalScript}
+  `
+}) %>
+
+<div class="app" id="top">
+  <%- include('partials/userSidebar', { active: 'wallet' }) %>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="crumb">WALLET</div>
+      <div class="topbar__right">
+        <div class="topbar__avatar topbar__avatar--lg">
+          <% if (profilePhoto) { %>
+            <img src="/images/<%= profilePhoto %>" alt="Profile photo">
+          <% } else { %>
+            <i class="fa-regular fa-user"></i>
+          <% } %>
+        </div>
+        <div class="topbar__pill"><i class="fa-solid fa-wallet"></i></div>
+      </div>
+    </header>
+
+    <%- include('partials/flashMessages', { messages }) %>
+
+    <section class="wallet-summary">
+      <div class="wallet-card">
+        <div class="wallet-card__label">Balance</div>
+        <div class="wallet-card__value">$<%= Number(wallet.balance || 0).toFixed(2) %></div>
+      </div>
+    </section>
+
+    <section class="wallet-grid">
+      <div class="wallet-panel">
+        <div class="wallet-panel__header">
+          <h3>Top Up</h3>
+          <p>Choose an amount in $10 increments.</p>
+        </div>
+
+        <form class="wallet-topup" action="/wallet/topup" method="POST">
+          <div class="wallet-amounts" data-amounts>
+            <% const amounts = [10, 20, 30, 50, 100]; %>
+            <% amounts.forEach((amt, idx) => { %>
+              <button type="button" class="amount-chip <%= idx === 0 ? 'is-active' : '' %>" data-amount="<%= amt %>">$<%= amt %></button>
+            <% }) %>
+          </div>
+
+          <div class="wallet-selected">
+            <span>Selected</span>
+            <strong id="selectedAmount">$10.00</strong>
+          </div>
+
+          <div class="wallet-methods">
+            <button type="button" class="method-card is-active" data-method="paypal" aria-label="PayPal">
+              <img src="https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg" alt="PayPal">
+            </button>
+            <button type="button" class="method-card" data-method="nets" aria-label="NETS">
+              <img src="/images/NETS.webp" alt="NETS" class="nets-logo">
+            </button>
+          </div>
+
+          <div id="wallet-paypal-buttons" style="display: none; margin-top: 14px;">
+            <div id="wallet-paypal-button-container"></div>
+            <p id="wallet-paypal-config-warning" class="text-muted small mt-2" style="display: none;">
+              PayPal is not configured. Add your PayPal client ID in the environment to enable checkout.
+            </p>
+          </div>
+
+          <% if (qrCodeUrl) { %>
+            <div class="wallet-qr" style="margin-top: 16px; text-align: center;">
+              <img src="<%= qrCodeUrl %>" alt="NETS QR Code" style="max-width: 260px; width: 100%;">
+              <p class="text-muted small mt-2">Scan to complete your NETS top up.</p>
+            </div>
+          <% } %>
+
+          <input type="hidden" name="amount" id="amountInput" value="10">
+          <input type="hidden" name="method" id="methodInput" value="paypal">
+
+          <button type="submit" class="wallet-cta" id="walletTopupBtn">Generate NETS QR</button>
+        </form>
+      </div>
+
+      <div class="wallet-panel">
+        <div class="wallet-panel__header">
+          <h3>Recent Transactions</h3>
+          <p>Top ups and booking payments.</p>
+        </div>
+
+        <div class="wallet-transactions">
+          <% if (!transactions || !transactions.length) { %>
+            <div class="empty-state">
+              <div class="empty-state__icon"><i class="fa-solid fa-receipt"></i></div>
+              <div class="empty-state__title">No transactions yet</div>
+              <div class="empty-state__hint">Your recent activity will show up here.</div>
+            </div>
+          <% } else { %>
+            <% transactions.forEach((tx) => { %>
+              <div class="tx-row">
+                <div class="tx-left">
+                  <div class="tx-title"><%= (tx.type || 'Transaction').toUpperCase() %></div>
+                  <div class="tx-meta">
+                    <span><%= tx.method ? String(tx.method).toUpperCase() : '' %></span>
+                    <% if (tx.status) { %>
+                      <span>•</span>
+                      <span><%= String(tx.status).toUpperCase() %></span>
+                    <% } %>
+                    <span>•</span>
+                    <span><%= tx.created_at ? new Date(tx.created_at).toLocaleDateString('en-GB') : '' %></span>
+                  </div>
+                </div>
+                <div class="tx-amount <%= Number(tx.amount || 0) >= 0 ? 'tx-amount--in' : 'tx-amount--out' %>">
+                  <%= Number(tx.amount || 0) >= 0 ? '+' : '' %>$<%= Number(tx.amount || 0).toFixed(2) %>
+                </div>
+              </div>
+            <% }) %>
+          <% } %>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="https://unpkg.com/event-source-polyfill"></script>
+<script>
+  const amountButtons = document.querySelectorAll('[data-amount]');
+  const methodButtons = document.querySelectorAll('[data-method]');
+  const amountInput = document.getElementById('amountInput');
+  const methodInput = document.getElementById('methodInput');
+  const selectedAmount = document.getElementById('selectedAmount');
+  const walletTopupBtn = document.getElementById('walletTopupBtn');
+  const paypalButtonsWrap = document.getElementById('wallet-paypal-buttons');
+  const paypalWarning = document.getElementById('wallet-paypal-config-warning');
+  const paypalContainer = document.getElementById('wallet-paypal-button-container');
+  const paypalAvailable = <%- JSON.stringify(paypalAvailable) %>;
+  const txnRetrievalRef = "<%= txnRetrievalRef || '' %>";
+  let paypalButtonsRendered = false;
+
+  amountButtons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      amountButtons.forEach((b) => b.classList.remove('is-active'));
+      btn.classList.add('is-active');
+      const val = Number(btn.dataset.amount || 10);
+      if (amountInput) amountInput.value = String(val);
+      if (selectedAmount) selectedAmount.textContent = `$${val.toFixed(2)}`;
+    });
+  });
+
+  methodButtons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      methodButtons.forEach((b) => b.classList.remove('is-active'));
+      btn.classList.add('is-active');
+      if (methodInput) methodInput.value = String(btn.dataset.method || 'paypal');
+      syncWalletMethodUi();
+    });
+  });
+
+  const syncWalletMethodUi = () => {
+    const method = methodInput ? methodInput.value : 'paypal';
+    if (walletTopupBtn) {
+      walletTopupBtn.style.display = method === 'nets' ? 'block' : 'none';
+    }
+    if (paypalButtonsWrap) {
+      paypalButtonsWrap.style.display = method === 'paypal' ? 'block' : 'none';
+    }
+    if (method === 'paypal') {
+      renderWalletPaypalButtons();
+    }
+  };
+
+  const renderWalletPaypalButtons = () => {
+    if (paypalButtonsRendered || !paypalAvailable) {
+      if (!paypalAvailable && paypalWarning) {
+        paypalWarning.style.display = 'block';
+      }
+      return;
+    }
+    if (!window.paypal || !paypalContainer) return;
+    paypalButtonsRendered = true;
+    paypal.Buttons({
+      style: {
+        layout: 'vertical',
+        label: 'paypal',
+        shape: 'rect',
+        height: 45,
+        color: 'gold',
+        tagline: false
+      },
+      createOrder: function () {
+        const amount = Number(amountInput ? amountInput.value : 0) || 0;
+        return fetch('/api/wallet/paypal/create-order', {
+          method: 'post',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ amount })
+        })
+          .then(res => res.json())
+          .then(data => data.id);
+      },
+      onApprove: function (data) {
+        return fetch('/api/wallet/paypal/capture-order', {
+          method: 'post',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ orderID: data.orderID })
+        })
+          .then(res => res.json())
+          .then(result => {
+            if (result.success && result.redirectUrl) {
+              window.location.href = result.redirectUrl;
+              return;
+            }
+            alert('Top up not completed.');
+          });
+      }
+    }).render('#wallet-paypal-button-container');
+  };
+
+  if (txnRetrievalRef) {
+    const url = `/sse/payment-status/${txnRetrievalRef}`;
+    const s2sNetsTxnStatus = new EventSourcePolyfill(url, { heartbeatTimeout: 150000 });
+    s2sNetsTxnStatus.addEventListener("message", (event) => {
+      const data = JSON.parse(event.data);
+      if (data.success) {
+        s2sNetsTxnStatus.close();
+        window.location.href = `/wallet/nets/success?txn_retrieval_ref=${txnRetrievalRef}`;
+      } else if (data.fail) {
+        s2sNetsTxnStatus.close();
+        window.location.href = `/wallet/nets/fail?txn_retrieval_ref=${txnRetrievalRef}`;
+      }
+    });
+  }
+
+  syncWalletMethodUi();
+</script>
+
+<%- include('partials/footer') %>
