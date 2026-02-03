@@ -1,4 +1,5 @@
 const Booking = require('../models/Booking');
+const Refunds = require('../models/Refunds');
 
 const buildOrderDetails = (order, coachId) =>
   new Promise((resolve) => {
@@ -230,7 +231,11 @@ module.exports = {
         });
       }
       const withItems = Promise.all(orders.map((o) => buildOrderDetails(o, null)));
-        return withItems.then((ordersWithItems) => {
+      const withRefunds = new Promise((resolve, reject) => {
+        Refunds.getUserRefunds(userId, (refundErr, refundRows) => (refundErr ? reject(refundErr) : resolve(refundRows || [])));
+      });
+        return Promise.all([withItems, withRefunds]).then(([ordersWithItems, refunds]) => {
+          const refundMap = new Map((refunds || []).map((r) => [Number(r.booking_item_id), r]));
           const completedSessions = [];
           ordersWithItems.forEach((order) => {
             const items = Array.isArray(order.items) ? order.items : [];
@@ -279,15 +284,20 @@ module.exports = {
               }
               if (!itemCompleted) return;
 
+              const refund = refundMap.get(Number(item.booking_item_id)) || null;
               completedSessions.push({
                 bookingId: order.id,
+                itemId: item.booking_item_id,
                 completedAt: completedAtRaw,
                 review: order.review,
                 coach: item.username,
                 sport: item.sport,
                 location: item.session_location || order.session_location,
                 date: item.session_date,
-                time: item.session_time
+                time: item.session_time,
+                price: item.price,
+                quantity: item.quantity,
+                refund
               });
             });
           });
@@ -302,7 +312,16 @@ module.exports = {
           });
           return res.render('userRatings', {
             user: req.session && req.session.user,
-            completedSessions
+            completedSessions,
+            messages: res.locals.messages
+          });
+        }).catch((err) => {
+          console.error('Failed to load ratings list', err);
+          req.flash('error', 'Unable to load your ratings list right now.');
+          return res.render('userRatings', {
+            user: req.session && req.session.user,
+            completedSessions: [],
+            messages: res.locals.messages
           });
         });
       });

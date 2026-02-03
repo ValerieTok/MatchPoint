@@ -110,13 +110,18 @@
                   <td>
                     <% const statusLabel = (r.status || 'PENDING').toUpperCase(); %>
                     <% if (statusLabel === 'REJECTED') { %>
-                      <span class="pill pill--rejected">REJECTED</span>
+                      <span class="pill pill--rejected">SESSION REJECTED</span>
                     <% } else if (statusLabel === 'PENDING') { %>
-                      <span class="pill pill--pending">PENDING</span>
+                      <span class="pill pill--pending">AWAITING CONFIRMATION</span>
                     <% } else if (statusLabel === 'COMPLETED') { %>
-                      <span class="pill pill--review">COMPLETED</span>
+                      <% if ((r.refundStatus || '').toLowerCase() === 'approved') { %>
+                        <span class="pill pill--review">SESSION COMPLETED</span>
+                        <span class="pill pill--refunded">REFUNDED</span>
+                      <% } else { %>
+                        <span class="pill pill--review">SESSION COMPLETED</span>
+                      <% } %>
                     <% } else { %>
-                      <span class="pill pill--upcoming">UPCOMING</span>
+                      <span class="pill pill--upcoming">SESSION UPCOMING</span>
                     <% } %>
                   </td>
                 </tr>

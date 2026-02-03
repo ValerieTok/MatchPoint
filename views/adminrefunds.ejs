@@ -1,0 +1,213 @@
+<%- include('partials/head', {
+  title: 'Admin Refunds - MatchPoint',
+  bodyClass: 'admin-page admin-refunds',
+  extraHead: `
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  `
+}) %>
+
+<div class="app">
+  <%- include('partials/adminSidebar', { active: 'refunds' }) %>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="crumb">ADMIN REFUNDS</div>
+      <div class="topbar__pill"><i class="fa-solid fa-rotate-left"></i></div>
+    </header>
+
+    <% const safeStats = stats || {}; %>
+    <section class="hero">
+      <div class="hero__left">
+        <h1>
+          Hello <span class="hero__name"><%= user?.username || (user?.email ? user.email.split('@')[0] : 'Admin') %></span>
+          <span class="wave">ðŸ‘‹</span>,
+        </h1>
+        <div class="stats">
+          <div class="stat">
+            <div class="stat__icon"><i class="fa-solid fa-user-group"></i></div>
+            <div class="stat__meta">
+              <div class="stat__label">Total Students</div>
+              <div class="stat__value"><%= (safeStats.totalStudents || 0).toLocaleString('en-US') %></div>
+            </div>
+          </div>
+          <div class="stat">
+            <div class="stat__icon"><i class="fa-solid fa-user-tie"></i></div>
+            <div class="stat__meta">
+              <div class="stat__label">Total Coaches</div>
+              <div class="stat__value"><%= (safeStats.totalCoaches || 0).toLocaleString('en-US') %></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card feedback-card">
+      <% const rows = Array.isArray(refunds) ? refunds : []; %>
+      <% const activeFilters = filters || {}; %>
+      <% const pager = pagination || { page: 1, perPage: 8, totalRefunds: rows.length, totalPages: 1 }; %>
+      <% const buildQuery = (pageNum) => { %>
+        <% const params = []; %>
+        <% if (activeFilters.search) params.push(`search=${encodeURIComponent(activeFilters.search)}`); %>
+        <% if (activeFilters.status) params.push(`status=${encodeURIComponent(activeFilters.status)}`); %>
+        <% if (activeFilters.sort) params.push(`sort=${encodeURIComponent(activeFilters.sort)}`); %>
+        <% params.push(`page=${pageNum}`); %>
+        <% return params.join('&'); %>
+      <% }; %>
+      <% const formatSessionDate = (value) => value ? new Date(value).toLocaleDateString('en-GB') : 'TBC'; %>
+      <% const formatSessionTime = (value) => (value ? String(value).slice(0, 5) : ''); %>
+
+      <div class="card__head">
+        <div class="card__title">Refund Requests</div>
+        <div class="card__tools">
+          <div class="search">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input id="refundSearch" type="search" placeholder="Search" value="<%= activeFilters.search || '' %>" />
+          </div>
+          <div class="sort">
+            <span class="sort__label">STATUS:</span>
+            <select class="sort__btn" id="refundStatus">
+              <option value="">All</option>
+              <option value="pending" <%= activeFilters.status === 'pending' ? 'selected' : '' %>>Pending</option>
+              <option value="approved" <%= activeFilters.status === 'approved' ? 'selected' : '' %>>Approved</option>
+              <option value="rejected" <%= activeFilters.status === 'rejected' ? 'selected' : '' %>>Rejected</option>
+            </select>
+          </div>
+          <div class="sort">
+            <span class="sort__label">SORT BY:</span>
+            <select class="sort__btn" id="refundSort">
+              <option value="newest" <%= activeFilters.sort !== 'oldest' && activeFilters.sort !== 'highest' && activeFilters.sort !== 'lowest' ? 'selected' : '' %>>Newest</option>
+              <option value="oldest" <%= activeFilters.sort === 'oldest' ? 'selected' : '' %>>Oldest</option>
+              <option value="highest" <%= activeFilters.sort === 'highest' ? 'selected' : '' %>>Amount High</option>
+              <option value="lowest" <%= activeFilters.sort === 'lowest' ? 'selected' : '' %>>Amount Low</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <%- include('partials/flashMessages', { messages }) %>
+
+      <div class="tableWrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Student</th>
+              <th>Coach</th>
+              <th>Session</th>
+              <th>Requested</th>
+              <th>Reason</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if (!rows.length) { %>
+              <tr>
+                <td colspan="7">No refund requests found.</td>
+              </tr>
+            <% } else { %>
+              <% rows.forEach(row => { %>
+                <% const dateLabel = formatSessionDate(row.session_date); %>
+                <% const timeLabel = formatSessionTime(row.session_time); %>
+                <tr>
+                  <td>
+                    <div><%= row.student_name || '-' %></div>
+                    <div class="cell-sub"><%= row.student_email || '' %></div>
+                  </td>
+                  <td><%= row.coach_name || '-' %></td>
+                  <td>
+                    <div><%= row.listing_title || row.sport || 'Session' %></div>
+                    <div class="cell-sub"><%= timeLabel ? `${dateLabel} ${timeLabel}` : dateLabel %></div>
+                  </td>
+                  <td>$<%= Number(row.requested_amount || 0).toFixed(2) %></td>
+                  <td><%= row.reason || '-' %></td>
+                  <td>
+                    <span class="pill pill--<%= row.status %>"><%= String(row.status || 'pending').toUpperCase() %></span>
+                  </td>
+                  <td>
+                    <% if (row.status === 'pending') { %>
+                      <form class="refund-approve" method="post" action="/adminrefunds/<%= row.id %>/approve">
+                        <input
+                          class="refund-amount-input"
+                          type="number"
+                          name="approved_amount"
+                          step="0.01"
+                          min="0.01"
+                          max="<%= Number(row.requested_amount || 0).toFixed(2) %>"
+                          value="<%= Number(row.requested_amount || 0).toFixed(2) %>"
+                        />
+                        <button class="btn approve" type="submit">Approve</button>
+                      </form>
+                      <form method="post" action="/adminrefunds/<%= row.id %>/reject">
+                        <button class="btn reject" type="submit">Reject</button>
+                      </form>
+                    <% } else { %>
+                      <span class="cell-sub">Locked</span>
+                    <% } %>
+                  </td>
+                </tr>
+              <% }) %>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card__foot">
+        <% const startIndex = pager.totalRefunds ? ((pager.page - 1) * pager.perPage + 1) : 0; %>
+        <% const endIndex = Math.min(pager.page * pager.perPage, pager.totalRefunds || 0); %>
+        <div class="hint">Showing <%= startIndex %> to <%= endIndex %> of <%= pager.totalRefunds %> refunds</div>
+        <div class="pager">
+          <% if (pager.totalPages > 1) { %>
+            <% if (pager.page > 1) { %>
+              <a class="pager__btn" href="/adminrefunds?<%= buildQuery(pager.page - 1) %>"><i class="fa-solid fa-chevron-left"></i></a>
+            <% } %>
+            <% for (let p = 1; p <= pager.totalPages; p += 1) { %>
+              <a class="pager__num <%= p === pager.page ? 'pager__num--active' : '' %>" href="/adminrefunds?<%= buildQuery(p) %>"><%= p %></a>
+            <% } %>
+            <% if (pager.page < pager.totalPages) { %>
+              <a class="pager__btn" href="/adminrefunds?<%= buildQuery(pager.page + 1) %>"><i class="fa-solid fa-chevron-right"></i></a>
+            <% } %>
+          <% } else { %>
+            <span class="pager__num pager__num--active">1</span>
+          <% } %>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<%- include('partials/footer', {
+  extraScripts: `
+    <script>
+      const search = document.getElementById('refundSearch');
+      const sort = document.getElementById('refundSort');
+      const status = document.getElementById('refundStatus');
+
+      const buildUrl = (params) => {
+        const url = new URL(window.location.href);
+        Object.keys(params).forEach((key) => {
+          if (params[key]) {
+            url.searchParams.set(key, params[key]);
+          } else {
+            url.searchParams.delete(key);
+          }
+        });
+        return url.toString();
+      };
+
+      sort?.addEventListener('change', () => {
+        window.location.href = buildUrl({ sort: sort.value, page: 1 });
+      });
+
+      status?.addEventListener('change', () => {
+        window.location.href = buildUrl({ status: status.value, page: 1 });
+      });
+
+      search?.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+          const value = (search.value || '').trim().toLowerCase();
+          window.location.href = buildUrl({ search: value, page: 1 });
+        }
+      });
+    </script>
+  `
+}) %>

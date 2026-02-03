@@ -35,6 +35,7 @@
               <th>Location</th>
               <th>Rating</th>
               <th>Review</th>
+              <th>Refund</th>
             </tr>
           </thead>
 
@@ -44,11 +45,12 @@
                 value ? new Date(value).toLocaleDateString('en-GB') : 'TBC';
               const formatSessionTime = (value) => (value ? String(value).slice(0, 5) : '');
               const completedRows = Array.isArray(completedSessions) ? completedSessions : [];
+              const formatMoney = (value) => Number(value || 0).toFixed(2);
             %>
 
             <% if (!completedRows.length) { %>
               <tr>
-                <td colspan="6">No completed sessions yet.</td>
+                <td colspan="7">No completed sessions yet.</td>
               </tr>
             <% } else { %>
               <% completedRows.forEach(r => { %>
@@ -90,6 +92,30 @@
                       <a class="btn btn--primary btn--sm btn--review" href="/feedback?booking_id=<%= r.bookingId %>">
                         Leave Review
                       </a>
+                    <% } %>
+                  </td>
+                  <td>
+                    <% const itemTotal = Number(r.price || 0) * Number(r.quantity || 0); %>
+                    <% const refund = r.refund || null; %>
+                    <% const refundStatus = refund ? String(refund.status || '').toLowerCase() : ''; %>
+                    <% if (refund && refundStatus === 'approved') { %>
+                      <span class="pill pill--approved">APPROVED</span>
+                      <div class="cell-sub">+$<%= formatMoney(refund.approved_amount || itemTotal) %> credited</div>
+                    <% } else if (refund && refundStatus === 'pending') { %>
+                      <span class="pill pill--pending">PENDING APPROVAL</span>
+                      <div class="cell-sub"><%= refund.reason || 'Refund requested.' %></div>
+                    <% } else { %>
+                      <% if (refund && refundStatus === 'rejected') { %>
+                        <span class="pill pill--rejected">REJECTED</span>
+                        <div class="cell-sub">You can request again.</div>
+                      <% } %>
+                      <form class="refund-form" method="post" action="/refunds/request">
+                        <input type="hidden" name="bookingId" value="<%= r.bookingId %>">
+                        <input type="hidden" name="bookingItemId" value="<%= r.itemId %>">
+                        <div class="cell-sub">Refund amount: $<%= formatMoney(itemTotal) %></div>
+                        <textarea name="reason" rows="2" placeholder="Reason for refund" required></textarea>
+                        <button class="btn btn--primary btn--sm" type="submit">Request Refund</button>
+                      </form>
                     <% } %>
                   </td>
                 </tr>

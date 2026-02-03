@@ -15,6 +15,11 @@
       <span>Courses</span>
     </a>
 
+    <a class="nav__item <%= active === 'dashboard' ? 'nav__item--active' : '' %>" href="/userdashboard">
+      <i class="fa-solid fa-chart-line"></i>
+      <span>Dashboard</span>
+    </a>
+
     <a class="nav__item <%= active === 'favorites' ? 'nav__item--active' : '' %>" href="/favorites">
       <i class="fa-solid fa-heart"></i>
       <span>Favourites</span>
@@ -28,11 +33,6 @@
     <a class="nav__item <%= active === 'cart' ? 'nav__item--active' : '' %>" href="/bookingCart">
       <i class="fa-solid fa-cart-shopping"></i>
       <span>Cart</span>
-    </a>
-
-    <a class="nav__item <%= active === 'dashboard' ? 'nav__item--active' : '' %>" href="/userdashboard">
-      <i class="fa-solid fa-chart-line"></i>
-      <span>Dashboard</span>
     </a>
 
     <a class="nav__item <%= active === 'ratings' ? 'nav__item--active' : '' %>" href="/ratingsUser">

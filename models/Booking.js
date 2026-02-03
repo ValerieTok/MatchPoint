@@ -111,6 +111,7 @@ const Booking = {
     const sql = `
       SELECT
         b.id,
+        bi.id AS booking_item_id,
         bi.session_date,
         bi.session_time,
         bi.sport,
@@ -220,6 +221,7 @@ const Booking = {
   getOrderItems(orderId, coachId, callback) {
     const sql = `
         SELECT
+          bi.id AS booking_item_id,
           bi.listing_id,
           bi.listing_title,
           bi.price,

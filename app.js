@@ -18,6 +18,7 @@ const AdminController = require('./controllers/AdminController');
 const CoachProfileController = require('./controllers/CoachProfileController');
 const UserProfileController = require('./controllers/UserProfileController');
 const FeedbackController = require('./controllers/FeedbackController');
+const RefundController = require('./controllers/RefundController');
 const RevenueController = require('./controllers/RevenueController');
 const FavoriteController = require('./controllers/FavoriteController');
 const Inbox = require('./models/Inbox');
@@ -197,6 +198,7 @@ app.post('/accounts/delete/:id', checkAuthenticated, checkAdmin, AccountControll
 app.get('/bookingsManage', checkAuthenticated, checkAdminOrCoach, BookingController.listAllOrders);
 app.get('/coachRatings', checkAuthenticated, checkAdminOrCoach, BookingController.listCoachRatings);
 app.get('/ratingsUser', checkAuthenticated, BookingController.userRatings);
+app.post('/refunds/request', checkAuthenticated, RefundController.requestRefund);
 app.get('/inbox', checkAuthenticated, (req, res) => {
   const user = req.session && req.session.user;
   if (!user || user.role !== 'user') {
@@ -284,6 +286,9 @@ app.post('/adminservices/:id/toggle', checkAuthenticated, checkAdmin, AdminContr
 app.get('/adminfeedback', checkAuthenticated, checkAdmin, AdminController.feedback);
 app.post('/adminfeedback/:id/approve', checkAuthenticated, checkAdmin, AdminController.approveFeedback);
 app.post('/adminfeedback/:id/reject', checkAuthenticated, checkAdmin, AdminController.rejectFeedback);
+app.get('/adminrefunds', checkAuthenticated, checkAdmin, AdminController.refunds);
+app.post('/adminrefunds/:id/approve', checkAuthenticated, checkAdmin, AdminController.approveRefund);
+app.post('/adminrefunds/:id/reject', checkAuthenticated, checkAdmin, AdminController.rejectRefund);
 app.get('/listingsManage', checkAuthenticated, checkCoachApproved, checkAdminOrCoach, ListingController.listAllProducts);
 app.get('/addListing', checkAuthenticated, checkCoachApproved, checkAdminOrCoach, ListingController.showAddProductPage);
 app.get('/updateListing/:id', checkAuthenticated, checkCoachApproved, checkAdminOrCoach, ListingController.showUpdateProductPage);

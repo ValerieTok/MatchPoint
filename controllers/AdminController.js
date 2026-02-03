@@ -3,6 +3,7 @@ const AdminCoaches = require('../models/AdminCoaches');
 const AdminStudents = require('../models/AdminStudents');
 const AdminServices = require('../models/AdminServices');
 const AdminFeedback = require('../models/AdminFeedback');
+const Refunds = require('../models/Refunds');
 const Account = require('../models/Account');
 const Warnings = require('../models/Warnings');
 const UserBan = require('../models/UserBan');
@@ -312,6 +313,105 @@ const AdminController = {
       req.flash('error', 'Failed to load feedback.');
       return res.redirect('/admindashboard');
     }
+  },
+
+  refunds: async function (req, res) {
+    try {
+      const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+      const perPage = 8;
+      const sort = req.query.sort || 'newest';
+      const status = req.query.status ? String(req.query.status) : '';
+      const search = req.query.search ? String(req.query.search) : '';
+
+      const [stats, refundResult] = await Promise.all([
+        new Promise((resolve, reject) => {
+          AdminFeedback.getStats((err, data) => (err ? reject(err) : resolve(data)));
+        }),
+        new Promise((resolve, reject) => {
+          Refunds.getAdminRefunds({
+            limit: perPage,
+            offset: (page - 1) * perPage,
+            sort,
+            status,
+            search
+          }, (err, result) => (err ? reject(err) : resolve(result)));
+        })
+      ]);
+
+      const totalRefunds = Number(refundResult.total || 0);
+      const totalPages = Math.max(1, Math.ceil(totalRefunds / perPage));
+
+      return res.render('adminrefunds', {
+        user: req.session.user,
+        messages: res.locals.messages,
+        stats,
+        refunds: refundResult.rows || [],
+        filters: { search, sort, status },
+        pagination: {
+          page,
+          perPage,
+          totalRefunds,
+          totalPages
+        }
+      });
+    } catch (err) {
+      console.error(err);
+      req.flash('error', 'Failed to load refunds.');
+      return res.redirect('/admindashboard');
+    }
+  },
+
+  approveRefund: async function (req, res) {
+    try {
+      const id = parseInt(req.params.id, 10);
+      const amount = req.body && req.body.approved_amount ? Number(req.body.approved_amount) : 0;
+      if (!id || Number.isNaN(id)) {
+        req.flash('error', 'Invalid refund.');
+        return res.redirect('/adminrefunds');
+      }
+      await new Promise((resolve, reject) => {
+        Refunds.approveRefund(id, req.session && req.session.user ? req.session.user.id : null, amount, (err) =>
+          err ? reject(err) : resolve()
+        );
+      });
+      req.flash('success', 'Refund approved and credited to wallet.');
+    } catch (err) {
+      console.error(err);
+      if (err.code === 'AMOUNT_TOO_HIGH') {
+        req.flash('error', 'Approved amount exceeds the requested amount.');
+      } else if (err.code === 'NOT_PENDING') {
+        req.flash('error', 'Refund is no longer pending.');
+      } else if (err.code === 'INVALID_AMOUNT') {
+        req.flash('error', 'Approved amount must be greater than zero.');
+      } else {
+        req.flash('error', 'Failed to approve refund.');
+      }
+    }
+    return res.redirect('/adminrefunds');
+  },
+
+  rejectRefund: async function (req, res) {
+    try {
+      const id = parseInt(req.params.id, 10);
+      if (!id || Number.isNaN(id)) {
+        req.flash('error', 'Invalid refund.');
+        return res.redirect('/adminrefunds');
+      }
+      await new Promise((resolve, reject) => {
+        Refunds.rejectRefund(id, req.session && req.session.user ? req.session.user.id : null, (err) =>
+          err ? reject(err) : resolve()
+        );
+      });
+      req.flash('success', 'Refund rejected.');
+    } catch (err) {
+      console.error(err);
+      if (err.code === 'NOT_PENDING') {
+        req.flash('error', 'Refund is no longer pending.');
+      } else {
+        req.flash('error', 'Failed to reject refund.');
+      }
+    }
+    return res.redirect('/adminrefunds');
   },
 
   approveFeedback: async function (req, res) {

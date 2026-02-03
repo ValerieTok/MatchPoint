@@ -2,6 +2,7 @@ const Listing = require('../models/Listing');
 const Booking = require('../models/Booking');
 const UserProfile = require('../models/UserProfile');
 const Favorite = require('../models/Favorite');
+const Refunds = require('../models/Refunds');
 
 const allowedSkillLevels = new Set(['beginner', 'intermediate', 'advanced', 'expert']);
 const normalizeSkillLevel = (value, fallback) => {
@@ -65,7 +66,7 @@ const ListingController = {
           return bFav - aFav;
         });
       if ((view === 'userdashboard' || view === 'viewcourses') && user.role === 'user') {
-        const [stats, sessionRows, profile, favoriteMap] = await Promise.all([
+        const [stats, sessionRows, profile, favoriteMap, refundRows] = await Promise.all([
           new Promise((resolve, reject) => {
             Booking.getUserDashboardStats(user.id, (err, data) => (err ? reject(err) : resolve(data)));
           }),
@@ -90,11 +91,21 @@ const ListingController = {
               }
               return resolve(map);
             });
+          }),
+          new Promise((resolve) => {
+            Refunds.getUserRefunds(user.id, (err, rows) => {
+              if (err) {
+                console.error('Failed to load refunds for dashboard:', err);
+                return resolve([]);
+              }
+              return resolve(rows || []);
+            });
           })
         ]);
         upcomingCount = stats ? stats.upcomingCount : 0;
         completedCount = stats ? stats.completedCount : 0;
         favoritesMap = favoriteMap || new Map();
+        const refundMap = new Map((refundRows || []).map((r) => [Number(r.booking_item_id), r]));
         const sessionList = (sessionRows || []).map((row) => {
           const bookingStatus = row.booking_status ? String(row.booking_status).toLowerCase() : 'pending';
           const status = row.session_completed
@@ -102,8 +113,10 @@ const ListingController = {
             : (bookingStatus === 'rejected'
               ? 'REJECTED'
               : (bookingStatus === 'accepted' ? 'UPCOMING' : 'PENDING'));
+          const refund = refundMap.get(Number(row.booking_item_id)) || null;
           return {
             bookingId: row.id,
+            bookingItemId: row.booking_item_id,
             bookingStatus: row.booking_status ? String(row.booking_status).toLowerCase() : 'pending',
             coach: row.coach_name || '',
             date: row.session_date || null,
@@ -113,7 +126,8 @@ const ListingController = {
             sport: row.sport || row.listing_title || '',
             location: row.session_location || row.booking_location || '',
             status,
-            createdAt: row.created_at || null
+            createdAt: row.created_at || null,
+            refundStatus: refund ? String(refund.status || '').toLowerCase() : ''
           };
         });
         profilePhoto = profile && profile.photo ? profile.photo : null;
