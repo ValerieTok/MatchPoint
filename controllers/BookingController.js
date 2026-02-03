@@ -233,22 +233,63 @@ module.exports = {
         return withItems.then((ordersWithItems) => {
           const completedSessions = [];
           ordersWithItems.forEach((order) => {
-            const status = (order.status || '').toLowerCase();
             const items = Array.isArray(order.items) ? order.items : [];
-            if (order.completed_at) {
-              items.forEach((item) => {
-                completedSessions.push({
-                  bookingId: order.id,
-                  completedAt: order.completed_at,
-                  review: order.review,
-                  coach: item.username,
-                  sport: item.sport,
-                  location: item.session_location || order.session_location,
-                  date: item.session_date,
-                  time: item.session_time
-                });
+            const completedAtRaw = order.completed_at || null;
+            const completedAtDate = completedAtRaw ? new Date(completedAtRaw) : null;
+            const hasCompletedAt = completedAtDate && !Number.isNaN(completedAtDate.getTime());
+            const normalizeDate = (value) => {
+              if (!value) return '';
+              if (value instanceof Date) {
+                const yyyy = value.getFullYear();
+                const mm = String(value.getMonth() + 1).padStart(2, '0');
+                const dd = String(value.getDate()).padStart(2, '0');
+                return `${yyyy}-${mm}-${dd}`;
+              }
+              const raw = String(value);
+              return raw.includes('T') ? raw.split('T')[0] : raw;
+            };
+            const normalizeTime = (value) => {
+              if (!value) return '00:00:00';
+              const raw = String(value);
+              return raw.length >= 8 ? raw.slice(0, 8) : `${raw}:00`;
+            };
+            const toLocalTimestamp = (dateStr, timeStr) => {
+              if (!dateStr) return null;
+              const parts = dateStr.split('-').map(Number);
+              if (parts.length !== 3 || parts.some((n) => Number.isNaN(n))) return null;
+              const [year, month, day] = parts;
+              const t = (timeStr || '00:00:00').split(':').map(Number);
+              const [hour, minute, second] = [
+                Number.isNaN(t[0]) ? 0 : t[0],
+                Number.isNaN(t[1]) ? 0 : t[1],
+                Number.isNaN(t[2]) ? 0 : t[2]
+              ];
+              return new Date(year, month - 1, day, hour, minute, second).getTime();
+            };
+
+            items.forEach((item) => {
+              let itemCompleted = Boolean(hasCompletedAt);
+              if (!itemCompleted && item.session_date) {
+                const datePart = normalizeDate(item.session_date);
+                const timePart = normalizeTime(item.session_time);
+                const sessionLocal = toLocalTimestamp(datePart, timePart);
+                if (sessionLocal !== null && sessionLocal <= Date.now()) {
+                  itemCompleted = true;
+                }
+              }
+              if (!itemCompleted) return;
+
+              completedSessions.push({
+                bookingId: order.id,
+                completedAt: completedAtRaw,
+                review: order.review,
+                coach: item.username,
+                sport: item.sport,
+                location: item.session_location || order.session_location,
+                date: item.session_date,
+                time: item.session_time
               });
-            }
+            });
           });
           completedSessions.sort((a, b) => {
             const aReviewTime = a.review && a.review.created_at ? new Date(a.review.created_at).getTime() : 0;

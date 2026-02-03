@@ -3,8 +3,8 @@ const db = require('../db');
 const Warnings = {
   createWarning({ userId, targetRole, comment, createdBy }, callback) {
     const sql = `
-      INSERT INTO user_warnings (user_id, target_role, comment, created_by)
-      VALUES (?, ?, ?, ?)
+      INSERT INTO user_warnings (user_id, target_role, comment, created_by, created_at)
+      VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
     `;
     const params = [userId, targetRole, comment, createdBy || null];
     db.query(sql, params, (err, result) => callback(err, result));
