@@ -25,6 +25,7 @@
         <% } else { %>
           <a class="nav-link <%= activePage === 'courses' ? 'active' : '' %>" href="/viewcourses">Find Coaches</a>
           <a class="nav-link <%= activePage === 'cart' ? 'active' : '' %>" href="/bookingCart">Booking Cart</a>
+          <a class="nav-link <%= activePage === 'ewallet' ? 'active' : '' %>" href="/ewallet">E-Wallet</a>
           <div class="nav-divider"></div>
           <form action="/logout" method="post">
             <button class="btn btn-logout" type="submit">Logout</button>

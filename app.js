@@ -263,10 +263,15 @@ app.get('/userdashboard', checkAuthenticated, ListingController.listAllProducts)
 app.get('/viewcourses', checkAuthenticated, ListingController.listAllProducts);
 app.get('/listingDetail/:id', checkAuthenticated, ListingController.getProductById);
 app.get('/wallet', checkAuthenticated, WalletController.showWallet);
+app.get('/ewallet', checkAuthenticated, WalletController.showWallet);
 app.get('/wallet/nets/qr', checkAuthenticated, WalletController.netsQr);
+app.get('/ewallet/nets/qr', checkAuthenticated, WalletController.netsQr);
 app.post('/wallet/nets/qr', checkAuthenticated, WalletController.netsQr);
+app.post('/ewallet/nets/qr', checkAuthenticated, WalletController.netsQr);
 app.get('/wallet/nets/success', checkAuthenticated, WalletController.netsSuccess);
+app.get('/ewallet/nets/success', checkAuthenticated, WalletController.netsSuccess);
 app.get('/wallet/nets/fail', checkAuthenticated, WalletController.netsFail);
+app.get('/ewallet/nets/fail', checkAuthenticated, WalletController.netsFail);
 app.get('/favorites', checkAuthenticated, FavoriteController.list);
 
 // Admin/coach listing pages
@@ -325,6 +330,9 @@ app.post('/profile/photo', checkAuthenticated, upload.single('photo'), UserProfi
 
 app.post('/favorite/:id', checkAuthenticated, FavoriteController.toggle);
 app.post('/wallet/topup', checkAuthenticated, WalletController.topUp);
+app.post('/ewallet/topup', checkAuthenticated, WalletController.topUp);
+app.get('/api/wallet', checkAuthenticated, WalletController.getWalletApi);
+app.post('/api/wallet/topup', checkAuthenticated, WalletController.topUpApi);
 app.post('/api/wallet/paypal/create-order', checkAuthenticated, WalletController.paypalCreateOrder);
 app.post('/api/wallet/paypal/capture-order', checkAuthenticated, WalletController.paypalCaptureOrder);
 

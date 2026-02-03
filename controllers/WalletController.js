@@ -2,9 +2,10 @@ const axios = require('axios');
 const Wallet = require('../models/Wallet');
 const UserProfile = require('../models/UserProfile');
 const paypal = require('../services/paypal');
+const { isValidTopUpAmount, getWalletTier } = require('../services/walletLogic');
 
 const allowedMethods = new Set(['paypal', 'nets']);
-const allowedAmounts = new Set([10, 20, 30, 50, 100]);
+const walletBasePath = '/ewallet';
 
 const WalletController = {
   async showWallet(req, res) {
@@ -41,6 +42,7 @@ const WalletController = {
       return res.render('wallet', {
         user,
         wallet: wallet || { balance: 0, points: 0 },
+        walletTier: getWalletTier(wallet?.points || 0),
         transactions,
         profilePhoto,
         qrCodeUrl: req.session.pendingWalletTopup?.qrCodeUrl || '',
@@ -55,6 +57,7 @@ const WalletController = {
       return res.render('wallet', {
         user,
         wallet: { balance: 0, points: 0 },
+        walletTier: getWalletTier(0),
         transactions: [],
         profilePhoto: null,
         qrCodeUrl: '',
@@ -76,14 +79,14 @@ const WalletController = {
     const amountRaw = req.body && req.body.amount ? Number(req.body.amount) : NaN;
     const methodRaw = req.body && req.body.method ? String(req.body.method).trim().toLowerCase() : '';
 
-    if (!Number.isFinite(amountRaw) || amountRaw <= 0 || !allowedAmounts.has(amountRaw)) {
+    if (!isValidTopUpAmount(amountRaw)) {
       req.flash('error', 'Select a valid top up amount.');
-      return res.redirect('/wallet');
+      return res.redirect(walletBasePath);
     }
 
     if (!allowedMethods.has(methodRaw)) {
       req.flash('error', 'Select a valid payment method.');
-      return res.redirect('/wallet');
+      return res.redirect(walletBasePath);
     }
 
     if (methodRaw === 'nets') {
@@ -91,7 +94,7 @@ const WalletController = {
         amount: amountRaw,
         method: methodRaw
       };
-      return res.redirect('/wallet/nets/qr');
+      return res.redirect(`${walletBasePath}/nets/qr`);
     }
 
     // PayPal topup handled via API endpoints
@@ -100,7 +103,69 @@ const WalletController = {
       method: methodRaw
     };
     req.flash('info', 'Complete PayPal checkout to top up your wallet.');
-    return res.redirect('/wallet');
+    return res.redirect(walletBasePath);
+  },
+
+  async getWalletApi(req, res) {
+    const user = req.session && req.session.user;
+    if (!user || user.role !== 'user') {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    try {
+      await new Promise((resolve, reject) => {
+        Wallet.ensureWallet(user.id, (err) => (err ? reject(err) : resolve()));
+      });
+
+      const [wallet, transactions] = await Promise.all([
+        new Promise((resolve, reject) => {
+          Wallet.getWalletByUserId(user.id, (err, row) => (err ? reject(err) : resolve(row)));
+        }),
+        new Promise((resolve, reject) => {
+          Wallet.getRecentTransactions(user.id, 8, (err, rows) => (err ? reject(err) : resolve(rows || [])));
+        })
+      ]);
+
+      const balance = wallet && Number.isFinite(Number(wallet.balance)) ? Number(wallet.balance) : 0;
+      const points = wallet && Number.isFinite(Number(wallet.points)) ? Number(wallet.points) : 0;
+      const tier = getWalletTier(points);
+
+      return res.json({ balance, points, tier, transactions });
+    } catch (err) {
+      console.error('Wallet API error:', err);
+      return res.status(500).json({ error: 'Failed to load wallet' });
+    }
+  },
+
+  async topUpApi(req, res) {
+    const user = req.session && req.session.user;
+    if (!user || user.role !== 'user') {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const amountRaw = req.body && req.body.amount ? Number(req.body.amount) : NaN;
+    const methodRaw = req.body && req.body.paymentMethod
+      ? String(req.body.paymentMethod).trim().toLowerCase()
+      : '';
+
+    if (!isValidTopUpAmount(amountRaw)) {
+      return res.status(400).json({ error: 'Invalid top up amount' });
+    }
+
+    if (!allowedMethods.has(methodRaw)) {
+      return res.status(400).json({ error: 'Invalid payment method' });
+    }
+
+    req.session.pendingWalletTopup = {
+      amount: amountRaw,
+      method: methodRaw
+    };
+
+    if (methodRaw === 'nets') {
+      return res.json({ redirectUrl: `${walletBasePath}/nets/qr` });
+    }
+
+    return res.json({ redirectUrl: walletBasePath });
   },
 
   async paypalCreateOrder(req, res) {
@@ -113,7 +178,7 @@ const WalletController = {
         return res.status(400).json({ error: 'PayPal is not configured' });
       }
       const amountRaw = Number(req.body && req.body.amount);
-      if (!Number.isFinite(amountRaw) || amountRaw <= 0 || !allowedAmounts.has(amountRaw)) {
+      if (!isValidTopUpAmount(amountRaw)) {
         return res.status(400).json({ error: 'Invalid top up amount' });
       }
       req.session.pendingWalletTopup = {
@@ -154,7 +219,7 @@ const WalletController = {
           Wallet.addTopUp(user.id, amount, 'paypal', (err) => (err ? reject(err) : resolve()));
         });
         delete req.session.pendingWalletTopup;
-        return res.json({ success: true, redirectUrl: '/wallet' });
+        return res.json({ success: true, redirectUrl: walletBasePath });
       }
       return res.status(400).json({ error: 'Payment not completed', details: capture });
     } catch (err) {
@@ -170,9 +235,9 @@ const WalletController = {
       return res.redirect('/userdashboard');
     }
     const amount = Number(req.session.pendingWalletTopup?.amount || req.body?.amount);
-    if (!Number.isFinite(amount) || amount <= 0 || !allowedAmounts.has(amount)) {
+    if (!isValidTopUpAmount(amount)) {
       req.flash('error', 'Invalid top up amount.');
-      return res.redirect('/wallet');
+      return res.redirect(walletBasePath);
     }
 
     try {
@@ -205,15 +270,15 @@ const WalletController = {
           qrCodeUrl: `data:image/png;base64,${qrData.qr_code}`
         };
         req.flash('info', 'Scan the NETS QR code to complete your top up.');
-        return res.redirect('/wallet');
+        return res.redirect(walletBasePath);
       }
 
       req.flash('error', qrData?.error_message || 'Unable to generate NETS QR code.');
-      return res.redirect('/wallet');
+      return res.redirect(walletBasePath);
     } catch (err) {
       console.error('Wallet NETS QR error:', err.message);
       req.flash('error', 'Unable to generate NETS QR code.');
-      return res.redirect('/wallet');
+      return res.redirect(walletBasePath);
     }
   },
 
@@ -228,7 +293,7 @@ const WalletController = {
       const sessionTxn = req.session.pendingWalletTopup?.txnRetrievalRef;
       if (!txnRetrievalRef || !sessionTxn || txnRetrievalRef !== sessionTxn) {
         req.flash('error', 'NETS transaction not found for this session.');
-        return res.redirect('/wallet');
+        return res.redirect(walletBasePath);
       }
       const response = await axios.post(
         'https://sandbox.nets.openapipaas.com/api/v1/common/payments/nets-qr/query',
@@ -249,14 +314,14 @@ const WalletController = {
         });
         delete req.session.pendingWalletTopup;
         req.flash('success', `Wallet topped up by $${amount.toFixed(2)}.`);
-        return res.redirect('/wallet');
+        return res.redirect(walletBasePath);
       }
       req.flash('error', resData?.error_message || 'NETS payment not confirmed yet.');
-      return res.redirect('/wallet');
+      return res.redirect(walletBasePath);
     } catch (err) {
       console.error('Wallet NETS success error:', err.message);
       req.flash('error', 'Unable to confirm NETS top up. Please try again.');
-      return res.redirect('/wallet');
+      return res.redirect(walletBasePath);
     }
   },
 
@@ -267,7 +332,7 @@ const WalletController = {
       return res.redirect('/userdashboard');
     }
     req.flash('error', 'NETS transaction failed or timed out. Please try again.');
-    return res.redirect('/wallet');
+    return res.redirect(walletBasePath);
   }
 };
 

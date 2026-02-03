@@ -3,16 +3,9 @@ const Booking = require('../models/Booking');
 const BookingCart = require('../models/BookingCart');
 const Wallet = require('../models/Wallet');
 const paypal = require('../services/paypal');
+const { clampWalletDeduction } = require('../services/walletLogic');
 
 const SERVICE_FEE = 2.5;
-
-const clampWalletDeduction = (raw, walletBalance, totalDue) => {
-  let amt = Number(raw);
-  if (!Number.isFinite(amt)) amt = 0;
-  amt = Math.max(0, amt);
-  const max = Math.max(0, Math.min(Number(walletBalance || 0), Number(totalDue || 0)));
-  return Number(Math.min(amt, max).toFixed(2));
-};
 
 
 const ensureShopperRole = (req, res) => {

@@ -6,7 +6,7 @@
 %>
 
 <%- include('partials/head', {
-  title: 'MatchPoint - Wallet',
+  title: 'MatchPoint - E-Wallet',
   bodyClass: 'admin-page wallet-page',
   extraHead: `
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -19,7 +19,7 @@
 
   <main class="main">
     <header class="topbar">
-      <div class="crumb">WALLET</div>
+      <div class="crumb">E-WALLET</div>
       <div class="topbar__right">
         <div class="topbar__avatar topbar__avatar--lg">
           <% if (profilePhoto) { %>
@@ -39,6 +39,14 @@
         <div class="wallet-card__label">Balance</div>
         <div class="wallet-card__value">$<%= Number(wallet.balance || 0).toFixed(2) %></div>
       </div>
+      <div class="wallet-card">
+        <div class="wallet-card__label">Points</div>
+        <div class="wallet-card__value"><%= Number(wallet.points || 0) %></div>
+      </div>
+      <div class="wallet-card">
+        <div class="wallet-card__label">Tier</div>
+        <div class="wallet-card__value"><%= walletTier || 'Starter' %></div>
+      </div>
     </section>
 
     <section class="wallet-grid">
@@ -48,9 +56,9 @@
           <p>Choose an amount in $10 increments.</p>
         </div>
 
-        <form class="wallet-topup" action="/wallet/topup" method="POST">
+        <form class="wallet-topup" action="/ewallet/topup" method="POST">
           <div class="wallet-amounts" data-amounts>
-            <% const amounts = [10, 20, 30, 50, 100]; %>
+            <% const amounts = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]; %>
             <% amounts.forEach((amt, idx) => { %>
               <button type="button" class="amount-chip <%= idx === 0 ? 'is-active' : '' %>" data-amount="<%= amt %>">$<%= amt %></button>
             <% }) %>
@@ -231,10 +239,10 @@
       const data = JSON.parse(event.data);
       if (data.success) {
         s2sNetsTxnStatus.close();
-        window.location.href = `/wallet/nets/success?txn_retrieval_ref=${txnRetrievalRef}`;
+        window.location.href = `/ewallet/nets/success?txn_retrieval_ref=${txnRetrievalRef}`;
       } else if (data.fail) {
         s2sNetsTxnStatus.close();
-        window.location.href = `/wallet/nets/fail?txn_retrieval_ref=${txnRetrievalRef}`;
+        window.location.href = `/ewallet/nets/fail?txn_retrieval_ref=${txnRetrievalRef}`;
       }
     });
   }

@@ -44,7 +44,7 @@
                     <div class="payment-wallet mb-4">
                       <div class="payment-wallet__head">
                         <div>
-                          <h6 class="fw-semibold mb-1">Use Wallet Balance</h6>
+                          <h6 class="fw-semibold mb-1">Use E-Wallet</h6>
                           <p class="text-muted small mb-0">Available: $<span id="walletBalanceDisplay"><%= Number(walletBalance || 0).toFixed(2) %></span></p>
                         </div>
                         <span class="wallet-badge">$<%= Number(walletBalance || 0).toFixed(2) %></span>
@@ -65,7 +65,7 @@
                         >
                         <button type="button" class="wallet-max" id="walletMaxBtn">Max</button>
                       </div>
-                      <p class="text-muted small mb-0">Apply part of your wallet balance and pay the rest using PayPal or NETS.</p>
+                      <p class="text-muted small mb-0">Apply part of your E-Wallet balance and pay the rest using PayPal or NETS.</p>
                     </div>
 
                     <div class="mb-4">
@@ -188,7 +188,7 @@
               </div>
 
               <div class="d-flex justify-content-between mb-2">
-                <span class="text-muted">Wallet applied</span>
+                <span class="text-muted">E-Wallet applied</span>
                 <span class="fw-semibold text-danger">-$<span id="walletAppliedDisplay"><%= Number(walletDeduction || 0).toFixed(2) %></span></span>
               </div>
 
