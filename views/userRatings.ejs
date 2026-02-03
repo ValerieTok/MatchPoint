@@ -85,7 +85,9 @@
                       </div>
                     <% } else { %>
                       <span class="cell-sub">No review yet.</span>
-                      <a class="btn btn--primary btn--sm" href="/feedback?booking_id=<%= r.bookingId %>">Leave Review</a>
+                      <a class="btn btn--primary btn--sm btn--review" href="/feedback?booking_id=<%= r.bookingId %>">
+                        Leave Review
+                      </a>
                     <% } %>
                   </td>
                 </tr>

@@ -901,6 +901,29 @@ body{
   font-size: 12px;
   cursor: pointer;
 }
+.admin-page .btn--icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.admin-page .btn--review {
+  background: #ede9fe;
+  color: #6d28d9;
+  border: 1px solid #ddd6fe;
+  border-radius: 999px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.admin-page .btn--review:hover {
+  background: #ddd6fe;
+  border-color: #c4b5fd;
+  color: #5b21b6;
+}
 
 .admin-page .btn:disabled {
   opacity: 0.55;
@@ -2545,16 +2568,34 @@ body.payment-page .topbar {
   padding-top: 0;
 }
 
-body.payment-page .payment-container .row {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 320px;
-    align-items: start;
-    gap: 8px;
-  }
+body.payment-page .payment-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 320px);
+  align-items: flex-start;
+  gap: 16px;
+  width: 100%;
+}
 
-@media (max-width: 992px) {
-  body.payment-page .payment-container .row {
-    grid-template-columns: minmax(0, 1fr) 320px;
+body.payment-page .payment-layout > .payment-main {
+  min-width: 0;
+  max-width: none;
+  width: 100%;
+}
+
+body.payment-page .payment-layout > .payment-summary {
+  max-width: 320px;
+  width: 100%;
+  justify-self: end;
+}
+
+body.payment-page .payment-panel {
+  width: 100%;
+  max-width: none;
+}
+
+@media (max-width: 600px) {
+  .payment-container {
+    max-width: 100%;
   }
 }
 
@@ -2567,7 +2608,7 @@ body.payment-page .payment-container .row {
   margin-bottom: 16px;
 }
 
-.payment-container > .row {
+.payment-container > .payment-layout {
   margin-top: 0;
 }
 
@@ -2592,9 +2633,9 @@ body.payment-page .payment-container .row {
   .summary-card {
     background: #f1eded;
     border-color: #e2d6d6;
-    max-width: 420px;
-    padding: 32px;
-    margin-left: auto;
+    max-width: 100%;
+    padding: 22px;
+    margin-left: 0;
     align-self: flex-start;
     margin-top: 0;
   }
@@ -2612,12 +2653,19 @@ body.payment-page .payment-container .row {
 }
 
 .payment-summary {
-    display: flex;
-    justify-content: flex-end;
-    align-items: flex-start;
-    padding-top: 0;
-    align-self: flex-start;
-  }
+  display: flex;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding-top: 0;
+  align-self: flex-start;
+  margin-top: 0;
+}
+
+body.payment-page .payment-panel {
+  margin-top: 0;
+  max-width: none;
+  width: 100%;
+}
 
 .payment-method {
   display: flex;

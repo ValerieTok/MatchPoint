@@ -30,8 +30,8 @@
     <div class="payment-container">
       <div class="payment-title">USER WALLET PAGE</div>
 
-      <div class="row g-4 align-items-start">
-        <div class="col-lg-8">
+      <div class="payment-layout" style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(240px, 320px); gap: 24px; align-items: start;">
+        <div class="payment-main">
           <div class="payment-panel">
             <div class="payment-card">
               <h4 class="mb-1">Hello <%= user.full_name || user.username %></h4>
@@ -117,7 +117,7 @@
           </div>
         </div>
 
-        <div class="col-lg-4 payment-summary">
+        <div class="payment-summary">
           <div class="summary-card">
             <h5 class="fw-bold mb-4">Booking Summary</h5>
 

@@ -1,0 +1,55 @@
+<%- include('partials/head', {
+  title: 'Create Slot',
+  bodyClass: 'admin-page coach-dashboard',
+  extraHead: `
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  `
+}) %>
+
+<div class="app">
+  <%- include('partials/coachSidebar', { active: 'slots' }) %>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="crumb">CREATE SLOT</div>
+      <div class="topbar__pill"><i class="fa-solid fa-circle-plus"></i></div>
+    </header>
+
+    <section class="section">
+      <div class="section__head">
+        <div class="section__title">New Availability</div>
+        <a class="btn btn--ghost btn--sm" href="/slots"><i class="fa-solid fa-arrow-left"></i> Back</a>
+      </div>
+
+      <%- include('partials/flashMessages', { messages }) %>
+
+      <form action="/slots/create" method="POST" class="card form-card">
+        <div class="form-grid">
+          <div class="form-control">
+            <label for="slot_date">Date</label>
+            <input type="date" id="slot_date" name="slot_date" required>
+          </div>
+          <div class="form-control">
+            <label for="slot_time">Time</label>
+            <input type="time" id="slot_time" name="slot_time" required>
+          </div>
+          <div class="form-control">
+            <label for="duration_minutes">Duration (minutes)</label>
+            <input type="number" id="duration_minutes" name="duration_minutes" min="0" step="15" placeholder="60">
+          </div>
+          <div class="form-control">
+            <label for="location">Location</label>
+            <input type="text" id="location" name="location" placeholder="Gym, online, etc.">
+          </div>
+          <div class="form-control form-control--full">
+            <label for="note">Note (optional)</label>
+            <textarea id="note" name="note" rows="3" placeholder="Extra details for students"></textarea>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn--primary"><i class="fa-solid fa-floppy-disk"></i> Save Slot</button>
+        </div>
+      </form>
+    </section>
+  </main>
+</div>
