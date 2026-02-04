@@ -40,14 +40,6 @@
         <div class="wallet-card__label">Balance</div>
         <div class="wallet-card__value">$<%= Number(wallet.balance || 0).toFixed(2) %></div>
       </div>
-      <div class="wallet-card">
-        <div class="wallet-card__label">Points</div>
-        <div class="wallet-card__value"><%= Number(wallet.points || 0) %></div>
-      </div>
-      <div class="wallet-card">
-        <div class="wallet-card__label">Tier</div>
-        <div class="wallet-card__value"><%= walletTier || 'Starter' %></div>
-      </div>
     </section>
 
     <section class="wallet-grid">

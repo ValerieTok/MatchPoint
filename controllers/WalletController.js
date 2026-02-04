@@ -2,7 +2,7 @@ const axios = require('axios');
 const Wallet = require('../models/Wallet');
 const UserProfile = require('../models/UserProfile');
 const paypal = require('../services/paypal');
-const { isValidTopUpAmount, getWalletTier } = require('../services/walletLogic');
+const { isValidTopUpAmount } = require('../services/walletLogic');
 const stripe = require('../services/stripe');
 
 const allowedMethods = new Set(['paypal', 'nets', 'stripe']);
@@ -42,8 +42,7 @@ const WalletController = {
       const profilePhoto = profile && profile.photo ? profile.photo : null;
       return res.render('wallet', {
         user,
-        wallet: wallet || { balance: 0, points: 0 },
-        walletTier: getWalletTier(wallet?.points || 0),
+        wallet: wallet || { balance: 0 },
         transactions,
         profilePhoto,
         qrCodeUrl: req.session.pendingWalletTopup?.qrCodeUrl || '',
@@ -58,8 +57,7 @@ const WalletController = {
       req.flash('error', 'Unable to load wallet right now.');
       return res.render('wallet', {
         user,
-        wallet: { balance: 0, points: 0 },
-        walletTier: getWalletTier(0),
+        wallet: { balance: 0 },
         transactions: [],
         profilePhoto: null,
         qrCodeUrl: '',
@@ -139,10 +137,7 @@ const WalletController = {
       ]);
 
       const balance = wallet && Number.isFinite(Number(wallet.balance)) ? Number(wallet.balance) : 0;
-      const points = wallet && Number.isFinite(Number(wallet.points)) ? Number(wallet.points) : 0;
-      const tier = getWalletTier(points);
-
-      return res.json({ balance, points, tier, transactions });
+      return res.json({ balance, transactions });
     } catch (err) {
       console.error('Wallet API error:', err);
       return res.status(500).json({ error: 'Failed to load wallet' });

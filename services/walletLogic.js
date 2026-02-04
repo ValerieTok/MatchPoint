@@ -13,12 +13,4 @@ const clampWalletDeduction = (raw, walletBalance, totalDue) => {
   return Number(Math.min(amt, max).toFixed(2));
 };
 
-const getWalletTier = (points) => {
-  const pts = Number(points) || 0;
-  if (pts >= 1000) return 'Gold';
-  if (pts >= 500) return 'Silver';
-  if (pts >= 100) return 'Bronze';
-  return 'Starter';
-};
-
-module.exports = { isValidTopUpAmount, clampWalletDeduction, getWalletTier };
+module.exports = { isValidTopUpAmount, clampWalletDeduction };
