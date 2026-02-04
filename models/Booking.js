@@ -15,20 +15,30 @@ const Booking = {
     const orderSql = 'INSERT INTO bookings (user_id, session_location, total, status) VALUES (?, ?, ?, ?)';
     db.beginTransaction((txErr) => {
       if (txErr) return callback(txErr);
-      db.query(orderSql, [userId, address || null, total, 'pending'], (orderErr, result) => {
+      db.query(orderSql, [userId, address || null, total, 'accepted'], (orderErr, result) => {
         if (orderErr) {
           return db.rollback(() => callback(orderErr));
         }
         const orderId = result.insertId;
         const itemSql = `
-          INSERT INTO booking_items (booking_id, listing_id, coach_id, listing_title, sport, price, listPrice, discountPercentage, offerMessage, image, duration_minutes, skill_level, session_location, session_date, session_time, quantity)
+          INSERT INTO booking_items (booking_id, listing_id, coach_id, listing_title, sport, price, listPrice, discountPercentage, offerMessage, image, duration_minutes, skill_level, session_location, session_date, session_time, slot_id, quantity)
           VALUES ?
         `;
     const values = items.map((item) => {
-      // Convert session_date to DATE format (YYYY-MM-DD) if it's a timestamp
+      // Convert session_date to DATE format (YYYY-MM-DD) without timezone shifts
       let sessionDate = item.session_date || null;
-      if (sessionDate && typeof sessionDate === 'string' && sessionDate.includes('T')) {
-        sessionDate = sessionDate.split('T')[0]; // Extract only the date part
+      if (sessionDate instanceof Date && !Number.isNaN(sessionDate.getTime())) {
+        const year = sessionDate.getFullYear();
+        const month = String(sessionDate.getMonth() + 1).padStart(2, '0');
+        const day = String(sessionDate.getDate()).padStart(2, '0');
+        sessionDate = `${year}-${month}-${day}`;
+      } else if (sessionDate && typeof sessionDate === 'string') {
+        const raw = sessionDate.trim();
+        if (raw.includes('T')) {
+          sessionDate = raw.split('T')[0];
+        } else if (/^\d{4}-\d{2}-\d{2}/.test(raw)) {
+          sessionDate = raw.slice(0, 10);
+        }
       }
       
       return [
@@ -47,6 +57,7 @@ const Booking = {
         item.session_location || null,
         sessionDate,
         item.session_time || null,
+        item.slot_id || null,
         Number(item.quantity || 0)
       ];
     });
@@ -54,12 +65,29 @@ const Booking = {
           if (itemsErr) {
             return db.rollback(() => callback(itemsErr));
           }
-          db.commit((commitErr) => {
-            if (commitErr) {
-              return db.rollback(() => callback(commitErr));
+          const slotIds = items.map((item) => Number(item.slot_id)).filter((id) => Number.isFinite(id));
+          const reserveNext = (index) => {
+            if (index >= slotIds.length) {
+              return db.commit((commitErr) => {
+                if (commitErr) {
+                  return db.rollback(() => callback(commitErr));
+                }
+                return callback(null, { orderId, total });
+              });
             }
-            return callback(null, { orderId, total });
-          });
+            const slotId = slotIds[index];
+            const reserveSql = 'UPDATE coach_slots SET is_available = 0 WHERE id = ? AND is_available = 1';
+            return db.query(reserveSql, [slotId], (reserveErr, reserveResult) => {
+              if (reserveErr) {
+                return db.rollback(() => callback(reserveErr));
+              }
+              if (!reserveResult || reserveResult.affectedRows === 0) {
+                return db.rollback(() => callback(new Error('Selected slot is no longer available.')));
+              }
+              return reserveNext(index + 1);
+            });
+          };
+          return reserveNext(0);
         });
       });
     });
@@ -67,7 +95,7 @@ const Booking = {
 
   getOrdersByUser(userId, callback) {
     const sql = `
-      SELECT b.id, b.total, b.session_location, b.created_at, b.completed_at, b.status, u.username
+      SELECT b.id, b.total, b.session_location, b.created_at, b.completed_at, b.status, b.user_completed_at, b.coach_completed_at, u.username
       FROM bookings b
       JOIN users u ON u.id = b.user_id
       WHERE b.user_id = ?
@@ -79,20 +107,8 @@ const Booking = {
   getUserDashboardStats(userId, callback) {
     const sql = `
       SELECT
-        SUM(
-          CASE
-            WHEN bi.session_date IS NOT NULL
-              AND TIMESTAMP(bi.session_date, IFNULL(bi.session_time, '00:00:00')) <= NOW()
-            THEN 1 ELSE 0
-          END
-        ) AS completed_count,
-        SUM(
-          CASE
-            WHEN bi.session_date IS NULL
-              OR TIMESTAMP(bi.session_date, IFNULL(bi.session_time, '00:00:00')) > NOW()
-            THEN 1 ELSE 0
-          END
-        ) AS upcoming_count
+        COUNT(DISTINCT CASE WHEN b.completed_at IS NOT NULL THEN b.id END) AS completed_count,
+        COUNT(DISTINCT CASE WHEN b.completed_at IS NULL THEN b.id END) AS upcoming_count
       FROM bookings b
       JOIN booking_items bi ON bi.booking_id = b.id
       WHERE b.user_id = ?
@@ -122,6 +138,8 @@ const Booking = {
         u.email AS coach_email,
         u.contact AS coach_contact,
         b.completed_at,
+        b.user_completed_at,
+        b.coach_completed_at,
         b.status AS booking_status,
         b.created_at,
         TIMESTAMP(bi.session_date, IFNULL(bi.session_time, '00:00:00')) AS session_at,
@@ -134,6 +152,7 @@ const Booking = {
       JOIN booking_items bi ON bi.booking_id = b.id
       JOIN users u ON u.id = bi.coach_id
       WHERE b.user_id = ?
+        AND b.completed_at IS NULL
       ORDER BY
         CASE
           WHEN bi.session_date IS NOT NULL
@@ -149,7 +168,7 @@ const Booking = {
 
   getAllOrders(searchTerm, statusFilter, callback) {
     let sql = `
-      SELECT DISTINCT b.id, b.total, b.session_location, b.created_at, b.completed_at, b.status,
+      SELECT DISTINCT b.id, b.total, b.session_location, b.created_at, b.completed_at, b.status, b.user_completed_at, b.coach_completed_at,
              u.username, u.email AS user_email, u.contact AS user_contact
       FROM bookings b
       JOIN users u ON u.id = b.user_id
@@ -184,7 +203,7 @@ const Booking = {
 
   getBookingsByCoach(coachId, searchTerm, statusFilter, callback) {
     let sql = `
-      SELECT DISTINCT b.id, b.total, b.session_location, b.created_at, b.completed_at, b.status,
+      SELECT DISTINCT b.id, b.total, b.session_location, b.created_at, b.completed_at, b.status, b.user_completed_at, b.coach_completed_at,
              u.username, u.email AS user_email, u.contact AS user_contact
       FROM bookings b
       JOIN booking_items bi ON bi.booking_id = b.id
@@ -235,6 +254,7 @@ const Booking = {
           bi.session_location,
           bi.session_date,
           bi.session_time,
+          bi.slot_id,
           bi.coach_id,
           COALESCE(u.full_name, u.username) AS username,
           bi.sport
@@ -253,17 +273,48 @@ const Booking = {
 
   getOrderById(orderId, callback) {
     const sql = `
-      SELECT id, user_id, total, session_location, created_at, completed_at, status
-      FROM bookings
-      WHERE id = ?
+      SELECT b.id, b.user_id, b.total, b.session_location, b.created_at, b.completed_at, b.status, b.user_completed_at, b.coach_completed_at,
+             u.username, u.email AS user_email, u.contact AS user_contact
+      FROM bookings b
+      JOIN users u ON u.id = b.user_id
+      WHERE b.id = ?
       LIMIT 1
     `;
     db.query(sql, [orderId], (err, rows) => callback(err, rows && rows[0] ? rows[0] : null));
   },
 
   markOrderDelivered(orderId, callback) {
-    const sql = 'UPDATE bookings SET completed_at = CURRENT_TIMESTAMP WHERE id = ?';
-    db.query(sql, [orderId], (err, result) => callback(err, result));
+    const updateSql = 'UPDATE bookings SET user_completed_at = CURRENT_TIMESTAMP WHERE id = ? AND user_completed_at IS NULL';
+    db.query(updateSql, [orderId], (err) => {
+      if (err) return callback(err);
+      const checkSql = 'SELECT user_completed_at, coach_completed_at, completed_at FROM bookings WHERE id = ? LIMIT 1';
+      db.query(checkSql, [orderId], (checkErr, rows) => {
+        if (checkErr) return callback(checkErr);
+        const row = rows && rows[0] ? rows[0] : {};
+        if (row.user_completed_at && row.coach_completed_at && !row.completed_at) {
+          const completeSql = 'UPDATE bookings SET completed_at = CURRENT_TIMESTAMP WHERE id = ? AND completed_at IS NULL';
+          return db.query(completeSql, [orderId], (finishErr, result) => callback(finishErr, result));
+        }
+        return callback(null, { affectedRows: 0 });
+      });
+    });
+  },
+
+  markOrderCompletedByCoach(orderId, callback) {
+    const updateSql = 'UPDATE bookings SET coach_completed_at = CURRENT_TIMESTAMP WHERE id = ? AND coach_completed_at IS NULL';
+    db.query(updateSql, [orderId], (err) => {
+      if (err) return callback(err);
+      const checkSql = 'SELECT user_completed_at, coach_completed_at, completed_at FROM bookings WHERE id = ? LIMIT 1';
+      db.query(checkSql, [orderId], (checkErr, rows) => {
+        if (checkErr) return callback(checkErr);
+        const row = rows && rows[0] ? rows[0] : {};
+        if (row.user_completed_at && row.coach_completed_at && !row.completed_at) {
+          const completeSql = 'UPDATE bookings SET completed_at = CURRENT_TIMESTAMP WHERE id = ? AND completed_at IS NULL';
+          return db.query(completeSql, [orderId], (finishErr, result) => callback(finishErr, result));
+        }
+        return callback(null, { affectedRows: 0 });
+      });
+    });
   },
 
   updateOrderStatus(orderId, status, callback) {
@@ -375,17 +426,26 @@ const Booking = {
   getCoachRevenue(coachId, callback) {
     const sql = `
       SELECT
-        COALESCE(SUM(CASE WHEN b.completed_at IS NOT NULL THEN bi.price * bi.quantity ELSE 0 END), 0) AS totalEarned,
-        COALESCE(SUM(CASE WHEN b.completed_at IS NULL THEN bi.price * bi.quantity ELSE 0 END), 0) AS totalPending
+        COALESCE(SUM(CASE WHEN b.user_completed_at IS NOT NULL AND b.coach_completed_at IS NOT NULL THEN bi.price * bi.quantity ELSE 0 END), 0) AS totalEarnedGross,
+        COALESCE(SUM(CASE WHEN b.user_completed_at IS NOT NULL AND b.coach_completed_at IS NOT NULL THEN bi.price * bi.quantity * 0.9 ELSE 0 END), 0) AS totalEarned,
+        COALESCE(SUM(CASE WHEN b.user_completed_at IS NULL OR b.coach_completed_at IS NULL THEN bi.price * bi.quantity ELSE 0 END), 0) AS totalPendingGross,
+        COALESCE(SUM(CASE WHEN b.user_completed_at IS NULL OR b.coach_completed_at IS NULL THEN bi.price * bi.quantity * 0.9 ELSE 0 END), 0) AS totalPending
       FROM booking_items bi
       JOIN bookings b ON b.id = bi.booking_id
       WHERE bi.coach_id = ?
     `;
     db.query(sql, [coachId], (err, rows) => {
       if (err) return callback(err);
-      const row = rows && rows[0] ? rows[0] : { totalEarned: 0, totalPending: 0 };
+      const row = rows && rows[0] ? rows[0] : {
+        totalEarnedGross: 0,
+        totalEarned: 0,
+        totalPendingGross: 0,
+        totalPending: 0
+      };
       return callback(null, {
+        totalEarnedGross: Number(row.totalEarnedGross || 0),
         totalEarned: Number(row.totalEarned || 0),
+        totalPendingGross: Number(row.totalPendingGross || 0),
         totalPending: Number(row.totalPending || 0)
       });
     });
@@ -394,14 +454,15 @@ const Booking = {
   ,getCoachMonthlyRevenue(coachId, callback) {
     const sql = `
       SELECT
-        COALESCE(SUM(bi.price * bi.quantity), 0) AS monthEarned
+        COALESCE(SUM(bi.price * bi.quantity * 0.9), 0) AS monthEarned
       FROM booking_items bi
       JOIN bookings b ON b.id = bi.booking_id
       WHERE bi.coach_id = ?
-        AND b.completed_at IS NOT NULL
+        AND b.user_completed_at IS NOT NULL
+        AND b.coach_completed_at IS NOT NULL
         AND (
           (bi.session_date IS NOT NULL AND DATE(bi.session_date) BETWEEN DATE_FORMAT(NOW(), '%Y-%m-01') AND LAST_DAY(NOW()))
-          OR (bi.session_date IS NULL AND DATE(b.completed_at) BETWEEN DATE_FORMAT(NOW(), '%Y-%m-01') AND LAST_DAY(NOW()))
+          OR (bi.session_date IS NULL AND DATE(COALESCE(b.completed_at, b.coach_completed_at, b.user_completed_at)) BETWEEN DATE_FORMAT(NOW(), '%Y-%m-01') AND LAST_DAY(NOW()))
         )
     `;
     db.query(sql, [coachId], (err, rows) => {
@@ -409,6 +470,55 @@ const Booking = {
       const row = rows && rows[0] ? rows[0] : { monthEarned: 0 };
       return callback(null, { monthEarned: Number(row.monthEarned || 0) });
     });
+  }
+
+  ,getCoachEarningsHistory(coachId, limit, filters, callback) {
+    const capped = Number.isFinite(Number(limit)) ? Number(limit) : 10;
+    const resolved = filters || {};
+    const params = [coachId];
+    const conditions = [
+      'b.user_completed_at IS NOT NULL',
+      'b.coach_completed_at IS NOT NULL'
+    ];
+    if (resolved.startDate) {
+      conditions.push('DATE(bi.session_date) >= ?');
+      params.push(resolved.startDate);
+    }
+    if (resolved.endDate) {
+      conditions.push('DATE(bi.session_date) <= ?');
+      params.push(resolved.endDate);
+    }
+    if (resolved.bookingId) {
+      conditions.push('b.id = ?');
+      params.push(resolved.bookingId);
+    }
+    if (resolved.sport) {
+      conditions.push('(LOWER(bi.sport) LIKE ? OR LOWER(bi.listing_title) LIKE ?)');
+      const term = `%${String(resolved.sport).toLowerCase()}%`;
+      params.push(term, term);
+    }
+    const where = conditions.length ? `WHERE bi.coach_id = ? AND ${conditions.join(' AND ')}` : 'WHERE bi.coach_id = ?';
+    const sql = `
+      SELECT
+        b.id AS booking_id,
+        bi.session_date,
+        bi.session_time,
+        bi.listing_title,
+        bi.sport,
+        bi.price,
+        bi.quantity,
+        (bi.price * bi.quantity * 0.9) AS net_amount,
+        u.username AS student_name,
+        COALESCE(b.completed_at, b.coach_completed_at, b.user_completed_at) AS completed_at
+      FROM booking_items bi
+      JOIN bookings b ON b.id = bi.booking_id
+      JOIN users u ON u.id = b.user_id
+      ${where}
+      ORDER BY completed_at DESC, b.id DESC
+      LIMIT ?
+    `;
+    params.push(capped);
+    db.query(sql, params, (err, rows) => callback(err, rows || []));
   }
 };
 

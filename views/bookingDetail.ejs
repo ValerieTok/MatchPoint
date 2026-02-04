@@ -1,0 +1,108 @@
+<%- include('partials/head', {
+  title: 'Booking Details',
+  bodyClass: 'admin-page admin-dashboard',
+  extraHead: `
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  `
+}) %>
+
+<%
+  const orderStatus = order && order.completed_at ? 'COMPLETED' : 'INCOMPLETE';
+%>
+
+<div class="app">
+  <%- include('partials/adminSidebar', { active: 'orders' }) %>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="crumb">BOOKING DETAILS</div>
+      <div class="topbar__pill"><i class="fa-solid fa-receipt"></i></div>
+    </header>
+
+    <section class="card">
+      <div class="card__head">
+        <div class="card__title">Booking #<%= order?.id %></div>
+        <a class="btn btn--ghost btn--sm" href="/bookingsManage"><i class="fa-solid fa-arrow-left"></i> Back</a>
+      </div>
+
+      <%- include('partials/flashMessages', { messages }) %>
+
+      <div class="tableWrap">
+        <table class="table">
+          <tbody>
+            <tr>
+              <th>Booked By</th>
+              <td><%= order?.username || '-' %></td>
+            </tr>
+            <tr>
+              <th>User Email</th>
+              <td><%= order?.user_email || '-' %></td>
+            </tr>
+            <tr>
+              <th>User Contact</th>
+              <td><%= order?.user_contact || '-' %></td>
+            </tr>
+            <tr>
+              <th>Booked At</th>
+              <td><%= sessionDateHelper.formatSgDateTime(order?.created_at) %></td>
+            </tr>
+            <tr>
+              <th>Status</th>
+              <td><span class="pill <%= order?.completed_at ? 'pill--review' : 'pill--pending' %>"><%= orderStatus %></span></td>
+            </tr>
+            <tr>
+              <th>Completed At</th>
+              <td><%= order?.completed_at ? sessionDateHelper.formatSgDateTime(order.completed_at) : '-' %></td>
+            </tr>
+            <tr>
+              <th>Total</th>
+              <td>$<%= Number(order?.total || 0).toFixed(2) %></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card__head">
+        <div class="card__title">Session Details</div>
+      </div>
+
+      <div class="tableWrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Coach</th>
+              <th>Sport</th>
+              <th>Date &amp; Time</th>
+              <th>Location</th>
+              <th>Price</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% const items = Array.isArray(order?.items) ? order.items : []; %>
+            <% if (!items.length) { %>
+              <tr>
+                <td colspan="5">No session items found.</td>
+              </tr>
+            <% } else { %>
+              <% items.forEach(item => { %>
+                <% const dateLabel = sessionDateHelper.formatSessionDate(item.session_date); %>
+                <% const timeLabel = sessionDateHelper.formatSessionTime(item.session_time); %>
+                <tr>
+                  <td><%= item.username || '-' %></td>
+                  <td><%= item.sport || item.listing_title || '-' %></td>
+                  <td><%= timeLabel ? `${dateLabel} ${timeLabel}` : dateLabel %></td>
+                  <td><%= item.session_location || '-' %></td>
+                  <td>$<%= Number(item.price || 0).toFixed(2) %></td>
+                </tr>
+              <% }) %>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+
+<%- include('partials/footer') %>

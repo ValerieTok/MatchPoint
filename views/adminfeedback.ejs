@@ -99,8 +99,8 @@
                   <div class="feedback-session">
                     <div class="feedback-title"><%= row.listing_title || 'Coaching Session' %></div>
                     <div class="feedback-date">
-                      <% const createdDate = row.created_at ? new Date(row.created_at) : null; %>
-                      <%= createdDate && !Number.isNaN(createdDate.getTime()) ? createdDate.toLocaleDateString('en-GB', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' }) : '' %>
+                    <% const createdDate = row.created_at ? new Date(row.created_at) : null; %>
+                    <%= createdDate && !Number.isNaN(createdDate.getTime()) ? createdDate.toLocaleDateString('en-SG', { timeZone: 'Asia/Singapore', weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' }) : '' %>
                     </div>
                   </div>
                   <div class="feedback-rating">

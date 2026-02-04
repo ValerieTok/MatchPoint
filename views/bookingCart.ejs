@@ -53,8 +53,8 @@
               const sub = finalPrice * item.quantity;
               total += sub;
               if (hasDiscount) { totalSavings += (basePrice - finalPrice) * item.quantity; }
-              const sessionDateLabel = item.session_date ? new Date(item.session_date).toLocaleDateString() : 'TBC';
-              const sessionTimeLabel = item.session_time ? String(item.session_time).slice(0, 5) : 'TBC';
+              const sessionDateLabel = sessionDateHelper.formatSessionDate(item.session_date);
+              const sessionTimeLabel = sessionDateHelper.formatSessionTime(item.session_time);
             %>
               <section class="card" style="margin-bottom: 1rem; padding: 2rem;">
                 <div style="display: flex; gap: 2rem; margin-bottom: 1.5rem;">
@@ -112,25 +112,18 @@
                 <% } %>
                 
                 <div style="display: flex; gap: 1rem; align-items: center; justify-content: space-between;">
-                  <form style="display: flex; align-items: center; gap: 0.75rem;" action="/bookingCart/update/<%= item.listing_id %>" method="POST">
-                    <label style="font-size: 0.95rem; color: #6b7280; font-weight: 500;">Slots:</label>
-                    <input
-                      type="number"
-                      style="width: 90px; padding: 0.6rem 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1rem; font-weight: 500; text-align: center;"
-                      name="quantity"
-                      min="1"
-                      value="<%= item.quantity %>"
-                      required>
-                    <button type="submit" style="background: #3b82f6; color: white; border: none; padding: 0.6rem 1.5rem; border-radius: 8px; cursor: pointer; font-size: 0.95rem; font-weight: 600; transition: all 0.2s;">Update</button>
-                  </form>
+                  <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <label style="font-size: 0.95rem; color: #6b7280; font-weight: 500;">Slot:</label>
+                    <span style="font-weight: 600;">1 hour</span>
+                  </div>
                   
-                  <form action="/bookingCart/remove/<%= item.listing_id %>" method="POST">
+                  <form action="/bookingCart/remove/<%= item.cart_item_id %>" method="POST">
                     <button type="submit" style="background: #ef4444; color: white; border: none; padding: 0.6rem 1.5rem; border-radius: 8px; cursor: pointer; font-size: 0.95rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; transition: all 0.2s;">
-                      <span style="font-size: 1.1rem;">🗑️</span> Remove
+                      <i class="fa-solid fa-trash"></i> Remove
                     </button>
                   </form>
                 </div>
-                
+
                 <div style="text-align: right; padding-top: 1.5rem; margin-top: 1.5rem; border-top: 2px solid #e5e7eb;">
                   <p style="color: #6b7280; font-size: 0.9rem; margin: 0 0 0.5rem 0; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Subtotal</p>
                   <h2 style="margin: 0; font-size: 2rem; font-weight: 800; color: #1a1a1a;">$<%= sub.toFixed(2) %></h2>

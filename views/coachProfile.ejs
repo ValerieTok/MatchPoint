@@ -74,6 +74,11 @@
             <label for="contact">Phone number</label>
             <input type="text" id="contact" name="contact" value="<%= profile.contact || '' %>">
           </div>
+          <div class="profile-field">
+            <label for="payout_email">PayPal payout email</label>
+            <input type="email" id="payout_email" name="payout_email" value="<%= profile.payout_email || '' %>" placeholder="email@paypal.com">
+            <small class="text-muted">Visible to admins only.</small>
+          </div>
           <div class="profile-actions">
             <button class="btn btn--primary" type="submit">Save changes</button>
           </div>

@@ -20,11 +20,15 @@ const UserProfileController = require('./controllers/UserProfileController');
 const FeedbackController = require('./controllers/FeedbackController');
 const RefundController = require('./controllers/RefundController');
 const RevenueController = require('./controllers/RevenueController');
+const AdminRevenueController = require('./controllers/AdminRevenueController');
 const FavoriteController = require('./controllers/FavoriteController');
+const SlotController = require('./controllers/SlotController');
+const PayoutController = require('./controllers/PayoutController');
 const Inbox = require('./models/Inbox');
 const activityStore = require('./activityStore');
 const { attachUser, getInboxItems, checkAuthenticated, checkAdmin, checkAdminOrCoach, checkCoachApproved } = require('./middleware');
 const netsQr = require('./services/nets');
+const sessionDateHelper = require('./services/sessionDate');
 
 const app = express();
 
@@ -113,6 +117,7 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
+app.locals.sessionDateHelper = sessionDateHelper;
 
 // in-memory sessions; cart persistence is DB-backed via user_cart_items
 const isProduction = process.env.NODE_ENV === 'production';
@@ -160,19 +165,9 @@ app.use((req, res, next) => {
   return res.redirect('/banned');
 });
 
-// Home: send guests to login, route users by role
+// Home: always start at login
 app.get('/', (req, res) => {
-  const user = req.session && req.session.user;
-  if (!user) {
-    return res.redirect('/login');
-  }
-  if (user.role === 'admin') {
-    return res.redirect('/admindashboard');
-  }
-  if (user.role === 'coach') {
-    return res.redirect('/listingsManage');
-  }
-  return res.redirect('/userdashboard');
+  return res.redirect('/login');
 });
 
 // User routes
@@ -196,6 +191,7 @@ app.post('/accounts/:id', checkAuthenticated, checkAdmin, AccountController.upda
 app.post('/accounts/:id/disable-2fa', checkAuthenticated, checkAdmin, AccountController.disableTwoFactor);
 app.post('/accounts/delete/:id', checkAuthenticated, checkAdmin, AccountController.deleteUser);
 app.get('/bookingsManage', checkAuthenticated, checkAdminOrCoach, BookingController.listAllOrders);
+app.get('/bookingsManage/:id', checkAuthenticated, checkAdmin, BookingController.showOrderDetails);
 app.get('/coachRatings', checkAuthenticated, checkAdminOrCoach, BookingController.listCoachRatings);
 app.get('/ratingsUser', checkAuthenticated, BookingController.userRatings);
 app.post('/refunds/request', checkAuthenticated, RefundController.requestRefund);
@@ -294,12 +290,17 @@ app.post('/adminfeedback/:id/reject', checkAuthenticated, checkAdmin, AdminContr
 app.get('/adminrefunds', checkAuthenticated, checkAdmin, AdminController.refunds);
 app.post('/adminrefunds/:id/approve', checkAuthenticated, checkAdmin, AdminController.approveRefund);
 app.post('/adminrefunds/:id/reject', checkAuthenticated, checkAdmin, AdminController.rejectRefund);
+app.get('/adminpayouts', checkAuthenticated, checkAdmin, PayoutController.adminList);
+app.post('/adminpayouts/:id/approve', checkAuthenticated, checkAdmin, PayoutController.adminApprove);
+app.post('/adminpayouts/:id/refresh', checkAuthenticated, checkAdmin, PayoutController.adminRefresh);
 app.get('/listingsManage', checkAuthenticated, checkCoachApproved, checkAdminOrCoach, ListingController.listAllProducts);
 app.get('/addListing', checkAuthenticated, checkCoachApproved, checkAdminOrCoach, ListingController.showAddProductPage);
 app.get('/updateListing/:id', checkAuthenticated, checkCoachApproved, checkAdminOrCoach, ListingController.showUpdateProductPage);
 app.post('/addListing', checkAuthenticated, checkCoachApproved, checkAdminOrCoach, upload.single('image'), (req, res) => ListingController.addProduct(req, res, req.file));
 app.post('/updateListing/:id', checkAuthenticated, checkCoachApproved, checkAdminOrCoach, upload.single('image'), (req, res) => ListingController.updateProduct(req, res, req.file));
 app.post('/listingsManage/delete/:id', checkAuthenticated, checkCoachApproved, checkAdminOrCoach, ListingController.deleteProduct);
+app.post('/updateListing/:id/slots', checkAuthenticated, checkCoachApproved, checkAdminOrCoach, ListingController.createListingSlot);
+app.post('/updateListing/:id/slots/:slotId/delete', checkAuthenticated, checkCoachApproved, checkAdminOrCoach, ListingController.deleteListingSlot);
 
 // Booking cart
 app.get('/bookingCart', checkAuthenticated, BookingCartController.showCart);
@@ -320,7 +321,9 @@ app.get('/payment/stripe/fail', checkAuthenticated, PaymentController.stripeFail
 
 app.post('/bookingsManage/:id/review/delete', checkAuthenticated, checkAdmin, BookingController.deleteReview);
 app.post('/bookingsManage/:id/status', checkAuthenticated, checkAdminOrCoach, BookingController.updateStatus);
+app.post('/bookingsManage/:id/confirm-complete', checkAuthenticated, BookingController.confirmCoachCompletion);
 app.post('/bookingsUser/:id/confirm-delivery', checkAuthenticated, BookingController.confirmDelivery);
+app.get('/history', checkAuthenticated, BookingController.listHistory);
 app.get('/coachProfile', checkAuthenticated, checkAdminOrCoach, CoachProfileController.showProfile);
 app.post('/coachProfile', checkAuthenticated, checkAdminOrCoach, CoachProfileController.updateProfile);
 app.post('/coachProfile/password', checkAuthenticated, checkAdminOrCoach, CoachProfileController.updatePassword);
@@ -341,6 +344,9 @@ app.post('/api/wallet/paypal/capture-order', checkAuthenticated, WalletControlle
 app.post('/api/wallet/stripe/create-checkout-session', checkAuthenticated, WalletController.stripeCreateCheckoutSession);
 app.get('/ewallet/stripe/success', checkAuthenticated, WalletController.stripeSuccess);
 app.get('/ewallet/stripe/fail', checkAuthenticated, WalletController.stripeFail);
+
+// Coach availability slots
+app.get('/slots', checkAuthenticated, checkCoachApproved, checkAdminOrCoach, SlotController.listSlots);
 
 app.get('/banned', checkAuthenticated, (req, res) => {
   const user = req.session && req.session.user;
@@ -447,6 +453,10 @@ app.get('/terms', (req, res) => {
 
 // Track Revenue (blank page placeholder)
 app.get('/trackRevenue', checkAuthenticated, checkAdminOrCoach, RevenueController.showDashboard);
+app.get('/adminRevenue', checkAuthenticated, checkAdmin, AdminRevenueController.showDashboard);
+app.get('/adminRevenue/report', checkAuthenticated, checkAdmin, AdminRevenueController.downloadMonthlyReport);
+app.get('/adminRevenue/report.pdf', checkAuthenticated, checkAdmin, AdminRevenueController.downloadMonthlyReportPdf);
+app.post('/payouts/request', checkAuthenticated, checkCoachApproved, PayoutController.requestPayout);
 
 // upload error handling
 app.use((err, req, res, next) => {

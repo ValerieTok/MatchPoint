@@ -100,7 +100,7 @@
                       <td><%= row.username %></td>
                       <td>
                         <% const joinDate = row.created_at ? new Date(row.created_at) : null; %>
-                        <%= joinDate && !Number.isNaN(joinDate.getTime()) ? joinDate.toLocaleDateString('en-GB') : '-' %>
+                        <%= joinDate && !Number.isNaN(joinDate.getTime()) ? joinDate.toLocaleDateString('en-SG', { timeZone: 'Asia/Singapore' }) : '-' %>
                       </td>
                       <td><%= Number(row.sessions || 0).toLocaleString('en-US') %></td>
                       <td>

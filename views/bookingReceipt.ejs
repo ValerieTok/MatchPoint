@@ -58,8 +58,8 @@
                   const hasDiscount = discountPercentage > 0 && listPrice > price;
                   const subtotal = price * qty;
                   const imageSrc = it.image ? '/images/' + it.image : null;
-                  const sessionDateLabel = it.session_date ? new Date(it.session_date).toLocaleDateString() : 'TBC';
-                  const sessionTimeLabel = it.session_time ? String(it.session_time).slice(0, 5) : 'TBC';
+                  const sessionDateLabel = sessionDateHelper.formatSessionDate(it.session_date);
+                  const sessionTimeLabel = sessionDateHelper.formatSessionTime(it.session_time);
                 %>
                   <tr>
                     <td>

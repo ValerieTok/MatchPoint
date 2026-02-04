@@ -8,21 +8,21 @@ const sha1 = (value) => crypto.createHash('sha1').update(value).digest('hex');
 
 module.exports = {
   getAllUsers: function (callback) {
-    const sql = 'SELECT id, username, full_name, email, password, contact, role, coach_status, is_2fa_enabled, twofactor_secret, coach_cert_title, coach_cert_file FROM users';
+    const sql = 'SELECT id, username, full_name, email, password, contact, role, coach_status, payout_email, is_2fa_enabled, twofactor_secret, coach_cert_title, coach_cert_file FROM users';
     db.query(sql, function (err, results) {
       return callback(err, results);
     });
   },
 
   getUserById: function (id, callback) {
-    const sql = 'SELECT id, username, full_name, email, password, contact, role, coach_status, is_2fa_enabled, twofactor_secret, coach_cert_title, coach_cert_file FROM users WHERE id = ? LIMIT 1';
+    const sql = 'SELECT id, username, full_name, email, password, contact, role, coach_status, payout_email, is_2fa_enabled, twofactor_secret, coach_cert_title, coach_cert_file FROM users WHERE id = ? LIMIT 1';
     db.query(sql, [id], function (err, results) {
       return callback(err, results && results[0] ? results[0] : null);
     });
   },
 
   getUserByEmail: function (email, callback) {
-    const sql = 'SELECT id, username, full_name, email, password, contact, role, coach_status, is_2fa_enabled, twofactor_secret, coach_cert_title, coach_cert_file FROM users WHERE email = ? LIMIT 1';
+    const sql = 'SELECT id, username, full_name, email, password, contact, role, coach_status, payout_email, is_2fa_enabled, twofactor_secret, coach_cert_title, coach_cert_file FROM users WHERE email = ? LIMIT 1';
     db.query(sql, [email], function (err, results) {
       return callback(err, results && results[0] ? results[0] : null);
     });
@@ -92,7 +92,7 @@ module.exports = {
   },
 
   authenticate: function (email, password, callback) {
-    const sql = 'SELECT id, username, full_name, email, password, contact, role, coach_status, is_2fa_enabled, twofactor_secret, coach_cert_title, coach_cert_file FROM users WHERE email = ? LIMIT 1';
+    const sql = 'SELECT id, username, full_name, email, password, contact, role, coach_status, payout_email, is_2fa_enabled, twofactor_secret, coach_cert_title, coach_cert_file FROM users WHERE email = ? LIMIT 1';
     db.query(sql, [email], function (err, results) {
       if (err) return callback(err);
       const user = results && results[0] ? results[0] : null;
@@ -124,11 +124,12 @@ module.exports = {
   },
 
   updateProfile: function (id, updatedData, callback) {
-    const sql = 'UPDATE users SET full_name = ?, email = ?, contact = ? WHERE id = ?';
+    const sql = 'UPDATE users SET full_name = ?, email = ?, contact = ?, payout_email = ? WHERE id = ?';
     const params = [
       updatedData.full_name || null,
       updatedData.email,
       updatedData.contact || null,
+      updatedData.payout_email || null,
       id
     ];
     db.query(sql, params, (err, result) => callback(err, result));

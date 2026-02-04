@@ -1,0 +1,74 @@
+<%- include('partials/head', {
+  title: 'History',
+  bodyClass: 'admin-page coach-dashboard',
+  extraHead: `
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  `
+}) %>
+
+<%
+%>
+
+<div class="app">
+  <%- include("partials/coachSidebar", { active: "history" }) %>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="crumb">HISTORY</div>
+      <div class="topbar__pill"><i class="fa-solid fa-clock-rotate-left"></i></div>
+    </header>
+
+    <section class="card">
+      <div class="card__head">
+        <div class="card__title">Completed Sessions</div>
+      </div>
+
+      <%- include('partials/flashMessages', { messages }) %>
+
+      <div class="tableWrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Booked By</th>
+              <th>Booked At</th>
+              <th>Date &amp; Time</th>
+              <th>Sport</th>
+              <th>Location</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% const rows = Array.isArray(orders) ? orders : []; %>
+            <% if (!rows.length) { %>
+              <tr>
+                <td colspan="6">No completed bookings yet.</td>
+              </tr>
+            <% } else { %>
+              <% rows.forEach(o => { %>
+                <% const bookedAt = sessionDateHelper.formatSgDateTime(o.created_at); %>
+                <% const bookedBy = o.username || '-'; %>
+                <% const items = Array.isArray(o.items) && o.items.length ? o.items : [null]; %>
+                <% items.forEach(it => { %>
+                  <% const sportName = it && (it.sport || it.listing_title) ? (it.sport || it.listing_title) : '-'; %>
+                  <% const location = it && it.session_location ? it.session_location : (o.session_location || '-'); %>
+                  <% const dateLabel = it ? sessionDateHelper.formatSessionDate(it.session_date) : 'TBC'; %>
+                  <% const timeLabel = it ? sessionDateHelper.formatSessionTime(it.session_time) : ''; %>
+                  <tr>
+                    <td><%= bookedBy %></td>
+                    <td><%= bookedAt %></td>
+                    <td><%= timeLabel ? `${dateLabel} ${timeLabel}` : dateLabel %></td>
+                    <td><%= sportName %></td>
+                    <td><%= location %></td>
+                    <td><span class="pill pill--review">COMPLETED</span></td>
+                  </tr>
+                <% }) %>
+              <% }) %>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+
+<%- include('partials/footer') %>

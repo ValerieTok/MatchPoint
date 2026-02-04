@@ -74,6 +74,7 @@ module.exports = {
     const fullName = req.body.full_name ? String(req.body.full_name).trim() : '';
     const email = req.body.email ? String(req.body.email).trim() : '';
     const contact = req.body.contact ? String(req.body.contact).trim() : '';
+    const payoutEmail = req.body.payout_email ? String(req.body.payout_email).trim() : '';
     if (!fullName) {
       req.flash('error', 'Full name is required.');
       return res.redirect('/coachProfile');
@@ -91,7 +92,8 @@ module.exports = {
       await updateProfileAsync(sessionUser.id, {
         full_name: fullName,
         email,
-        contact
+        contact,
+        payout_email: payoutEmail || null
       });
       sessionUser.username = fullName || sessionUser.username;
       sessionUser.full_name = fullName;

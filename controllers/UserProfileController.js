@@ -86,10 +86,12 @@ module.exports = {
         req.flash('error', 'Email is already in use.');
         return res.redirect('/profile');
       }
+      const current = await getUserByIdAsync(sessionUser.id);
       await updateProfileAsync(sessionUser.id, {
         full_name: fullName,
         email,
-        contact: phone
+        contact: phone,
+        payout_email: current && current.payout_email ? current.payout_email : null
       });
       sessionUser.full_name = fullName;
       sessionUser.username = fullName || sessionUser.username;

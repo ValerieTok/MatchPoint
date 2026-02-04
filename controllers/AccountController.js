@@ -3,6 +3,7 @@ const Listing = require('../models/Listing');
 const BookingCart = require('../models/BookingCart');
 const UserProfile = require('../models/UserProfile');
 const UserBan = require('../models/UserBan');
+const Slot = require('../models/Slot');
 const activityStore = require('../activityStore');
 const speakeasy = require('speakeasy');
 const QRCode = require('qrcode');
@@ -35,10 +36,9 @@ const addPendingBookingToCart = async (req) => {
   try {
     const userId = req.session.user.id;
     const productId = parseInt(pending.productId, 10);
-    const quantity = parseInt(pending.quantity, 10) || 1;
-    const sessionDate = pending.sessionDate ? String(pending.sessionDate).trim() : '';
-    const sessionTime = pending.sessionTime ? String(pending.sessionTime).trim() : '';
-    if (!Number.isFinite(productId) || !sessionDate || !sessionTime) {
+    const quantity = 1;
+    const slotId = parseInt(pending.slotId, 10);
+    if (!Number.isFinite(productId) || !Number.isFinite(slotId)) {
       return null;
     }
 
@@ -47,13 +47,19 @@ const addPendingBookingToCart = async (req) => {
       req.flash('error', 'Listing is not available');
       return null;
     }
+    const slot = await Slot.getSlotById(slotId);
+    if (!slot || Number(slot.listing_id) !== Number(product.id) || Number(slot.is_available) !== 1) {
+      req.flash('error', 'Selected slot is no longer available');
+      return null;
+    }
     await new Promise((resolve, reject) => {
       BookingCart.addOrIncrement(
         userId,
         productId,
         quantity,
-        sessionDate,
-        sessionTime,
+        slotId,
+        slot.slot_date,
+        slot.slot_time,
         (err) => (err ? reject(err) : resolve())
       );
     });

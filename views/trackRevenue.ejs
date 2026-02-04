@@ -35,9 +35,23 @@
 
 		<section class="stats">
 			<div class="stat">
-				<div class="stat__icon"><i class="fa-solid fa-dollar-sign"></i></div>
+				<div class="stat__icon"><i class="fa-solid fa-sack-dollar"></i></div>
 				<div>
-					<div class="stat__label">Total Earned</div>
+					<div class="stat__label">Gross Earned</div>
+					<div class="stat__value">
+						<% if (revenue && typeof revenue.totalEarnedGross !== 'undefined') { %>
+							$<%= Number(revenue.totalEarnedGross).toFixed(2) %>
+						<% } else { %>
+							$0.00
+						<% } %>
+					</div>
+				</div>
+			</div>
+
+			<div class="stat">
+				<div class="stat__icon"><i class="fa-solid fa-percent"></i></div>
+				<div>
+					<div class="stat__label">Net Earned (90%)</div>
 					<div class="stat__value">
 						<% if (revenue && typeof revenue.totalEarned !== 'undefined') { %>
 							$<%= Number(revenue.totalEarned).toFixed(2) %>
@@ -48,24 +62,38 @@
 				</div>
 			</div>
 
-			<div class="stat stat--active">
-				<div class="stat__icon"><i class="fa-solid fa-hourglass-half"></i></div>
+			<div class="stat">
+				<div class="stat__icon"><i class="fa-solid fa-wallet"></i></div>
 				<div>
-					<div class="stat__label">Total Pending</div>
+					<div class="stat__label">Withdrawn</div>
 					<div class="stat__value">
-						<% if (revenue && typeof revenue.totalPending !== 'undefined') { %>
-							$<%= Number(revenue.totalPending).toFixed(2) %>
+						<% if (revenue && typeof revenue.totalPaid !== 'undefined') { %>
+							$<%= Number(revenue.totalPaid).toFixed(2) %>
 						<% } else { %>
 							$0.00
 						<% } %>
 					</div>
 				</div>
 			</div>
-      
+
+			<div class="stat stat--active">
+				<div class="stat__icon"><i class="fa-solid fa-coins"></i></div>
+				<div>
+					<div class="stat__label">Available to Withdraw</div>
+					<div class="stat__value">
+						<% if (revenue && typeof revenue.availableBalance !== 'undefined') { %>
+							$<%= Number(revenue.availableBalance).toFixed(2) %>
+						<% } else { %>
+							$0.00
+						<% } %>
+					</div>
+				</div>
+			</div>
+
 			<div class="stat">
 				<div class="stat__icon"><i class="fa-solid fa-calendar-day"></i></div>
 				<div>
-					<div class="stat__label">This Month</div>
+					<div class="stat__label">This Month (Net)</div>
 					<div class="stat__value">
 						<% if (revenue && typeof revenue.monthEarned !== 'undefined') { %>
 							$<%= Number(revenue.monthEarned).toFixed(2) %>
@@ -79,10 +107,124 @@
 
 		<section class="section">
 			<div class="section__head">
-				<div class="section__title">Revenue Details</div>
+				<div class="section__title">Payout Request</div>
 			</div>
 			<div class="section__body">
-				<div class="empty">Detailed breakdown coming soon.</div>
+				<form class="card form-card" action="/payouts/request" method="post">
+					<div class="form-grid">
+						<div class="form-control">
+							<label for="amount">Amount (SGD)</label>
+							<input type="number" id="amount" name="amount" min="1" step="0.01" placeholder="100.00" required>
+							<small class="text-muted">Available balance: $<%= Number(revenue?.availableBalance || 0).toFixed(2) %></small>
+						</div>
+					</div>
+					<div class="form-actions">
+						<button type="submit" class="btn btn--primary"><i class="fa-solid fa-paper-plane"></i> Request Payout</button>
+					</div>
+				</form>
+			</div>
+		</section>
+
+		<section class="section">
+			<div class="section__head">
+				<div class="section__title">Payout History</div>
+			</div>
+			<div class="section__body">
+				<div class="tableWrap">
+					<table class="table">
+						<thead>
+							<tr>
+								<th>Amount</th>
+								<th>Status</th>
+								<th>Requested</th>
+								<th>Approved</th>
+								<th>Batch ID</th>
+							</tr>
+						</thead>
+						<tbody>
+							<% const rows = Array.isArray(payoutRequests) ? payoutRequests : []; %>
+							<% if (!rows.length) { %>
+								<tr>
+									<td colspan="5">No payout requests yet.</td>
+								</tr>
+							<% } else { %>
+								<% rows.forEach(row => { %>
+									<tr>
+										<td>$<%= Number(row.amount || 0).toFixed(2) %></td>
+										<td>
+											<span class="pill pill--<%= row.status || 'pending' %>"><%= String(row.status || 'pending').toUpperCase() %></span>
+										</td>
+										<td><%= row.created_at ? sessionDateHelper.formatSgDateTime(row.created_at) : '-' %></td>
+										<td><%= row.approved_at ? sessionDateHelper.formatSgDateTime(row.approved_at) : '-' %></td>
+										<td><%= row.payout_batch_id || '-' %></td>
+									</tr>
+								<% }) %>
+							<% } %>
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</section>
+
+		<section class="section">
+			<div class="section__head">
+				<div class="section__title">Earnings Breakdown</div>
+				<form class="card__tools" method="get" action="/trackRevenue" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.75rem; align-items: end; margin-left: auto;">
+					<div class="form-control">
+						<label for="start">Start date</label>
+						<input type="date" id="start" name="start" value="<%= filters?.startDate || '' %>">
+					</div>
+					<div class="form-control">
+						<label for="end">End date</label>
+						<input type="date" id="end" name="end" value="<%= filters?.endDate || '' %>">
+					</div>
+					<div class="form-control">
+						<label for="sport">Sport or title</label>
+						<input type="text" id="sport" name="sport" placeholder="Athletics" value="<%= filters?.sport || '' %>">
+					</div>
+					<div class="form-control">
+						<label for="bookingId">Booking ID</label>
+						<input type="number" id="bookingId" name="bookingId" placeholder="123" value="<%= filters?.bookingId || '' %>">
+					</div>
+					<div style="grid-column: 1 / -1; display: flex; gap: 0.5rem; justify-content: flex-end;">
+						<button class="btn btn--ghost" type="submit">Apply Filters</button>
+						<a class="btn btn--ghost" href="/trackRevenue">Reset</a>
+					</div>
+				</form>
+			</div>
+			<div class="section__body">
+				<div class="tableWrap">
+					<table class="table">
+						<thead>
+							<tr>
+								<th>Amount</th>
+								<th>Source</th>
+								<th>Date &amp; Time</th>
+								<th>Student</th>
+							</tr>
+						</thead>
+						<tbody>
+							<% const earnings = Array.isArray(earningsHistory) ? earningsHistory : []; %>
+							<% if (!earnings.length) { %>
+								<tr>
+									<td colspan="4">No earnings yet.</td>
+								</tr>
+							<% } else { %>
+								<% earnings.forEach(row => { %>
+									<% const dateLabel = sessionDateHelper.formatSessionDate(row.session_date); %>
+									<% const timeLabel = sessionDateHelper.formatSessionTime(row.session_time); %>
+									<% const title = row.listing_title || row.sport || 'Session'; %>
+									<tr>
+										<td>$<%= Number(row.net_amount || 0).toFixed(2) %></td>
+										<td>$<%= Number(row.net_amount || 0).toFixed(2) %> from <%= title %> (Booking #<%= row.booking_id %>)</td>
+										<td><%= timeLabel ? `${dateLabel} ${timeLabel}` : dateLabel %></td>
+										<td><%= row.student_name || '-' %></td>
+									</tr>
+								<% }) %>
+							<% } %>
+						</tbody>
+					</table>
+				</div>
 			</div>
 		</section>
 	</main>

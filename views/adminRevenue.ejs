@@ -1,0 +1,222 @@
+<%- include('partials/head', {
+  title: 'Admin Revenue',
+  bodyClass: 'admin-page admin-dashboard',
+  extraHead: `
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  `
+}) %>
+
+<div class="app">
+  <%- include('partials/adminSidebar', { active: 'revenue' }) %>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="crumb">ADMIN REVENUE</div>
+      <div class="topbar__pill"><i class="fa-solid fa-chart-line"></i></div>
+    </header>
+
+    <section class="hero">
+      <div>
+        <h1 class="hero__title">Revenue Overview</h1>
+        <p class="hero__subtitle">Gross revenue, platform fee (10%), and coach earnings from completed sessions.</p>
+      </div>
+    </section>
+
+    <%- include('partials/flashMessages', { messages }) %>
+
+    <section class="stats">
+      <div class="stat">
+        <div class="stat__icon"><i class="fa-solid fa-sack-dollar"></i></div>
+        <div>
+          <div class="stat__label">Gross Revenue</div>
+          <div class="stat__value">$<%= Number(totals?.grossRevenue || 0).toFixed(2) %></div>
+        </div>
+      </div>
+      <div class="stat stat--active">
+        <div class="stat__icon"><i class="fa-solid fa-percent"></i></div>
+        <div>
+          <div class="stat__label">Platform Fee (10%)</div>
+          <div class="stat__value">$<%= Number(totals?.adminRevenue || 0).toFixed(2) %></div>
+        </div>
+      </div>
+      <div class="stat">
+        <div class="stat__icon"><i class="fa-solid fa-hand-holding-dollar"></i></div>
+        <div>
+          <div class="stat__label">Coach Earnings (90%)</div>
+          <div class="stat__value">$<%= Number(totals?.coachRevenue || 0).toFixed(2) %></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section__head">
+        <div class="section__title">Monthly Sales Report</div>
+        <div class="section__actions">
+          <form method="get" action="/adminRevenue" style="display: inline-flex; gap: 0.5rem; align-items: center;">
+            <input type="month" name="month" value="<%= reportMonth %>" class="form-control" style="max-width: 180px;">
+            <button class="btn btn--ghost" type="submit">Filter</button>
+          </form>
+          <a class="btn btn--primary" href="/adminRevenue/report?month=<%= encodeURIComponent(reportMonth) %>">
+            <i class="fa-solid fa-file-arrow-down"></i> Download CSV
+          </a>
+          <a class="btn btn--ghost" href="/adminRevenue/report.pdf?month=<%= encodeURIComponent(reportMonth) %>">
+            <i class="fa-solid fa-file-pdf"></i> Download PDF
+          </a>
+        </div>
+      </div>
+
+      <div class="section__body">
+        <div class="tableWrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Booking</th>
+                <th>Session</th>
+                <th>Coach</th>
+                <th>Student</th>
+                <th>Gross</th>
+                <th>Fee (10%)</th>
+                <th>Coach (90%)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% const rows = Array.isArray(reportRows) ? reportRows : []; %>
+              <% if (!rows.length) { %>
+                <tr>
+                  <td colspan="7">No completed sessions for this month.</td>
+                </tr>
+              <% } else { %>
+                <% rows.forEach(row => { %>
+                  <% const title = row.listing_title || row.sport || 'Session'; %>
+                  <% const dateLabel = sessionDateHelper.formatSessionDate(row.session_date); %>
+                  <% const timeLabel = sessionDateHelper.formatSessionTime(row.session_time); %>
+                  <tr>
+                    <td>#<%= row.booking_id %></td>
+                    <td><%= timeLabel ? `${title} • ${dateLabel} ${timeLabel}` : `${title} • ${dateLabel}` %></td>
+                    <td><%= row.coach_name || '-' %></td>
+                    <td><%= row.student_name || '-' %></td>
+                    <td>$<%= Number(row.gross_amount || 0).toFixed(2) %></td>
+                    <td>$<%= Number(row.admin_amount || 0).toFixed(2) %></td>
+                    <td>$<%= Number(row.coach_amount || 0).toFixed(2) %></td>
+                  </tr>
+                <% }) %>
+              <% } %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section__head">
+        <div class="section__title">Revenue Charts</div>
+      </div>
+      <div class="section__body">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem;">
+          <div class="card" style="padding: 1rem;">
+            <h4 style="margin: 0 0 1rem 0;">Revenue Over Time</h4>
+            <canvas id="revenueOverTime" height="160"></canvas>
+          </div>
+          <div class="card" style="padding: 1rem;">
+            <h4 style="margin: 0 0 1rem 0;">Revenue by Sport</h4>
+            <canvas id="revenueBySport" height="160"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<%- include('partials/footer', {
+  extraScripts: `
+    <script>
+      const chartData = ${JSON.stringify(charts || {})};
+      const hasTimeSeries = Array.isArray(chartData.labels) && chartData.labels.length;
+      const hasSport = Array.isArray(chartData.sportLabels) && chartData.sportLabels.length;
+
+      if (hasTimeSeries) {
+        const ctx = document.getElementById('revenueOverTime');
+        if (ctx) {
+          new Chart(ctx, {
+            type: 'line',
+            data: {
+              labels: chartData.labels,
+              datasets: [
+                {
+                  label: 'Gross',
+                  data: chartData.gross || [],
+                  borderColor: '#0f172a',
+                  backgroundColor: 'rgba(15, 23, 42, 0.12)',
+                  tension: 0.3,
+                  fill: false
+                },
+                {
+                  label: 'Admin Fee (10%)',
+                  data: chartData.adminFee || [],
+                  borderColor: '#f97316',
+                  backgroundColor: 'rgba(249, 115, 22, 0.15)',
+                  tension: 0.3,
+                  fill: false
+                },
+                {
+                  label: 'Coach Net (90%)',
+                  data: chartData.coachNet || [],
+                  borderColor: '#16a34a',
+                  backgroundColor: 'rgba(22, 163, 74, 0.15)',
+                  tension: 0.3,
+                  fill: false
+                }
+              ]
+            },
+            options: {
+              responsive: true,
+              plugins: {
+                legend: { position: 'bottom' }
+              },
+              scales: {
+                y: {
+                  ticks: {
+                    callback: (value) => '$' + value
+                  }
+                }
+              }
+            }
+          });
+        }
+      }
+
+      if (hasSport) {
+        const ctx = document.getElementById('revenueBySport');
+        if (ctx) {
+          new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: chartData.sportLabels,
+              datasets: [
+                {
+                  label: 'Gross',
+                  data: chartData.sportGross || [],
+                  backgroundColor: '#2563eb'
+                }
+              ]
+            },
+            options: {
+              indexAxis: 'y',
+              plugins: {
+                legend: { display: false }
+              },
+              scales: {
+                x: {
+                  ticks: {
+                    callback: (value) => '$' + value
+                  }
+                }
+              }
+            }
+          });
+        }
+      }
+    </script>
+  `
+}) %>

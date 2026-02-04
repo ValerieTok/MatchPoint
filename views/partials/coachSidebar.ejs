@@ -23,6 +23,16 @@
       <span>Bookings</span>
     </a>
 
+    <a class="nav__item <%= active === 'history' ? 'nav__item--active' : '' %>" href="/history">
+      <i class="fa-solid fa-clock-rotate-left"></i>
+      <span>History</span>
+    </a>
+
+    <a class="nav__item <%= active === 'slots' ? 'nav__item--active' : '' %>" href="/slots">
+      <i class="fa-solid fa-clock"></i>
+      <span>Slots</span>
+    </a>
+
     <a class="nav__item <%= active === 'ratings' ? 'nav__item--active' : '' %>" href="/coachRatings">
       <i class="fa-regular fa-star"></i>
       <span>Ratings</span>

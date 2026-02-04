@@ -9,6 +9,7 @@
 <div class="app">
   <%- include('partials/coachSidebar', { active: 'slots' }) %>
 
+ 
   <main class="main">
     <header class="topbar">
       <div class="crumb">SLOTS</div>
@@ -18,10 +19,9 @@
     <section class="section">
       <div class="section__head">
         <div>
-          <div class="section__title">Your Availability</div>
-          <p class="section__subtitle">Create slots to let students book you.</p>
+          <div class="section__title">All Availability</div>
+          <p class="section__subtitle">All slots across your listings, earliest first.</p>
         </div>
-        <a class="btn btn--ghost btn--sm" href="/slots/create"><i class="fa-solid fa-circle-plus"></i> Create slot</a>
       </div>
 
       <%- include('partials/flashMessages', { messages }) %>
@@ -33,26 +33,30 @@
           <table class="table">
             <thead>
               <tr>
+                <th>Listing</th>
                 <th>Date</th>
                 <th>Time</th>
                 <th>Duration</th>
                 <th>Location</th>
                 <th>Note</th>
-                <th></th>
+                <th>Status</th>
               </tr>
             </thead>
             <tbody>
               <% slots.forEach(slot => { %>
                 <tr>
-                  <td><%= slot.slot_date %></td>
-                  <td><%= slot.slot_time %></td>
+                  <td><%= slot.listing_title || '-' %></td>
+                  <td><%= sessionDateHelper.formatSessionDate(slot.slot_date) %></td>
+                  <td><%= sessionDateHelper.formatSessionTime(slot.slot_time) %></td>
                   <td><%= slot.duration_minutes ? slot.duration_minutes + ' mins' : '-' %></td>
                   <td><%= slot.location || '-' %></td>
                   <td><%= slot.note || '-' %></td>
-                  <td class="table__actions">
-                    <form action="/slots/delete/<%= slot.id %>" method="POST" onsubmit="return confirm('Delete this slot?');">
-                      <button type="submit" class="btn btn--ghost btn--sm btn--danger"><i class="fa-solid fa-trash"></i> Delete</button>
-                    </form>
+                  <td>
+                    <% if (Number(slot.is_available) === 1) { %>
+                      <span class="pill pill--upcoming">AVAILABLE</span>
+                    <% } else { %>
+                      <span class="pill pill--inactive">BOOKED</span>
+                    <% } %>
                   </td>
                 </tr>
               <% }) %>

@@ -2,11 +2,29 @@ const axios = require('axios');
 const Booking = require('../models/Booking');
 const BookingCart = require('../models/BookingCart');
 const Wallet = require('../models/Wallet');
+const Slot = require('../models/Slot');
 const paypal = require('../services/paypal');
 const { clampWalletDeduction } = require('../services/walletLogic');
 const stripe = require('../services/stripe');
 
-const SERVICE_FEE = 2.5;
+const SERVICE_FEE = 0;
+
+const formatDateOnly = (value) => {
+  if (!value) return null;
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    const year = value.getFullYear();
+    const month = String(value.getMonth() + 1).padStart(2, '0');
+    const day = String(value.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+  if (typeof value === 'string') {
+    const raw = value.trim();
+    if (!raw) return null;
+    if (/^\d{4}-\d{2}-\d{2}/.test(raw)) return raw.slice(0, 10);
+    if (raw.includes('T')) return raw.split('T')[0];
+  }
+  return null;
+};
 
 
 const ensureShopperRole = (req, res) => {
@@ -141,6 +159,19 @@ module.exports = {
         req.flash('error', 'No items to pay for');
         return res.redirect('/bookingCart');
       }
+      const slotChecks = await Promise.all(
+        dbCart.map(async (item) => {
+          if (!item.slot_id) return { ok: false };
+          const slot = await Slot.getSlotById(item.slot_id);
+          if (!slot || Number(slot.is_available) !== 1) return { ok: false };
+          return { ok: true };
+        })
+      );
+      const invalid = slotChecks.find((check) => !check.ok);
+      if (invalid) {
+        req.flash('error', 'A selected slot is no longer available. Please update your cart.');
+        return res.redirect('/bookingCart');
+      }
 
       const pricedCart = dbCart.map((item) => {
         const basePrice = Number.parseFloat(item.price) || 0;
@@ -153,14 +184,7 @@ module.exports = {
           ? Number((basePrice * (1 - discountPercentage / 100)).toFixed(2))
           : Number(basePrice.toFixed(2));
 
-        let sessionDate = item.session_date || null;
-        if (sessionDate) {
-          if (sessionDate instanceof Date) {
-            sessionDate = sessionDate.toISOString().split('T')[0];
-          } else if (typeof sessionDate === 'string' && sessionDate.includes('T')) {
-            sessionDate = sessionDate.split('T')[0];
-          }
-        }
+        const sessionDate = formatDateOnly(item.session_date);
 
         return {
           ...item,

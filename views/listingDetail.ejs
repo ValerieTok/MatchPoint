@@ -90,15 +90,24 @@
 
         <form action="/listingDetail/add-to-cart/<%= product.id %>" method="post" class="detail-form">
           <div class="detail-field">
-            <label for="session_date">Session date</label>
-            <input type="date" id="session_date" name="session_date" required>
-          </div>
-          <div class="detail-field">
-            <label for="session_time">Session time</label>
-            <input type="time" id="session_time" name="session_time" required>
+            <label for="slot_id">Available slots (1 hour)</label>
+            <% const slots = Array.isArray(availableSlots) ? availableSlots : []; %>
+            <select id="slot_id" name="slot_id" required>
+              <option value="">Select a slot</option>
+              <% slots.forEach((slot) => { %>
+                <% const dateLabel = sessionDateHelper.formatSessionDate(slot.slot_date); %>
+                <% const timeLabel = sessionDateHelper.formatSessionTime(slot.slot_time); %>
+                <% const locationLabel = slot.location ? ` • ${slot.location}` : ''; %>
+                <% const durationLabel = slot.duration_minutes ? ` • ${slot.duration_minutes} mins` : ''; %>
+                <option value="<%= slot.id %>"><%= `${dateLabel} ${timeLabel}${durationLabel}${locationLabel}` %></option>
+              <% }) %>
+            </select>
+            <% if (!slots.length) { %>
+              <small class="text-muted">No available slots yet. Please check back later.</small>
+            <% } %>
           </div>
           <input type="hidden" id="quantity" name="quantity" value="1">
-          <button type="submit" class="detail-btn">Book now</button>
+          <button type="submit" class="detail-btn" <%= slots.length ? '' : 'disabled' %>>Book now</button>
         </form>
       </div>
     </section>

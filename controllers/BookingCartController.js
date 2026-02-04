@@ -1,6 +1,24 @@
 const Listing = require('../models/Listing');
 const BookingCart = require('../models/BookingCart');
 const Booking = require('../models/Booking');
+const Slot = require('../models/Slot');
+
+const formatDateOnly = (value) => {
+  if (!value) return null;
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    const year = value.getFullYear();
+    const month = String(value.getMonth() + 1).padStart(2, '0');
+    const day = String(value.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+  if (typeof value === 'string') {
+    const raw = value.trim();
+    if (!raw) return null;
+    if (/^\d{4}-\d{2}-\d{2}/.test(raw)) return raw.slice(0, 10);
+    if (raw.includes('T')) return raw.split('T')[0];
+  }
+  return null;
+};
 
 const ensureShopperRole = (req, res) => {
   const user = req.session && req.session.user;
@@ -52,9 +70,9 @@ const getProductByIdAsync = (id) =>
     Listing.getProductById(id, (err, row) => (err ? reject(err) : resolve(row)));
   });
 
-const addOrUpdateQuantity = (userId, productId, quantity) =>
+const addOrUpdateQuantity = (userId, cartItemId, quantity) =>
   new Promise((resolve, reject) => {
-    BookingCart.updateQuantity(userId, productId, quantity, (err) => (err ? reject(err) : resolve()));
+    BookingCart.updateQuantity(userId, cartItemId, quantity, (err) => (err ? reject(err) : resolve()));
   });
 
 const getListingRedirect = (productId) =>
@@ -65,15 +83,13 @@ module.exports = {
     const sessionUser = req.session && req.session.user;
     if (!sessionUser) {
       const productId = parseInt(req.params.id, 10);
-      const quantity = parseInt(req.body.quantity, 10) || 1;
-      const sessionDate = req.body.session_date ? String(req.body.session_date).trim() : '';
-      const sessionTime = req.body.session_time ? String(req.body.session_time).trim() : '';
-      if (Number.isFinite(productId) && sessionDate && sessionTime) {
+      const quantity = 1;
+      const slotId = parseInt(req.body.slot_id, 10);
+      if (Number.isFinite(productId) && Number.isFinite(slotId)) {
         req.session.pendingBooking = {
           productId,
           quantity,
-          sessionDate,
-          sessionTime
+          slotId
         };
       }
       req.flash('info', 'Please log in to finish booking.');
@@ -84,20 +100,15 @@ module.exports = {
       const userId = req.session.user.id;
       const productId = parseInt(req.params.id, 10);
       const fallbackRedirect = getListingRedirect(productId);
-      const qty = parseInt(req.body.quantity, 10) || 1;
-      if (!Number.isFinite(qty) || qty <= 0) {
-        req.flash('error', 'Quantity must be at least 1');
-        return res.redirect(fallbackRedirect);
-      }
+      const qty = 1;
 
       if (Number.isNaN(productId)) {
         req.flash('error', 'Invalid listing selected.');
         return res.redirect('/userdashboard');
       }
-      const sessionDate = req.body.session_date ? String(req.body.session_date).trim() : '';
-      const sessionTime = req.body.session_time ? String(req.body.session_time).trim() : '';
-      if (!sessionDate || !sessionTime) {
-        req.flash('error', 'Please select a session date and time.');
+      const slotId = parseInt(req.body.slot_id, 10);
+      if (!Number.isFinite(slotId)) {
+        req.flash('error', 'Please select an available slot.');
         return res.redirect(fallbackRedirect);
       }
 
@@ -110,14 +121,20 @@ module.exports = {
         req.flash('error', 'Listing is not available');
         return res.redirect(fallbackRedirect);
       }
+      const slot = await Slot.getSlotById(slotId);
+      if (!slot || Number(slot.listing_id) !== Number(product.id) || Number(slot.is_available) !== 1) {
+        req.flash('error', 'Selected slot is no longer available.');
+        return res.redirect(fallbackRedirect);
+      }
 
       await new Promise((resolve, reject) => {
         BookingCart.addOrIncrement(
           userId,
           productId,
           qty,
-          sessionDate,
-          sessionTime,
+          slotId,
+          slot.slot_date,
+          slot.slot_time,
           (err) => (err ? reject(err) : resolve())
         );
       });
@@ -160,29 +177,27 @@ module.exports = {
     if (!ensureShopperRole(req, res)) return;
     try {
       const userId = req.session.user.id;
-      const productId = parseInt(req.params.id, 10);
+      const cartItemId = parseInt(req.params.id, 10);
       const quantity = parseInt(req.body.quantity, 10);
 
-      if (Number.isNaN(productId)) {
+      if (Number.isNaN(cartItemId)) {
         req.flash('error', 'Invalid listing.');
         return res.redirect('/bookingCart');
       }
 
       // Treat non-positive quantities as removal without stock check
       if (!Number.isFinite(quantity) || quantity <= 0) {
-        await addOrUpdateQuantity(userId, productId, quantity);
+        await addOrUpdateQuantity(userId, cartItemId, quantity);
         await syncCartToSession(req);
         req.flash('success', 'Item removed from booking cart.');
         return res.redirect('/bookingCart');
       }
-
-      const product = await getProductByIdAsync(productId);
-      if (!product) {
-        req.flash('error', 'Listing not found.');
+      if (quantity !== 1) {
+        req.flash('error', 'Each booking is for a single slot. Please add another booking instead.');
         return res.redirect('/bookingCart');
       }
 
-      await addOrUpdateQuantity(userId, productId, quantity);
+      await addOrUpdateQuantity(userId, cartItemId, quantity);
       await syncCartToSession(req);
       req.flash('success', 'Booking cart updated successfully.');
       return res.redirect('/bookingCart');
@@ -197,14 +212,14 @@ module.exports = {
     if (!ensureShopperRole(req, res)) return;
     try {
       const userId = req.session.user.id;
-      const productId = parseInt(req.params.id, 10);
-      if (Number.isNaN(productId)) {
+      const cartItemId = parseInt(req.params.id, 10);
+      if (Number.isNaN(cartItemId)) {
         req.flash('error', 'Invalid listing.');
         return res.redirect('/bookingCart');
       }
 
       await new Promise((resolve, reject) => {
-        BookingCart.removeItem(userId, productId, (err) => (err ? reject(err) : resolve()));
+        BookingCart.removeItem(userId, cartItemId, (err) => (err ? reject(err) : resolve()));
       });
       await syncCartToSession(req);
       req.flash('success', 'Item removed from booking cart.');
@@ -225,6 +240,19 @@ module.exports = {
         req.flash('error', 'Your booking cart is empty');
         return res.redirect('/bookingCart');
       }
+      const slotChecks = await Promise.all(
+        cart.map(async (item) => {
+          if (!item.slot_id) return { ok: false, item };
+          const slot = await Slot.getSlotById(item.slot_id);
+          if (!slot || Number(slot.is_available) !== 1) return { ok: false, item };
+          return { ok: true, item, slot };
+        })
+      );
+      const invalid = slotChecks.find((check) => !check.ok);
+      if (invalid) {
+        req.flash('error', 'One of your selected slots is no longer available. Please choose another slot.');
+        return res.redirect('/bookingCart');
+      }
       const deliveryAddress = cart[0] && cart[0].session_location ? String(cart[0].session_location).trim() : '';
 
       // Calculate pricing for cart items
@@ -232,14 +260,7 @@ module.exports = {
         const pricing = calculatePricing(item);
         
         // Convert session_date to DATE format (YYYY-MM-DD) if it's a timestamp
-        let sessionDate = item.session_date || null;
-        if (sessionDate) {
-          if (sessionDate instanceof Date) {
-            sessionDate = sessionDate.toISOString().split('T')[0];
-          } else if (typeof sessionDate === 'string' && sessionDate.includes('T')) {
-            sessionDate = sessionDate.split('T')[0];
-          }
-        }
+        const sessionDate = formatDateOnly(item.session_date);
         
         return {
           ...item,

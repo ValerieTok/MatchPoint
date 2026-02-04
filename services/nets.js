@@ -6,7 +6,7 @@ const Wallet = require("../models/Wallet");
 
 exports.generateQrCode = async (req, res) => {
   const { cartTotal } = req.body;
-  const serviceFee = 2.5;
+  const serviceFee = 0;
   const sessionTotal = Number.parseFloat(req.session.pendingPayment?.total);
   const baseTotal = Number.isFinite(sessionTotal) && sessionTotal > 0
     ? sessionTotal + serviceFee

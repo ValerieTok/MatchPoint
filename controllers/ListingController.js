@@ -3,6 +3,7 @@ const Booking = require('../models/Booking');
 const UserProfile = require('../models/UserProfile');
 const Favorite = require('../models/Favorite');
 const Refunds = require('../models/Refunds');
+const Slot = require('../models/Slot');
 
 const allowedSkillLevels = new Set(['beginner', 'intermediate', 'advanced', 'expert']);
 const normalizeSkillLevel = (value, fallback) => {
@@ -126,6 +127,10 @@ const ListingController = {
             sport: row.sport || row.listing_title || '',
             location: row.session_location || row.booking_location || '',
             status,
+            sessionCompleted: Boolean(row.session_completed),
+            userCompletedAt: row.user_completed_at || null,
+            coachCompletedAt: row.coach_completed_at || null,
+            completedAt: row.completed_at || null,
             createdAt: row.created_at || null,
             refundStatus: refund ? String(refund.status || '').toLowerCase() : ''
           };
@@ -243,7 +248,20 @@ const ListingController = {
           });
         });
       }
-      return res.render('listingDetail', { product, user: req.session && req.session.user, isFavorited });
+      let availableSlots = [];
+      if (product && product.id) {
+        try {
+          availableSlots = await Slot.getAvailableSlotsByListing(product.id);
+        } catch (slotErr) {
+          console.error('Failed to load slots:', slotErr);
+        }
+      }
+      return res.render('listingDetail', {
+        product,
+        user: req.session && req.session.user,
+        isFavorited,
+        availableSlots
+      });
     } catch (err) {
       console.error(err);
       req.flash('error', 'Listing not found');
@@ -347,7 +365,18 @@ const ListingController = {
         req.flash('error', 'Access denied');
         return res.redirect('/listingsManage');
       }
-      return res.render('updateListing', { product, user: req.session && req.session.user });
+      let slots = [];
+      try {
+        slots = await Slot.getAvailableSlotsByListing(product.id);
+      } catch (slotErr) {
+        console.error('Failed to load listing slots:', slotErr);
+      }
+      return res.render('updateListing', {
+        product,
+        slots,
+        user: req.session && req.session.user,
+        messages: req.flash()
+      });
     } catch (err) {
       console.error(err);
       req.flash('error', 'Listing not found');
@@ -469,6 +498,87 @@ const ListingController = {
       req.flash('error', 'Failed to delete listing');
     }
     return res.redirect('/listingsManage');
+  }
+  ,
+  async createListingSlot(req, res) {
+    const listingId = parseInt(req.params.id, 10);
+    const user = req.session && req.session.user;
+    const slotDate = req.body.slot_date ? String(req.body.slot_date).trim() : '';
+    const slotTime = req.body.slot_time ? String(req.body.slot_time).trim() : '';
+    if (!Number.isFinite(listingId) || !slotDate || !slotTime) {
+      req.flash('error', 'Please choose date and time.');
+      return res.redirect(`/updateListing/${listingId}`);
+    }
+    try {
+      const product = await new Promise((resolve, reject) => {
+        Listing.getProductById(listingId, (err, row) => (err ? reject(err) : resolve(row)));
+      });
+      if (!product || (user && user.role === 'coach' && String(product.coach_id) !== String(user.id))) {
+        req.flash('error', 'Access denied');
+        return res.redirect('/listingsManage');
+      }
+      const duration = parseInt(product.duration_minutes, 10);
+      if (!Number.isFinite(duration) || duration <= 0) {
+        req.flash('error', 'Listing duration must be set before adding slots.');
+        return res.redirect(`/updateListing/${listingId}`);
+      }
+      const timeMatch = slotTime.match(/^(\d{2}):(\d{2})/);
+      if (!timeMatch) {
+        req.flash('error', 'Invalid slot time.');
+        return res.redirect(`/updateListing/${listingId}`);
+      }
+      const totalMinutes = parseInt(timeMatch[1], 10) * 60 + parseInt(timeMatch[2], 10);
+      if (Number.isNaN(totalMinutes) || totalMinutes % duration !== 0) {
+        req.flash('error', `Slots must align to ${duration}-minute intervals.`);
+        return res.redirect(`/updateListing/${listingId}`);
+      }
+      await Slot.createSlot({
+        coach_id: product.coach_id,
+        listing_id: product.id,
+        slot_date: slotDate,
+        slot_time: slotTime,
+        duration_minutes: duration,
+        location: product.session_location || null,
+        note: null
+      });
+      req.flash('success', 'Slot added.');
+      return res.redirect(`/updateListing/${listingId}`);
+    } catch (err) {
+      console.error(err);
+      req.flash('error', 'Unable to add slot.');
+      return res.redirect(`/updateListing/${listingId}`);
+    }
+  },
+
+  async deleteListingSlot(req, res) {
+    const listingId = parseInt(req.params.id, 10);
+    const slotId = parseInt(req.params.slotId, 10);
+    const user = req.session && req.session.user;
+    if (!Number.isFinite(listingId) || !Number.isFinite(slotId)) {
+      req.flash('error', 'Invalid slot.');
+      return res.redirect(`/updateListing/${listingId}`);
+    }
+    try {
+      const product = await new Promise((resolve, reject) => {
+        Listing.getProductById(listingId, (err, row) => (err ? reject(err) : resolve(row)));
+      });
+      if (!product || (user && user.role === 'coach' && String(product.coach_id) !== String(user.id))) {
+        req.flash('error', 'Access denied');
+        return res.redirect('/listingsManage');
+      }
+      const slot = await Slot.getSlotById(slotId);
+      if (!slot || Number(slot.listing_id) !== Number(listingId)) {
+        req.flash('error', 'Slot not found.');
+        return res.redirect(`/updateListing/${listingId}`);
+      }
+      await Slot.deleteSlot(slotId, product.coach_id);
+      req.flash('success', 'Slot deleted.');
+      return res.redirect(`/updateListing/${listingId}`);
+    } catch (err) {
+      console.error(err);
+      req.flash('error', 'Unable to delete slot.');
+      return res.redirect(`/updateListing/${listingId}`);
+    }
   }
 };
 

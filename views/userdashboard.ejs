@@ -74,20 +74,18 @@
               <th>Sport</th>
               <th>Location</th>
               <th>Status</th>
+              <th>Actions</th>
             </tr>
           </thead>
 
           <tbody>
             <%
-              const formatSessionDate = (value) =>
-                value ? new Date(value).toLocaleDateString('en-GB') : 'TBC';
-              const formatSessionTime = (value) => (value ? String(value).slice(0, 5) : '');
               const rows = Array.isArray(sessions) ? sessions : [];
             %>
 
             <% if (!rows.length) { %>
               <tr>
-                <td colspan="7">No sessions yet.</td>
+                <td colspan="8">No sessions yet.</td>
               </tr>
             <% } else { %>
               <% rows.forEach(r => { %>
@@ -99,8 +97,8 @@
                     <% } %>
                   </td>
                   <td>
-                    <% const dateLabel = formatSessionDate(r.date); %>
-                    <% const timeLabel = formatSessionTime(r.time); %>
+                    <% const dateLabel = sessionDateHelper.formatSessionDate(r.date); %>
+                    <% const timeLabel = sessionDateHelper.formatSessionTime(r.time); %>
                     <%= timeLabel ? `${dateLabel} ${timeLabel}` : dateLabel %>
                   </td>
                   <td><%= r.phone || '-' %></td>
@@ -122,6 +120,15 @@
                       <% } %>
                     <% } else { %>
                       <span class="pill pill--upcoming">SESSION UPCOMING</span>
+                    <% } %>
+                  </td>
+                  <td>
+                    <% if (!r.completedAt) { %>
+                      <form action="/bookingsUser/<%= r.bookingId %>/confirm-delivery" method="post">
+                        <button class="btn btn--primary btn--sm" type="submit">Mark Complete</button>
+                      </form>
+                    <% } else { %>
+                      <span class="cell-sub">-</span>
                     <% } %>
                   </td>
                 </tr>

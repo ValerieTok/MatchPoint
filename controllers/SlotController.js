@@ -43,6 +43,20 @@ module.exports = {
       req.flash('error', 'Please choose both date and time');
       return res.redirect('/slots/create');
     }
+    const timeMatch = slotTime.match(/^(\d{2}):(\d{2})/);
+    if (!timeMatch) {
+      req.flash('error', 'Invalid slot time.');
+      return res.redirect('/slots/create');
+    }
+    if (!Number.isFinite(duration) || duration <= 0 || duration % 30 !== 0) {
+      req.flash('error', 'Duration must be in 30-minute increments (e.g. 60, 90, 120).');
+      return res.redirect('/slots/create');
+    }
+    const minutes = parseInt(timeMatch[2], 10);
+    if (Number.isNaN(minutes) || minutes % 30 !== 0) {
+      req.flash('error', 'Slots must start on a 30-minute boundary (e.g. 10:00, 10:30).');
+      return res.redirect('/slots/create');
+    }
 
     try {
       await Slot.createSlot({

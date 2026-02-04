@@ -1,0 +1,89 @@
+<%- include('partials/head', {
+  title: 'Admin Payouts',
+  bodyClass: 'admin-page admin-dashboard',
+  extraHead: `
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  `
+}) %>
+
+<div class="app">
+  <%- include('partials/adminSidebar', { active: 'payouts' }) %>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="crumb">PAYOUT REQUESTS</div>
+      <div class="topbar__pill"><i class="fa-solid fa-money-bill-transfer"></i></div>
+    </header>
+
+    <section class="card">
+      <div class="card__head">
+        <div class="card__title">All Requests</div>
+        <form class="card__tools" method="get" action="/adminpayouts">
+          <div class="sort">
+            <span class="sort__label">STATUS:</span>
+            <select class="sort__btn" name="status" onchange="this.form.submit()">
+              <option value="" <%= !filters?.status ? 'selected' : '' %>>All</option>
+              <option value="requested" <%= filters?.status === 'requested' ? 'selected' : '' %>>Requested</option>
+              <option value="approved" <%= filters?.status === 'approved' ? 'selected' : '' %>>Approved</option>
+              <option value="processing" <%= filters?.status === 'processing' ? 'selected' : '' %>>Processing</option>
+              <option value="success" <%= filters?.status === 'success' ? 'selected' : '' %>>Success</option>
+              <option value="failed" <%= filters?.status === 'failed' ? 'selected' : '' %>>Failed</option>
+            </select>
+          </div>
+        </form>
+      </div>
+
+      <%- include('partials/flashMessages', { messages }) %>
+
+      <div class="tableWrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Coach</th>
+              <th>Email</th>
+              <th>PayPal</th>
+              <th>Amount</th>
+              <th>Status</th>
+              <th>Requested</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% const rows = Array.isArray(requests) ? requests : []; %>
+            <% if (!rows.length) { %>
+              <tr>
+                <td colspan="7">No payout requests yet.</td>
+              </tr>
+            <% } else { %>
+              <% rows.forEach(r => { %>
+                <tr>
+                  <td><%= r.full_name || r.username || '-' %></td>
+                  <td><%= r.email || '-' %></td>
+                  <td><%= r.paypal_email || '-' %></td>
+                  <td>$<%= Number(r.amount || 0).toFixed(2) %></td>
+                  <td><span class="pill pill--<%= r.status || 'pending' %>"><%= String(r.status || 'pending').toUpperCase() %></span></td>
+                  <td><%= r.created_at ? new Date(r.created_at).toLocaleDateString('en-SG', { timeZone: 'Asia/Singapore' }) : '-' %></td>
+                  <td>
+                    <% if (r.status === 'requested') { %>
+                      <form action="/adminpayouts/<%= r.id %>/approve" method="post">
+                        <button class="btn btn--primary btn--sm" type="submit">Approve &amp; Pay</button>
+                      </form>
+                    <% } else if (r.status === 'processing') { %>
+                      <form action="/adminpayouts/<%= r.id %>/refresh" method="post">
+                        <button class="btn btn--ghost btn--sm" type="submit">Refresh Status</button>
+                      </form>
+                    <% } else { %>
+                      <span class="cell-sub">-</span>
+                    <% } %>
+                  </td>
+                </tr>
+              <% }) %>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+
+<%- include('partials/footer') %>

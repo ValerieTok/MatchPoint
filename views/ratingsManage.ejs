@@ -34,9 +34,11 @@
           </thead>
           <tbody>
             <% const rows = Array.isArray(ratings) ? ratings : []; %>
-            <% const formatSessionDate = (value) => value ? new Date(value).toLocaleDateString('en-GB') : 'TBC'; %>
-            <% const formatSessionTime = (value) => (value ? String(value).slice(0, 5) : ''); %>
-            <% const formatCreatedAt = (value) => value ? new Date(value).toLocaleString('en-GB') : 'TBC'; %>
+            <%
+              const formatCreatedAt = (value) => value
+                ? new Date(value).toLocaleString('en-SG', { timeZone: 'Asia/Singapore' })
+                : 'TBC';
+            %>
             <% if (!rows.length) { %>
               <tr>
                 <td colspan="6">No ratings available yet.</td>
@@ -53,8 +55,8 @@
                     <div class="cell-sub"><%= row.sport || '-' %></div>
                   </td>
                   <td>
-                    <% const dateLabel = formatSessionDate(row.session_date); %>
-                    <% const timeLabel = formatSessionTime(row.session_time); %>
+                    <% const dateLabel = sessionDateHelper.formatSessionDate(row.session_date); %>
+                    <% const timeLabel = sessionDateHelper.formatSessionTime(row.session_time); %>
                     <%= timeLabel ? `${dateLabel} ${timeLabel}` : dateLabel %>
                   </td>
                   <td>

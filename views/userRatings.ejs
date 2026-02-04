@@ -41,9 +41,6 @@
 
           <tbody>
             <%
-              const formatSessionDate = (value) =>
-                value ? new Date(value).toLocaleDateString('en-GB') : 'TBC';
-              const formatSessionTime = (value) => (value ? String(value).slice(0, 5) : '');
               const completedRows = Array.isArray(completedSessions) ? completedSessions : [];
               const formatMoney = (value) => Number(value || 0).toFixed(2);
             %>
@@ -62,8 +59,8 @@
                     <% } %>
                   </td>
                   <td>
-                    <% const dateLabel = formatSessionDate(r.date); %>
-                    <% const timeLabel = formatSessionTime(r.time); %>
+                    <% const dateLabel = sessionDateHelper.formatSessionDate(r.date); %>
+                    <% const timeLabel = sessionDateHelper.formatSessionTime(r.time); %>
                     <%= timeLabel ? `${dateLabel} ${timeLabel}` : dateLabel %>
                   </td>
                   <td><%= r.sport || '-' %></td>

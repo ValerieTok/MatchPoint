@@ -157,8 +157,8 @@
 
             <% if (cart && cart.length > 0) { 
               cart.forEach(item => { 
-                const sessionDate = item.session_date ? new Date(item.session_date).toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : 'TBC';
-                const sessionTime = item.session_time ? String(item.session_time).slice(0, 5) : 'TBC';
+                const sessionDateLabel = sessionDateHelper.formatSessionDateLong(item.session_date);
+                const sessionTime = sessionDateHelper.formatSessionTime(item.session_time);
                 const quantity = Number(item.quantity || 1);
                 const lineTotal = Number(item.price || 0) * quantity;
             %>
@@ -168,7 +168,7 @@
 
                 <div class="summary-item small">
                   <div class="icon-circle"><i class="fa-regular fa-calendar"></i></div>
-                  <span class="text-muted"><%= sessionDate %></span>
+                  <span class="text-muted"><%= sessionDateLabel %></span>
                 </div>
 
                 <div class="summary-item small">
@@ -223,7 +223,7 @@
 </div>
 
 <form id="netsQrForm" action="/generateNETSQR" method="POST">
-  <input type="hidden" name="cartTotal" value="<%= (Number(total || 0) + 2.50).toFixed(2) %>">
+  <input type="hidden" name="cartTotal" value="<%= Number(total || 0).toFixed(2) %>">
   <input type="hidden" name="orderId" value="<%= orderId %>">
   <input type="hidden" name="walletDeduction" id="walletDeductionFieldNets" value="<%= Number(walletDeduction || 0).toFixed(2) %>">
 </form>

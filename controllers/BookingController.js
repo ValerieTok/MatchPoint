@@ -47,7 +47,7 @@ module.exports = {
       }
       const withItems = Promise.all(orders.map((o) => buildOrderDetails(o, isCoach ? user.id : null)));
       withItems.then((ordersWithItems) => {
-        const filtered = ordersWithItems
+        let filtered = ordersWithItems
           .slice()
           .sort((a, b) => {
             const aTime = a && a.created_at ? new Date(a.created_at).getTime() : 0;
@@ -55,6 +55,9 @@ module.exports = {
             if (aTime !== bTime) return bTime - aTime;
             return Number(b && b.id ? b.id : 0) - Number(a && a.id ? a.id : 0);
           });
+        if (isCoach && statusFilter === 'all') {
+          filtered = filtered.filter((order) => !order.completed_at);
+        }
 
         const totalOrders = filtered.length;
         const totalPages = Math.max(1, Math.ceil(totalOrders / perPage));
@@ -97,17 +100,61 @@ module.exports = {
         req.flash('error', 'Booking must be accepted before confirmation.');
         return res.redirect('/ratingsUser');
       }
+      await new Promise((resolve, reject) => {
+        Booking.getOrderItems(orderId, null, (err, rows) => (err ? reject(err) : resolve(rows || [])));
+      });
       if (!order.completed_at) {
         await new Promise((resolve, reject) => {
           Booking.markOrderDelivered(orderId, (err) => (err ? reject(err) : resolve()));
         });
       }
-      req.session.pendingFeedbackBookingId = orderId;
-      return req.session.save(() => res.redirect('/feedback'));
+      const refreshed = await getOrderByIdAsync(orderId);
+      if (refreshed && refreshed.completed_at) {
+        req.session.pendingFeedbackBookingId = orderId;
+        return req.session.save(() => res.redirect('/feedback'));
+      }
+      req.flash('info', 'Your completion is recorded. Waiting for the coach to confirm.');
+      return res.redirect('/userdashboard');
     } catch (err) {
       console.error(err);
       req.flash('error', 'Unable to confirm delivery');
       return res.redirect('/ratingsUser');
+    }
+  },
+
+  async confirmCoachCompletion(req, res) {
+    const user = req.session && req.session.user;
+    if (!user || user.role !== 'coach') {
+      req.flash('error', 'Access denied');
+      return res.redirect('/bookingsManage');
+    }
+    const orderId = parseInt(req.params.id, 10);
+    if (Number.isNaN(orderId)) {
+      req.flash('error', 'Invalid booking');
+      return res.redirect('/bookingsManage');
+    }
+    try {
+      const items = await new Promise((resolve, reject) => {
+        Booking.getOrderItems(orderId, user.id, (err, rows) => (err ? reject(err) : resolve(rows || [])));
+      });
+      if (!items.length) {
+        req.flash('error', 'Access denied');
+        return res.redirect('/bookingsManage');
+      }
+      await new Promise((resolve, reject) => {
+        Booking.markOrderCompletedByCoach(orderId, (err) => (err ? reject(err) : resolve()));
+      });
+      const refreshed = await getOrderByIdAsync(orderId);
+      if (refreshed && refreshed.completed_at) {
+        req.flash('success', 'Session marked completed.');
+      } else {
+        req.flash('info', 'Your completion is recorded. Waiting for the student to confirm.');
+      }
+      return res.redirect('/bookingsManage');
+    } catch (err) {
+      console.error(err);
+      req.flash('error', 'Unable to confirm completion');
+      return res.redirect('/bookingsManage');
     }
   },
 
@@ -146,36 +193,74 @@ module.exports = {
       req.flash('error', 'Access denied');
       return res.redirect(redirectUrl);
     }
+    req.flash('error', 'Booking status updates are disabled. Use availability slots and completion confirmations.');
+    return res.redirect(redirectUrl);
+  },
+
+  async showOrderDetails(req, res) {
+    if (!req.session || !req.session.user || req.session.user.role !== 'admin') {
+      req.flash('error', 'Access denied');
+      return res.redirect('/bookingsManage');
+    }
     const orderId = parseInt(req.params.id, 10);
-    const status = req.body && req.body.status ? String(req.body.status).trim().toLowerCase() : '';
-    if (Number.isNaN(orderId) || !allowedStatuses.has(status)) {
-      req.flash('error', 'Invalid booking status update');
-      return res.redirect(redirectUrl);
+    if (Number.isNaN(orderId)) {
+      req.flash('error', 'Invalid booking');
+      return res.redirect('/bookingsManage');
     }
     try {
       const order = await getOrderByIdAsync(orderId);
       if (!order) {
         req.flash('error', 'Booking not found');
-        return res.redirect(redirectUrl);
+        return res.redirect('/bookingsManage');
       }
-      if (user.role === 'coach') {
-        const items = await new Promise((resolve, reject) => {
-          Booking.getOrderItems(orderId, user.id, (err, rows) => (err ? reject(err) : resolve(rows || [])));
-        });
-        if (!items.length) {
-          req.flash('error', 'Access denied');
-          return res.redirect(redirectUrl);
-        }
-      }
-      await new Promise((resolve, reject) => {
-        Booking.updateOrderStatus(orderId, status, (err) => (err ? reject(err) : resolve()));
+      const detailed = await buildOrderDetails(order, null);
+      return res.render('bookingDetail', {
+        user: req.session.user,
+        order: detailed,
+        messages: req.flash()
       });
-      req.flash('success', `Booking marked as ${status}.`);
-      return res.redirect(redirectUrl);
     } catch (err) {
       console.error(err);
-      req.flash('error', 'Unable to update booking status');
-      return res.redirect(redirectUrl);
+      req.flash('error', 'Unable to load booking details');
+      return res.redirect('/bookingsManage');
+    }
+  },
+
+  async listHistory(req, res) {
+    const user = req.session && req.session.user;
+    if (!user) {
+      req.flash('error', 'Please log in');
+      return res.redirect('/login');
+    }
+    try {
+      if (user.role === 'coach') {
+        const orders = await new Promise((resolve, reject) => {
+          Booking.getBookingsByCoach(user.id, '', 'completed', (err, rows) => (err ? reject(err) : resolve(rows || [])));
+        });
+        const withItems = await Promise.all(orders.map((o) => buildOrderDetails(o, user.id)));
+        return res.render('historyCoach', {
+          user,
+          orders: withItems,
+          messages: req.flash()
+        });
+      }
+      if (user.role === 'user') {
+        const orders = await new Promise((resolve, reject) => {
+          Booking.getOrdersByUser(user.id, (err, rows) => (err ? reject(err) : resolve(rows || [])));
+        });
+        const completedOnly = (orders || []).filter((o) => o.completed_at);
+        const withItems = await Promise.all(completedOnly.map((o) => buildOrderDetails(o, null)));
+        return res.render('historyUser', {
+          user,
+          orders: withItems,
+          messages: req.flash()
+        });
+      }
+      return res.redirect('/admindashboard');
+    } catch (err) {
+      console.error(err);
+      req.flash('error', 'Unable to load history');
+      return res.redirect('/userdashboard');
     }
   },
 
