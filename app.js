@@ -314,6 +314,9 @@ app.post('/payment/confirm', checkAuthenticated, PaymentController.confirmPaymen
 app.get('/payment/receipt', checkAuthenticated, PaymentController.showReceipt);
 app.post('/api/paypal/create-order', checkAuthenticated, PaymentController.paypalCreateOrder);
 app.post('/api/paypal/capture-order', checkAuthenticated, PaymentController.paypalCaptureOrder);
+app.post('/api/stripe/create-checkout-session', checkAuthenticated, PaymentController.stripeCreateCheckoutSession);
+app.get('/payment/stripe/success', checkAuthenticated, PaymentController.stripeSuccess);
+app.get('/payment/stripe/fail', checkAuthenticated, PaymentController.stripeFail);
 
 app.post('/bookingsManage/:id/review/delete', checkAuthenticated, checkAdmin, BookingController.deleteReview);
 app.post('/bookingsManage/:id/status', checkAuthenticated, checkAdminOrCoach, BookingController.updateStatus);
@@ -335,6 +338,9 @@ app.get('/api/wallet', checkAuthenticated, WalletController.getWalletApi);
 app.post('/api/wallet/topup', checkAuthenticated, WalletController.topUpApi);
 app.post('/api/wallet/paypal/create-order', checkAuthenticated, WalletController.paypalCreateOrder);
 app.post('/api/wallet/paypal/capture-order', checkAuthenticated, WalletController.paypalCaptureOrder);
+app.post('/api/wallet/stripe/create-checkout-session', checkAuthenticated, WalletController.stripeCreateCheckoutSession);
+app.get('/ewallet/stripe/success', checkAuthenticated, WalletController.stripeSuccess);
+app.get('/ewallet/stripe/fail', checkAuthenticated, WalletController.stripeFail);
 
 app.get('/banned', checkAuthenticated, (req, res) => {
   const user = req.session && req.session.user;

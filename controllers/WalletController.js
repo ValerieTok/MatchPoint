@@ -3,8 +3,9 @@ const Wallet = require('../models/Wallet');
 const UserProfile = require('../models/UserProfile');
 const paypal = require('../services/paypal');
 const { isValidTopUpAmount, getWalletTier } = require('../services/walletLogic');
+const stripe = require('../services/stripe');
 
-const allowedMethods = new Set(['paypal', 'nets']);
+const allowedMethods = new Set(['paypal', 'nets', 'stripe']);
 const walletBasePath = '/ewallet';
 
 const WalletController = {
@@ -48,6 +49,7 @@ const WalletController = {
         qrCodeUrl: req.session.pendingWalletTopup?.qrCodeUrl || '',
         txnRetrievalRef: req.session.pendingWalletTopup?.txnRetrievalRef || '',
         paypalClientId: process.env.PAYPAL_CLIENT_ID || '',
+        stripePublishableKey: process.env.STRIPE_PUBLISHABLE_KEY || '',
         paypalCurrency: 'SGD',
         messages: req.flash()
       });
@@ -63,6 +65,7 @@ const WalletController = {
         qrCodeUrl: '',
         txnRetrievalRef: '',
         paypalClientId: process.env.PAYPAL_CLIENT_ID || '',
+        stripePublishableKey: process.env.STRIPE_PUBLISHABLE_KEY || '',
         paypalCurrency: 'SGD',
         messages: req.flash()
       });
@@ -95,6 +98,15 @@ const WalletController = {
         method: methodRaw
       };
       return res.redirect(`${walletBasePath}/nets/qr`);
+    }
+
+    if (methodRaw === 'stripe') {
+      req.session.pendingWalletTopup = {
+        amount: amountRaw,
+        method: methodRaw
+      };
+      req.flash('info', 'Complete Stripe checkout to top up your wallet.');
+      return res.redirect(walletBasePath);
     }
 
     // PayPal topup handled via API endpoints
@@ -226,6 +238,88 @@ const WalletController = {
       console.error('Wallet PayPal capture error:', err);
       return res.status(500).json({ error: 'Failed to capture PayPal order', message: err.message });
     }
+  },
+
+  async stripeCreateCheckoutSession(req, res) {
+    const user = req.session && req.session.user;
+    if (!user || user.role !== 'user') {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    try {
+      if (!process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_PUBLISHABLE_KEY) {
+        return res.status(400).json({ error: 'Stripe is not configured' });
+      }
+      const amountRaw = Number(req.body && req.body.amount);
+      if (!isValidTopUpAmount(amountRaw)) {
+        return res.status(400).json({ error: 'Invalid top up amount' });
+      }
+      req.session.pendingWalletTopup = {
+        amount: amountRaw,
+        method: 'stripe'
+      };
+      const successUrl = `${req.protocol}://${req.get('host')}${walletBasePath}/stripe/success?session_id={CHECKOUT_SESSION_ID}`;
+      const cancelUrl = `${req.protocol}://${req.get('host')}${walletBasePath}/stripe/fail`;
+      const session = await stripe.createCheckoutSession({
+        amount: amountRaw,
+        currency: 'sgd',
+        successUrl,
+        cancelUrl,
+        description: 'MatchPoint Wallet Top Up'
+      });
+      return res.json({ url: session.url });
+    } catch (err) {
+      console.error('Wallet Stripe create session error:', err);
+      return res.status(500).json({ error: 'Failed to create Stripe session', message: err.message });
+    }
+  },
+
+  async stripeSuccess(req, res) {
+    const user = req.session && req.session.user;
+    if (!user || user.role !== 'user') {
+      req.flash('error', 'Access denied');
+      return res.redirect('/userdashboard');
+    }
+    try {
+      if (!process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_PUBLISHABLE_KEY) {
+        req.flash('error', 'Stripe is not configured');
+        return res.redirect(walletBasePath);
+      }
+      const sessionId = req.query.session_id;
+      if (!sessionId) {
+        req.flash('error', 'Missing Stripe session ID');
+        return res.redirect(walletBasePath);
+      }
+      const session = await stripe.retrieveSession(sessionId);
+      if (!session || session.payment_status !== 'paid') {
+        req.flash('error', 'Stripe payment not completed.');
+        return res.redirect(walletBasePath);
+      }
+      const amount = Number(req.session.pendingWalletTopup?.amount || 0);
+      if (!isValidTopUpAmount(amount)) {
+        req.flash('error', 'Missing top up amount');
+        return res.redirect(walletBasePath);
+      }
+      await new Promise((resolve, reject) => {
+        Wallet.addTopUp(user.id, amount, 'stripe', (err) => (err ? reject(err) : resolve()));
+      });
+      delete req.session.pendingWalletTopup;
+      req.flash('success', `Wallet topped up by $${amount.toFixed(2)}.`);
+      return res.redirect(walletBasePath);
+    } catch (err) {
+      console.error('Wallet Stripe success error:', err.message);
+      req.flash('error', 'Unable to confirm Stripe top up. Please try again.');
+      return res.redirect(walletBasePath);
+    }
+  },
+
+  async stripeFail(req, res) {
+    const user = req.session && req.session.user;
+    if (!user || user.role !== 'user') {
+      req.flash('error', 'Access denied');
+      return res.redirect('/userdashboard');
+    }
+    req.flash('error', 'Stripe transaction failed or was cancelled. Please try again.');
+    return res.redirect(walletBasePath);
   },
 
   async netsQr(req, res) {

@@ -4,6 +4,7 @@
     : '0.00';
   const netsSelected = Boolean(qrCodeUrl || txnRetrievalRef);
   const paypalAvailable = Boolean(paypalClientId);
+  const stripeAvailable = Boolean(stripePublishableKey);
   const paypalScript = paypalAvailable
     ? `<script src="https://www.paypal.com/sdk/js?client-id=${paypalClientId}&currency=${paypalCurrency}"></script>`
     : '';
@@ -77,6 +78,11 @@
                             <img src="/images/NETS.webp" alt="NETS" class="card-logo nets-logo">
                           </div>
                         </button>
+                        <button type="button" class="payment-method" id="selectStripe" aria-label="Stripe">
+                          <div class="card-logos">
+                            <img src="/images/stripe-logo.svg" alt="Stripe" class="card-logo">
+                          </div>
+                        </button>
                         <input type="hidden" name="paymentMethod" id="paymentMethodInput" value="<%= paypalAvailable ? 'paypal' : '' %>">
                       </div>
                     </div>
@@ -89,6 +95,12 @@
                       PayPal is not configured. Add your PayPal client ID in the environment to enable checkout.
                     </p>
                   </div>
+                </div>
+                <div class="payment-form-details" id="stripeDetails" style="display: none;">
+                  <button type="button" class="btn btn-dark w-100" id="stripePayBtn">Pay with Stripe</button>
+                  <p id="stripe-config-warning" class="text-muted small mt-2" style="display: none;">
+                    Stripe is not configured. Add your Stripe keys in the environment to enable checkout.
+                  </p>
                 </div>
 
                   <div class="payment-form-details" id="netsqrDetails" style="display: none;">
@@ -222,16 +234,20 @@
   const txnRetrievalRef = "<%= txnRetrievalRef || '' %>";
   const fullNetsResponse = <%- JSON.stringify(fullNetsResponse || {}) %>;
   const paypalAvailable = <%- JSON.stringify(paypalAvailable) %>;
+  const stripeAvailable = <%- JSON.stringify(stripeAvailable) %>;
   const netsSelected = <%- JSON.stringify(netsSelected) %>;
   const cartHasItems = <%- JSON.stringify(Boolean(cart && cart.length)) %>;
   const qrCodeUrl = "<%= qrCodeUrl || '' %>";
 
   const selectNetsBtn = document.getElementById("selectNets");
+  const selectStripeBtn = document.getElementById("selectStripe");
   const paymentMethodInput = document.getElementById("paymentMethodInput");
   const paypalDetails = document.getElementById("paypalDetails");
+  const stripeDetails = document.getElementById("stripeDetails");
   const netsqrDetails = document.getElementById("netsqrDetails");
   const confirmPaymentBtn = document.getElementById("confirmPaymentBtn");
   const paypalWarning = document.getElementById("paypal-config-warning");
+  const stripeWarning = document.getElementById("stripe-config-warning");
   const walletDeductionInput = document.getElementById("walletDeductionInput");
   const walletDeductionFieldNets = document.getElementById("walletDeductionFieldNets");
   const walletMaxBtn = document.getElementById("walletMaxBtn");
@@ -271,11 +287,15 @@
     if (due <= 0 && paymentMethodInput) {
       paymentMethodInput.value = "wallet";
     } else if (paymentMethodInput && paymentMethodInput.value === "wallet") {
-      paymentMethodInput.value = paypalAvailable ? "paypal" : "";
+      paymentMethodInput.value = paypalAvailable ? "paypal" : (stripeAvailable ? "stripe" : "");
     }
     if (selectNetsBtn) {
       selectNetsBtn.disabled = due <= 0;
       selectNetsBtn.classList.toggle("is-disabled", due <= 0);
+    }
+    if (selectStripeBtn) {
+      selectStripeBtn.disabled = due <= 0;
+      selectStripeBtn.classList.toggle("is-disabled", due <= 0);
     }
   };
 
@@ -367,24 +387,30 @@
       paymentMethodInput.value = value || "";
     }
     if (selectNetsBtn) selectNetsBtn.classList.toggle('active', value === "netsqr");
+    if (selectStripeBtn) selectStripeBtn.classList.toggle('active', value === "stripe");
     syncPaymentUi();
   };
 
   const syncPaymentUi = () => {
     const selected = paymentMethodInput ? paymentMethodInput.value : "";
     const isNets = selected === "netsqr";
+    const isStripe = selected === "stripe";
     const walletDeduction = walletDeductionInput ? Number(walletDeductionInput.value || 0) : 0;
     const due = Math.max(0, Number((baseTotal - walletDeduction).toFixed(2)));
     if (paypalDetails) paypalDetails.style.display = paypalAvailable ? "block" : "none";
+    if (stripeDetails) stripeDetails.style.display = isStripe ? "block" : "none";
     if (netsqrDetails) netsqrDetails.style.display = isNets ? "block" : "none";
     if (confirmPaymentBtn) {
-      confirmPaymentBtn.disabled = isNets || selected === "paypal" || !selected || due > 0 && selected === "paypal";
+      confirmPaymentBtn.disabled = isNets || selected === "paypal" || selected === "stripe" || !selected || due > 0 && selected === "paypal";
     }
 
     if (paypalAvailable) {
       setTimeout(renderPaypalButtons, 0);
     } else if (paypalWarning) {
       paypalWarning.style.display = "block";
+    }
+    if (!stripeAvailable && stripeWarning && isStripe) {
+      stripeWarning.style.display = "block";
     }
   };
 
@@ -399,7 +425,12 @@
       }
     });
   }
-  const initialMethod = netsSelected ? "netsqr" : (paypalAvailable ? "paypal" : "");
+  if (selectStripeBtn) {
+    selectStripeBtn.addEventListener("click", () => {
+      setPaymentMethod("stripe");
+    });
+  }
+  const initialMethod = netsSelected ? "netsqr" : (paypalAvailable ? "paypal" : (stripeAvailable ? "stripe" : ""));
   setPaymentMethod(initialMethod);
   if (paypalAvailable) {
     renderPaypalButtons();
@@ -411,6 +442,26 @@
   }
   if (walletMaxBtn) {
     walletMaxBtn.addEventListener("click", () => updateWalletDeduction(walletBalance));
+  }
+  const stripePayBtn = document.getElementById("stripePayBtn");
+  if (stripePayBtn) {
+    stripePayBtn.addEventListener("click", () => {
+      if (!stripeAvailable) return;
+      const walletDeduction = walletDeductionInput ? Number(walletDeductionInput.value || 0) : 0;
+      fetch('/api/stripe/create-checkout-session', {
+        method: 'post',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ walletDeduction })
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.url) {
+            window.location.href = data.url;
+            return;
+          }
+          alert(data.error || 'Unable to start Stripe checkout.');
+        });
+    });
   }
 
   if (txnRetrievalRef) {

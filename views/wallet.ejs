@@ -1,5 +1,6 @@
 <%
   const paypalAvailable = Boolean(paypalClientId);
+  const stripeAvailable = Boolean(stripePublishableKey);
   const paypalScript = paypalAvailable
     ? `<script src="https://www.paypal.com/sdk/js?client-id=${paypalClientId}&currency=${paypalCurrency}"></script>`
     : '';
@@ -76,12 +77,21 @@
             <button type="button" class="method-card" data-method="nets" aria-label="NETS">
               <img src="/images/NETS.webp" alt="NETS" class="nets-logo">
             </button>
+            <button type="button" class="method-card" data-method="stripe" aria-label="Stripe">
+              <img src="/images/stripe-logo.svg" alt="Stripe">
+            </button>
           </div>
 
           <div id="wallet-paypal-buttons" style="display: none; margin-top: 14px;">
             <div id="wallet-paypal-button-container"></div>
             <p id="wallet-paypal-config-warning" class="text-muted small mt-2" style="display: none;">
               PayPal is not configured. Add your PayPal client ID in the environment to enable checkout.
+            </p>
+          </div>
+          <div id="wallet-stripe-buttons" style="display: none; margin-top: 14px;">
+            <button type="button" class="wallet-cta" id="walletStripeBtn">Pay with Stripe</button>
+            <p id="wallet-stripe-config-warning" class="text-muted small mt-2" style="display: none;">
+              Stripe is not configured. Add your Stripe keys in the environment to enable checkout.
             </p>
           </div>
 
@@ -151,6 +161,7 @@
   const paypalWarning = document.getElementById('wallet-paypal-config-warning');
   const paypalContainer = document.getElementById('wallet-paypal-button-container');
   const paypalAvailable = <%- JSON.stringify(paypalAvailable) %>;
+  const stripeAvailable = <%- JSON.stringify(stripeAvailable) %>;
   const txnRetrievalRef = "<%= txnRetrievalRef || '' %>";
   let paypalButtonsRendered = false;
 
@@ -181,8 +192,16 @@
     if (paypalButtonsWrap) {
       paypalButtonsWrap.style.display = method === 'paypal' ? 'block' : 'none';
     }
+    const stripeButtonsWrap = document.getElementById('wallet-stripe-buttons');
+    if (stripeButtonsWrap) {
+      stripeButtonsWrap.style.display = method === 'stripe' ? 'block' : 'none';
+    }
     if (method === 'paypal') {
       renderWalletPaypalButtons();
+    }
+    if (method === 'stripe' && !stripeAvailable) {
+      const stripeWarning = document.getElementById('wallet-stripe-config-warning');
+      if (stripeWarning) stripeWarning.style.display = 'block';
     }
   };
 
@@ -244,6 +263,27 @@
         s2sNetsTxnStatus.close();
         window.location.href = `/ewallet/nets/fail?txn_retrieval_ref=${txnRetrievalRef}`;
       }
+    });
+  }
+
+  const walletStripeBtn = document.getElementById('walletStripeBtn');
+  if (walletStripeBtn) {
+    walletStripeBtn.addEventListener('click', () => {
+      if (!stripeAvailable) return;
+      const amount = Number(amountInput ? amountInput.value : 0) || 0;
+      fetch('/api/wallet/stripe/create-checkout-session', {
+        method: 'post',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ amount })
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.url) {
+            window.location.href = data.url;
+            return;
+          }
+          alert(data.error || 'Unable to start Stripe checkout.');
+        });
     });
   }
 

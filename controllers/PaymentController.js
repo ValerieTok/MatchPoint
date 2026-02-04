@@ -4,6 +4,7 @@ const BookingCart = require('../models/BookingCart');
 const Wallet = require('../models/Wallet');
 const paypal = require('../services/paypal');
 const { clampWalletDeduction } = require('../services/walletLogic');
+const stripe = require('../services/stripe');
 
 const SERVICE_FEE = 2.5;
 
@@ -204,6 +205,7 @@ module.exports = {
         fullNetsResponse: {},
         qrCodeUrl: '',
         paypalClientId: process.env.PAYPAL_CLIENT_ID || '',
+        stripePublishableKey: process.env.STRIPE_PUBLISHABLE_KEY || '',
         paypalCurrency: 'SGD',
         paypalAmount,
         walletBalance,
@@ -254,6 +256,11 @@ module.exports = {
 
       if (paymentMethod === 'paypal') {
         req.flash('info', 'Please complete the PayPal checkout to confirm your booking.');
+        return res.redirect('/payment');
+      }
+
+      if (paymentMethod === 'stripe') {
+        req.flash('info', 'Please complete the Stripe checkout to confirm your booking.');
         return res.redirect('/payment');
       }
 
@@ -370,6 +377,86 @@ module.exports = {
       console.error('PayPal capture error:', err);
       return res.status(500).json({ error: 'Failed to capture PayPal order', message: err.message });
     }
+  },
+
+  async stripeCreateCheckoutSession(req, res) {
+    if (!ensureShopperRole(req, res)) return;
+
+    try {
+      if (!process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_PUBLISHABLE_KEY) {
+        return res.status(400).json({ error: 'Stripe is not configured' });
+      }
+      const requestedWallet = req.body && Number(req.body.walletDeduction || 0);
+      const walletBalance = Number(req.session.pendingPayment?.walletBalance || 0);
+      const baseTotal = Number((Number(req.session.pendingPayment?.total || 0) + SERVICE_FEE).toFixed(2));
+      const safeWalletDeduction = clampWalletDeduction(requestedWallet, walletBalance, baseTotal);
+      req.session.pendingPayment = {
+        ...(req.session.pendingPayment || {}),
+        walletDeduction: safeWalletDeduction
+      };
+      const amount = getPayableTotal(req);
+      if (!amount) {
+        return res.status(400).json({ error: 'Invalid payment amount' });
+      }
+      if (amount <= 0) {
+        return res.status(400).json({ error: 'Wallet covers full amount' });
+      }
+
+      const successUrl = `${req.protocol}://${req.get('host')}/payment/stripe/success?session_id={CHECKOUT_SESSION_ID}`;
+      const cancelUrl = `${req.protocol}://${req.get('host')}/payment/stripe/fail`;
+      const session = await stripe.createCheckoutSession({
+        amount,
+        currency: 'sgd',
+        successUrl,
+        cancelUrl,
+        description: 'MatchPoint Booking Payment'
+      });
+
+      return res.json({ url: session.url });
+    } catch (err) {
+      console.error('Stripe create session error:', err);
+      return res.status(500).json({ error: 'Failed to create Stripe session', message: err.message });
+    }
+  },
+
+  async stripeSuccess(req, res) {
+    if (!ensureShopperRole(req, res)) return;
+
+    try {
+      if (!process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_PUBLISHABLE_KEY) {
+        req.flash('error', 'Stripe is not configured');
+        return res.redirect('/payment');
+      }
+      const sessionId = req.query.session_id;
+      if (!sessionId) {
+        req.flash('error', 'Missing Stripe session ID');
+        return res.redirect('/payment');
+      }
+      const session = await stripe.retrieveSession(sessionId);
+      if (!session || session.payment_status !== 'paid') {
+        req.flash('error', 'Stripe payment not completed.');
+        return res.redirect('/payment');
+      }
+
+      const receiptData = await finalizeBookingPaymentData(req, 'stripe');
+      req.session.lastReceipt = receiptData;
+      return req.session.save((saveErr) => {
+        if (saveErr) {
+          console.error('Session save error:', saveErr);
+        }
+        return res.redirect('/payment/receipt');
+      });
+    } catch (err) {
+      console.error('Stripe success error:', err);
+      req.flash('error', 'Unable to confirm Stripe payment.');
+      return res.redirect('/payment');
+    }
+  },
+
+  async stripeFail(req, res) {
+    if (!ensureShopperRole(req, res)) return;
+    req.flash('error', 'Stripe transaction failed or was cancelled. Please try again.');
+    return res.redirect('/payment');
   },
 
   async showReceipt(req, res) {
