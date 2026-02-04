@@ -4479,3 +4479,125 @@ body.admin-refunds .refund-amount-input {
   border-radius: 8px;
   font-size: 12px;
 }
+
+/* 2FA login page */
+body.auth-2fa {
+  background:
+    radial-gradient(900px 520px at 10% -10%, rgba(239, 68, 68, 0.18), transparent 60%),
+    radial-gradient(800px 480px at 90% 8%, rgba(248, 113, 113, 0.16), transparent 60%),
+    #f7f8fc;
+}
+
+.auth-2fa__wrap {
+  min-height: calc(100vh - 76px);
+  display: grid;
+  place-items: center;
+  padding: 28px 16px 48px;
+}
+
+.auth-2fa__panel {
+  width: min(440px, 92vw);
+  background: #ffffff;
+  border: 1px solid #f1e8e8;
+  border-radius: 22px;
+  padding: 28px 26px 26px;
+  box-shadow: 0 28px 70px rgba(15, 23, 42, 0.12);
+  text-align: left;
+}
+
+.auth-2fa__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #fff1f2;
+  color: #b91c1c;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.auth-2fa__title {
+  margin: 0 0 8px;
+  font-size: 24px;
+  font-weight: 800;
+  color: #111827;
+}
+
+.auth-2fa__subtitle {
+  margin: 0 0 18px;
+  color: #6b7280;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.auth-2fa__form {
+  display: grid;
+  gap: 14px;
+}
+
+.auth-2fa__field .form-label {
+  font-weight: 700;
+  font-size: 13px;
+  color: #111827;
+  margin-bottom: 6px;
+}
+
+.auth-2fa__input {
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  padding: 12px 14px;
+  font-size: 16px;
+  letter-spacing: 0.35em;
+  text-align: center;
+}
+
+.auth-2fa__input:focus {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+  background: #fff5f5;
+}
+
+.auth-2fa__btn {
+  border-radius: 14px;
+  padding: 12px 16px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  border: none;
+  color: #fff;
+}
+
+.auth-2fa__btn:hover {
+  filter: brightness(0.98);
+  box-shadow: 0 10px 22px rgba(239, 68, 68, 0.25);
+}
+
+.auth-2fa__footnote {
+  text-align: center;
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 600;
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+
+.auth-2fa__footnote a {
+  color: #b91c1c;
+  text-decoration: none;
+  font-weight: 800;
+}
+
+.auth-2fa__footnote a:hover {
+  color: #7f1d1d;
+}
+
+@media (max-width: 480px) {
+  .auth-2fa__panel {
+    padding: 22px 18px;
+  }
+}

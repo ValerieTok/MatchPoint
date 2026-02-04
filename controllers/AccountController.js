@@ -229,7 +229,7 @@ const AccountController = {
         if (safeUser.role === 'admin') return res.redirect('/admindashboard');
         if (safeUser.role === 'coach') return res.redirect('/listingsManage');
         if (pendingRedirect) return res.redirect(pendingRedirect);
-        return res.redirect('/viewcourses');
+        return res.redirect('/userdashboard');
       });
     } catch (err) {
       console.error(err);
@@ -564,7 +564,7 @@ const AccountController = {
       if (safeUser.role === 'admin') return res.redirect('/admindashboard');
       if (safeUser.role === 'coach') return res.redirect('/listingsManage');
       if (pendingRedirect) return res.redirect(pendingRedirect);
-      return res.redirect('/viewcourses');
+      return res.redirect('/userdashboard');
     });
   }
 };
