@@ -35,21 +35,22 @@ const buildUserInboxItems = (rows) =>
     };
   });
 
-const buildCoachInboxItems = (rows) =>
+const buildCoachBookingItems = (rows) =>
   (rows || []).map((row) => {
-    const reviewId = row.review_id || row.id;
     const who = row.student_name;
-    const title = who
-      ? `New review from ${who} (Booking #${row.booking_id})`
-      : `New review (Booking #${row.booking_id})`;
+    const title = who ? `New booking #${row.id} from ${who}` : `New booking #${row.id}`;
     const when = formatInboxDate(row.created_at);
+    const statusInfo = toInboxStatus(row);
+    const bodyParts = [];
+    if (row.listing_title) bodyParts.push(`Session: ${row.listing_title}`);
     return {
-      itemType: 'review',
-      itemId: reviewId,
+      itemType: 'booking',
+      itemId: row.id,
       title,
+      body: bodyParts.join(' | '),
       when,
-      status: 'submitted',
-      statusLabel: 'SUBMITTED',
+      status: statusInfo.status,
+      statusLabel: statusInfo.label,
       createdAt: row.created_at
     };
   });
@@ -79,11 +80,10 @@ const getInboxItems = (user, limit = 3) => {
   }
 
   const capped = Number.isFinite(Number(limit)) ? Number(limit) : 3;
-  const loader = user.role === 'coach'
-    ? Booking.getRecentCoachInbox
-    : Booking.getRecentUserInbox;
-
   const inboxPromise = new Promise((resolve, reject) => {
+    const loader = user.role === 'coach'
+      ? Booking.getRecentCoachBookings
+      : Booking.getRecentUserInbox;
     loader(user.id, capped, (err, rows) => (err ? reject(err) : resolve(rows || [])));
   });
 
@@ -114,7 +114,7 @@ const getInboxItems = (user, limit = 3) => {
   return Promise.all([inboxPromise, warningsPromise, statusPromise, banPromise])
     .then(([inboxRows, warningRows, statusRows, banRow]) => {
       const baseItems = user.role === 'coach'
-        ? buildCoachInboxItems(inboxRows)
+        ? buildCoachBookingItems(inboxRows)
         : buildUserInboxItems(inboxRows);
       const warningItems = buildWarningItems(warningRows);
       const merged = sortInboxItems([...warningItems, ...baseItems]);

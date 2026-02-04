@@ -351,6 +351,27 @@ const Booking = {
     db.query(sql, [coachId, capped], (err, rows) => callback(err, rows || []));
   },
 
+  getRecentCoachBookings(coachId, limit, callback) {
+    const capped = Number.isFinite(Number(limit)) ? Number(limit) : 3;
+    const sql = `
+      SELECT
+        b.id,
+        b.status,
+        b.completed_at,
+        b.created_at,
+        MIN(u.username) AS student_name,
+        MIN(bi.listing_title) AS listing_title
+      FROM bookings b
+      JOIN booking_items bi ON bi.booking_id = b.id
+      JOIN users u ON u.id = b.user_id
+      WHERE bi.coach_id = ?
+      GROUP BY b.id, b.status, b.completed_at, b.created_at
+      ORDER BY b.created_at DESC
+      LIMIT ?
+    `;
+    db.query(sql, [coachId, capped], (err, rows) => callback(err, rows || []));
+  },
+
   getCoachRevenue(coachId, callback) {
     const sql = `
       SELECT
