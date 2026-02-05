@@ -1,0 +1,144 @@
+<%- include('partials/head', {
+  title: 'Payment Receipt',
+  bodyClass: 'admin-page admin-dashboard',
+  extraHead: `
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  `
+}) %>
+
+<%
+  const isAdminFlag = Boolean(isAdmin);
+  const orderSafe = order || {};
+  const itemsSafe = Array.isArray(items) ? items : [];
+  const bookingId = orderSafe.id || '';
+%>
+
+<div class="app">
+  <% if (user && user.role === 'admin') { %>
+    <%- include('partials/adminSidebar', { active: 'revenue' }) %>
+  <% } else { %>
+    <%- include('partials/coachSidebar', { active: 'revenue' }) %>
+  <% } %>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="crumb">PAYMENT RECEIPT</div>
+      <div class="topbar__pill"><i class="fa-solid fa-receipt"></i></div>
+    </header>
+
+    <section class="card">
+      <div class="card__head">
+        <div class="card__title">Booking #<%= bookingId %></div>
+        <a class="btn btn--ghost btn--sm" href="<%= user && user.role === 'admin' ? '/adminRevenue' : '/trackRevenue' %>">
+          <i class="fa-solid fa-arrow-left"></i> Back
+        </a>
+      </div>
+
+      <%- include('partials/flashMessages', { messages }) %>
+
+      <div class="tableWrap">
+        <table class="table">
+          <tbody>
+            <tr>
+              <th>Status</th>
+              <td><span class="pill pill--review">CONFIRMED</span></td>
+            </tr>
+            <tr>
+              <th>Booked By</th>
+              <td><%= orderSafe.username || '-' %></td>
+            </tr>
+            <tr>
+              <th>Booked At</th>
+              <td><%= orderSafe.created_at ? sessionDateHelper.formatSgDateTime(orderSafe.created_at) : '-' %></td>
+            </tr>
+            <tr>
+              <th>Completed At</th>
+              <td><%= orderSafe.completed_at ? sessionDateHelper.formatSgDateTime(orderSafe.completed_at) : '-' %></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card__head">
+        <div class="card__title">Session Items</div>
+      </div>
+
+      <div class="tableWrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Session</th>
+              <th>Coach</th>
+              <th>Date &amp; Time</th>
+              <th>Qty</th>
+              <th>Rate</th>
+              <th>Subtotal</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if (!itemsSafe.length) { %>
+              <tr>
+                <td colspan="6">No items found.</td>
+              </tr>
+            <% } else { %>
+              <% itemsSafe.forEach(it => { %>
+                <% const dateLabel = sessionDateHelper.formatSessionDate(it.session_date); %>
+                <% const timeLabel = sessionDateHelper.formatSessionTime(it.session_time); %>
+                <% const qty = Number(it.quantity || 0); %>
+                <% const price = Number(it.price || 0); %>
+                <% const subtotal = qty * price; %>
+                <tr>
+                  <td><%= it.listing_title || it.sport || 'Session' %></td>
+                  <td><%= it.username || '-' %></td>
+                  <td><%= timeLabel ? `${dateLabel} ${timeLabel}` : dateLabel %></td>
+                  <td><%= qty %></td>
+                  <td>$<%= price.toFixed(2) %></td>
+                  <td>$<%= subtotal.toFixed(2) %></td>
+                </tr>
+              <% }) %>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card__head">
+        <div class="card__title">Payment Summary</div>
+      </div>
+      <div class="tableWrap">
+        <table class="table">
+          <tbody>
+            <tr>
+              <th>Subtotal</th>
+              <td>$<%= Number(grossTotal || 0).toFixed(2) %></td>
+            </tr>
+            <% if (isAdminFlag) { %>
+              <tr>
+                <th>Service Fee</th>
+                <td>$<%= Number(serviceFee || 0).toFixed(2) %></td>
+              </tr>
+              <tr>
+                <th>Wallet Applied</th>
+                <td>-$<%= Number(walletDeduction || 0).toFixed(2) %></td>
+              </tr>
+              <tr>
+                <th>Total Paid</th>
+                <td>$<%= Number(amountDue || 0).toFixed(2) %></td>
+              </tr>
+            <% } else { %>
+              <tr>
+                <th>Note</th>
+                <td>Totals shown for your items only.</td>
+              </tr>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+
+<%- include('partials/footer') %>

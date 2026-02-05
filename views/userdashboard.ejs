@@ -105,20 +105,18 @@
                   <td><%= r.sport || '-' %></td>
                   <td><%= r.location || '-' %></td>
                   <td>
-                    <% const statusLabel = (r.status || 'PENDING').toUpperCase(); %>
-                    <% if (statusLabel === 'REJECTED') { %>
-                      <span class="pill pill--rejected">SESSION REJECTED</span>
-                    <% } else if (statusLabel === 'PENDING') { %>
-                      <span class="pill pill--pending">AWAITING CONFIRMATION</span>
-                    <% } else if (statusLabel === 'COMPLETED') { %>
+                    <% const bookingStatus = String(r.bookingStatus || '').toLowerCase(); %>
+                    <% if (r.completedAt) { %>
+                      <span class="pill pill--review">CONFIRMED</span>
                       <% if ((r.refundStatus || '').toLowerCase() === 'approved') { %>
-                        <span class="pill pill--review">SESSION COMPLETED</span>
                         <span class="pill pill--refunded">REFUNDED</span>
-                      <% } else { %>
-                        <span class="pill pill--review">SESSION COMPLETED</span>
                       <% } %>
+                    <% } else if (bookingStatus === 'accepted') { %>
+                      <span class="pill pill--upcoming">CONFIRMED</span>
+                    <% } else if (bookingStatus === 'rejected') { %>
+                      <span class="pill pill--inactive">UNCONFIRMED</span>
                     <% } else { %>
-                      <span class="pill pill--upcoming">SESSION UPCOMING</span>
+                      <span class="pill pill--pending">UNCONFIRMED</span>
                     <% } %>
                   </td>
                   <td>

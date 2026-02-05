@@ -511,5 +511,71 @@ module.exports = {
       ...receipt,
       messages: req.flash()
     });
+  },
+
+  async showReceiptByBooking(req, res) {
+    const user = req.session && req.session.user;
+    if (!user || (user.role !== 'admin' && user.role !== 'coach')) {
+      req.flash('error', 'Access denied');
+      return res.redirect('/login');
+    }
+    const orderId = parseInt(req.params.id, 10);
+    if (Number.isNaN(orderId)) {
+      req.flash('error', 'Invalid booking.');
+      return res.redirect(user.role === 'admin' ? '/adminRevenue' : '/trackRevenue');
+    }
+    try {
+      const order = await new Promise((resolve, reject) => {
+        Booking.getOrderById(orderId, (err, row) => (err ? reject(err) : resolve(row)));
+      });
+      if (!order) {
+        req.flash('error', 'Booking not found.');
+        return res.redirect(user.role === 'admin' ? '/adminRevenue' : '/trackRevenue');
+      }
+      if (!order.completed_at) {
+        req.flash('error', 'Payment receipt is available after session completion.');
+        return res.redirect(user.role === 'admin' ? '/adminRevenue' : '/trackRevenue');
+      }
+      const items = await new Promise((resolve, reject) => {
+        Booking.getOrderItems(orderId, user.role === 'coach' ? user.id : null, (err, rows) =>
+          err ? reject(err) : resolve(rows || [])
+        );
+      });
+      if (user.role === 'coach' && !items.length) {
+        req.flash('error', 'Access denied');
+        return res.redirect('/trackRevenue');
+      }
+      const itemsTotal = (items || []).reduce((sum, item) => {
+        const price = Number(item.price || 0);
+        const qty = Number(item.quantity || 0);
+        return sum + price * qty;
+      }, 0);
+      const isAdmin = user.role === 'admin';
+      const grossTotal = isAdmin ? Number(order.total || itemsTotal) : itemsTotal;
+      const walletDeduction = isAdmin
+        ? await new Promise((resolve, reject) => {
+          Wallet.getBookingWalletDeduction(orderId, (err, value) => (err ? reject(err) : resolve(value || 0)));
+        })
+        : 0;
+      const amountDue = isAdmin
+        ? Number(Math.max(0, grossTotal + SERVICE_FEE - walletDeduction).toFixed(2))
+        : null;
+
+      return res.render('paymentReceipt', {
+        user,
+        order,
+        items,
+        grossTotal,
+        serviceFee: SERVICE_FEE,
+        walletDeduction,
+        amountDue,
+        isAdmin,
+        messages: req.flash()
+      });
+    } catch (err) {
+      console.error('Failed to load payment receipt:', err);
+      req.flash('error', 'Unable to load payment receipt.');
+      return res.redirect(user.role === 'admin' ? '/adminRevenue' : '/trackRevenue');
+    }
   }
 };

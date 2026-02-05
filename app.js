@@ -313,6 +313,7 @@ app.post('/bookingCart/remove/:id', checkAuthenticated, BookingCartController.re
 app.get('/payment', checkAuthenticated, PaymentController.showPaymentPage);
 app.post('/payment/confirm', checkAuthenticated, PaymentController.confirmPayment);
 app.get('/payment/receipt', checkAuthenticated, PaymentController.showReceipt);
+app.get('/payments/receipt/:id', checkAuthenticated, checkAdminOrCoach, PaymentController.showReceiptByBooking);
 app.post('/api/paypal/create-order', checkAuthenticated, PaymentController.paypalCreateOrder);
 app.post('/api/paypal/capture-order', checkAuthenticated, PaymentController.paypalCaptureOrder);
 app.post('/api/stripe/create-checkout-session', checkAuthenticated, PaymentController.stripeCreateCheckoutSession);

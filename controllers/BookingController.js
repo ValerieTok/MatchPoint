@@ -325,55 +325,18 @@ module.exports = {
           ordersWithItems.forEach((order) => {
             const items = Array.isArray(order.items) ? order.items : [];
             const completedAtRaw = order.completed_at || null;
-            const completedAtDate = completedAtRaw ? new Date(completedAtRaw) : null;
-            const hasCompletedAt = completedAtDate && !Number.isNaN(completedAtDate.getTime());
-            const normalizeDate = (value) => {
-              if (!value) return '';
-              if (value instanceof Date) {
-                const yyyy = value.getFullYear();
-                const mm = String(value.getMonth() + 1).padStart(2, '0');
-                const dd = String(value.getDate()).padStart(2, '0');
-                return `${yyyy}-${mm}-${dd}`;
-              }
-              const raw = String(value);
-              return raw.includes('T') ? raw.split('T')[0] : raw;
-            };
-            const normalizeTime = (value) => {
-              if (!value) return '00:00:00';
-              const raw = String(value);
-              return raw.length >= 8 ? raw.slice(0, 8) : `${raw}:00`;
-            };
-            const toLocalTimestamp = (dateStr, timeStr) => {
-              if (!dateStr) return null;
-              const parts = dateStr.split('-').map(Number);
-              if (parts.length !== 3 || parts.some((n) => Number.isNaN(n))) return null;
-              const [year, month, day] = parts;
-              const t = (timeStr || '00:00:00').split(':').map(Number);
-              const [hour, minute, second] = [
-                Number.isNaN(t[0]) ? 0 : t[0],
-                Number.isNaN(t[1]) ? 0 : t[1],
-                Number.isNaN(t[2]) ? 0 : t[2]
-              ];
-              return new Date(year, month - 1, day, hour, minute, second).getTime();
-            };
+            const userCompletedAtRaw = order.user_completed_at || null;
+            const userConfirmed = Boolean(userCompletedAtRaw);
 
             items.forEach((item) => {
-              let itemCompleted = Boolean(hasCompletedAt);
-              if (!itemCompleted && item.session_date) {
-                const datePart = normalizeDate(item.session_date);
-                const timePart = normalizeTime(item.session_time);
-                const sessionLocal = toLocalTimestamp(datePart, timePart);
-                if (sessionLocal !== null && sessionLocal <= Date.now()) {
-                  itemCompleted = true;
-                }
-              }
-              if (!itemCompleted) return;
+              if (!userConfirmed) return;
 
               const refund = refundMap.get(Number(item.booking_item_id)) || null;
               completedSessions.push({
                 bookingId: order.id,
                 itemId: item.booking_item_id,
                 completedAt: completedAtRaw,
+                userCompletedAt: userCompletedAtRaw,
                 review: order.review,
                 coach: item.username,
                 sport: item.sport,

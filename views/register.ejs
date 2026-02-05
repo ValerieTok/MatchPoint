@@ -77,6 +77,7 @@
           <select class="form-select" name="role">
             <option value="user" <%= (formData && formData.role) === 'user' ? 'selected' : '' %>>Athlete</option>
             <option value="coach" <%= (formData && formData.role) === 'coach' ? 'selected' : '' %>>Coach</option>
+            <option value="admin" <%= (formData && formData.role) === 'admin' ? 'selected' : '' %>>Admin</option>
           </select>
         </div>
         <div class="cert-section" aria-hidden="true">
