@@ -123,10 +123,7 @@ app.locals.sessionDateHelper = sessionDateHelper;
 const isProduction = process.env.NODE_ENV === 'production';
 const sessionSecret = process.env.SESSION_SECRET;
 if (!sessionSecret) {
-  if (isProduction) {
-    throw new Error('SESSION_SECRET missing from environment');
-  }
-  console.warn('SESSION_SECRET missing from environment; using development fallback.');
+  console.warn('SESSION_SECRET missing from environment; using fallback (not recommended for production).');
 }
 app.use(session({
   name: 'sid',
