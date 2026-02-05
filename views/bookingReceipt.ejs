@@ -115,10 +115,24 @@
                 </div>
               </div>
               <% } %>
-              <div class="col-md-<%= totalSavings > 0 ? '6' : '12' %>">
+              <div class="col-md-12">
                 <div class="summary-box total">
-                  <span class="summary-label">Total Paid</span>
-                  <span class="summary-value">$<%= Number(total || 0).toFixed(2) %></span>
+                  <div class="d-flex justify-content-between">
+                    <span class="summary-label">Subtotal</span>
+                    <span class="summary-value">$<%= Number(total || 0).toFixed(2) %></span>
+                  </div>
+                  <div class="d-flex justify-content-between">
+                    <span class="summary-label">Service Fee</span>
+                    <span class="summary-value">$<%= Number(serviceFee || 0).toFixed(2) %></span>
+                  </div>
+                  <div class="d-flex justify-content-between">
+                    <span class="summary-label">Wallet Applied</span>
+                    <span class="summary-value text-danger">-$<%= Number(walletDeduction || 0).toFixed(2) %></span>
+                  </div>
+                  <div class="d-flex justify-content-between mt-2">
+                    <span class="summary-label">Total Paid</span>
+                    <span class="summary-value">$<%= Number(amountDue || 0).toFixed(2) %></span>
+                  </div>
                 </div>
               </div>
             </div>

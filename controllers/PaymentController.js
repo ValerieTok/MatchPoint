@@ -7,7 +7,7 @@ const paypal = require('../services/paypal');
 const { clampWalletDeduction } = require('../services/walletLogic');
 const stripe = require('../services/stripe');
 
-const SERVICE_FEE = 0;
+const SERVICE_FEE = 2.5;
 
 const formatDateOnly = (value) => {
   if (!value) return null;
@@ -95,11 +95,17 @@ const finalizeBookingPaymentData = async (req, paymentMethod) => {
 
   req.flash('success', 'Payment successful! Your booking has been confirmed.');
 
+  const baseTotal = Number((Number(total || 0) + SERVICE_FEE).toFixed(2));
+  const amountDue = Number(Math.max(0, baseTotal - walletDeduction).toFixed(2));
+
   return {
     cart,
     user: req.session.user,
     deliveryAddress,
     total: total || 0,
+    serviceFee: SERVICE_FEE,
+    walletDeduction,
+    amountDue,
     orderId,
     mode: 'receipt',
     paymentMethod
@@ -224,6 +230,8 @@ module.exports = {
         user: req.session.user,
         deliveryAddress,
         total,
+        serviceFee: SERVICE_FEE,
+        amountDue: paypalAmount,
         orderId: orderId || 'pending',
         txnRetrievalRef: '',
         fullNetsResponse: {},

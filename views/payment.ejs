@@ -97,7 +97,6 @@
                   </div>
                 </div>
                 <div class="payment-form-details" id="stripeDetails" style="display: none;">
-                  <button type="button" class="btn btn-dark w-100" id="stripePayBtn">Pay with Stripe</button>
                   <p id="stripe-config-warning" class="text-muted small mt-2" style="display: none;">
                     Stripe is not configured. Add your Stripe keys in the environment to enable checkout.
                   </p>
@@ -116,12 +115,6 @@
                         <p class="text-muted mt-3 small text-center">Generating NETS QR code...</p>
                       <% } %>
 
-                      <div class="mt-3 text-center">
-                        <label class="form-check-label">
-                          <input type="checkbox" class="form-check-input" name="netsqrConfirm" id="netsqrConfirm">
-                          I have scanned and completed the payment
-                        </label>
-                      </div>
                     </div>
                   </div>
 
@@ -196,7 +189,7 @@
 
               <div class="d-flex justify-content-between mb-2">
                 <span class="text-muted">Service fee</span>
-                <span class="fw-semibold">$2.50</span>
+                <span class="fw-semibold">$<%= Number(serviceFee || 0).toFixed(2) %></span>
               </div>
 
               <div class="d-flex justify-content-between mb-2">
@@ -206,15 +199,12 @@
 
               <div class="summary-total d-flex justify-content-between">
                 <span>Amount due</span>
-                <span class="text-success">$<span id="amountDueDisplay"><%= (Number(total || 0) + 2.50 - Number(walletDeduction || 0)).toFixed(2) %></span></span>
+                <span class="text-success">$<span id="amountDueDisplay"><%= Number(amountDue || 0).toFixed(2) %></span></span>
               </div>
             <% } else { %>
               <p class="text-muted">No items in booking</p>
             <% } %>
 
-            <button type="submit" form="paymentForm" class="btn btn-danger btn-payment w-100 mt-4" id="confirmPaymentBtn">
-              Confirm Payment
-            </button>
           </div>
         </div>
       </div>
@@ -254,10 +244,11 @@
   const walletAppliedDisplay = document.getElementById("walletAppliedDisplay");
   const amountDueDisplay = document.getElementById("amountDueDisplay");
   const paypalAmountDisplay = document.getElementById("paypalAmountDisplay");
+  const termsCheck = document.getElementById("termsCheck");
   let paypalButtonsRendered = false;
   let paypalRenderQueued = false;
 
-  const baseTotal = Number(<%= (Number(total || 0) + 2.50).toFixed(2) %>);
+  const baseTotal = Number(<%= (Number(total || 0) + Number(serviceFee || 0)).toFixed(2) %>);
   const walletBalance = Number(<%= Number(walletBalance || 0).toFixed(2) %>);
 
   const clampMoney = (value, min, max) => {
@@ -281,21 +272,20 @@
     if (amountDueDisplay) amountDueDisplay.textContent = due.toFixed(2);
     if (paypalAmountDisplay) paypalAmountDisplay.textContent = due.toFixed(2);
 
-    if (confirmPaymentBtn) {
-      confirmPaymentBtn.disabled = due > 0 && paymentMethodInput?.value === "paypal";
-    }
     if (due <= 0 && paymentMethodInput) {
       paymentMethodInput.value = "wallet";
     } else if (paymentMethodInput && paymentMethodInput.value === "wallet") {
       paymentMethodInput.value = paypalAvailable ? "paypal" : (stripeAvailable ? "stripe" : "");
     }
     if (selectNetsBtn) {
-      selectNetsBtn.disabled = due <= 0;
-      selectNetsBtn.classList.toggle("is-disabled", due <= 0);
+      const blocked = due <= 0 || (termsCheck && !termsCheck.checked);
+      selectNetsBtn.disabled = blocked;
+      selectNetsBtn.classList.toggle("is-disabled", blocked);
     }
     if (selectStripeBtn) {
-      selectStripeBtn.disabled = due <= 0;
-      selectStripeBtn.classList.toggle("is-disabled", due <= 0);
+      const blocked = due <= 0 || (termsCheck && !termsCheck.checked);
+      selectStripeBtn.disabled = blocked;
+      selectStripeBtn.classList.toggle("is-disabled", blocked);
     }
   };
 
@@ -377,6 +367,10 @@
           alert('Your booking cart is empty. Please add items before paying.');
           return actions.reject();
         }
+        if (termsCheck && !termsCheck.checked) {
+          alert('Please agree to the terms and conditions before paying.');
+          return actions.reject();
+        }
         return actions.resolve();
       }
     }).render('#paypal-button-container');
@@ -401,7 +395,8 @@
     if (stripeDetails) stripeDetails.style.display = isStripe ? "block" : "none";
     if (netsqrDetails) netsqrDetails.style.display = isNets ? "block" : "none";
     if (confirmPaymentBtn) {
-      confirmPaymentBtn.disabled = isNets || selected === "paypal" || selected === "stripe" || !selected || due > 0 && selected === "paypal";
+      confirmPaymentBtn.disabled = true;
+      confirmPaymentBtn.style.display = "none";
     }
 
     if (paypalAvailable) {
@@ -416,6 +411,10 @@
 
   if (selectNetsBtn) {
     selectNetsBtn.addEventListener("click", () => {
+      if (termsCheck && !termsCheck.checked) {
+        alert('Please agree to the terms and conditions before paying.');
+        return;
+      }
       setPaymentMethod("netsqr");
       if (!qrCodeUrl) {
         const form = document.getElementById("netsQrForm");
@@ -427,25 +426,11 @@
   }
   if (selectStripeBtn) {
     selectStripeBtn.addEventListener("click", () => {
+      if (termsCheck && !termsCheck.checked) {
+        alert('Please agree to the terms and conditions before paying.');
+        return;
+      }
       setPaymentMethod("stripe");
-    });
-  }
-  const initialMethod = netsSelected ? "netsqr" : (paypalAvailable ? "paypal" : (stripeAvailable ? "stripe" : ""));
-  setPaymentMethod(initialMethod);
-  if (paypalAvailable) {
-    renderPaypalButtons();
-  }
-
-  if (walletDeductionInput) {
-    updateWalletDeduction(walletDeductionInput.value);
-    walletDeductionInput.addEventListener("input", (e) => updateWalletDeduction(e.target.value));
-  }
-  if (walletMaxBtn) {
-    walletMaxBtn.addEventListener("click", () => updateWalletDeduction(walletBalance));
-  }
-  const stripePayBtn = document.getElementById("stripePayBtn");
-  if (stripePayBtn) {
-    stripePayBtn.addEventListener("click", () => {
       if (!stripeAvailable) return;
       const walletDeduction = walletDeductionInput ? Number(walletDeductionInput.value || 0) : 0;
       fetch('/api/stripe/create-checkout-session', {
@@ -462,6 +447,22 @@
           alert(data.error || 'Unable to start Stripe checkout.');
         });
     });
+  }
+  const initialMethod = netsSelected ? "netsqr" : (paypalAvailable ? "paypal" : (stripeAvailable ? "stripe" : ""));
+  setPaymentMethod(initialMethod);
+  if (paypalAvailable) {
+    renderPaypalButtons();
+  }
+
+  if (walletDeductionInput) {
+    updateWalletDeduction(walletDeductionInput.value);
+    walletDeductionInput.addEventListener("input", (e) => updateWalletDeduction(e.target.value));
+  }
+  if (walletMaxBtn) {
+    walletMaxBtn.addEventListener("click", () => updateWalletDeduction(walletBalance));
+  }
+  if (termsCheck) {
+    termsCheck.addEventListener("change", () => updateWalletDeduction(walletDeductionInput ? walletDeductionInput.value : 0));
   }
 
   if (txnRetrievalRef) {
