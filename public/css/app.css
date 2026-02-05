@@ -458,6 +458,7 @@ body{
   position:sticky;
   top:0;
   height:100vh;
+  overflow:hidden;
   box-shadow: 4px 0 18px rgba(15, 23, 42, 0.04);
 }
 
@@ -487,6 +488,10 @@ body{
   gap:10px;
   padding:4px 6px;
   margin-top:4px;
+  flex:1 1 auto;
+  min-height:0;
+  overflow-y:auto;
+  padding-right:10px;
 }
 .nav__item{
   display:flex;
