@@ -6,7 +6,7 @@
   const paypalAvailable = Boolean(paypalClientId);
   const stripeAvailable = Boolean(stripePublishableKey);
   const paypalScript = paypalAvailable
-    ? `<script src="https://www.paypal.com/sdk/js?client-id=${paypalClientId}&currency=${paypalCurrency}"></script>`
+    ? `<script id="paypal-sdk" src="https://www.paypal.com/sdk/js?client-id=${paypalClientId}&currency=${paypalCurrency}"></script>`
     : '';
 %>
 
@@ -246,8 +246,11 @@
   const paypalAmountDisplay = document.getElementById("paypalAmountDisplay");
   const termsCheck = document.getElementById("termsCheck");
   const netsQrTimer = document.getElementById("netsQrTimer");
+  const termsKey = 'paymentTermsAccepted';
+  const termsPersistKey = 'paymentTermsPersist';
   let paypalButtonsRendered = false;
   let paypalRenderQueued = false;
+  let paypalScriptLoading = false;
 
   const baseTotal = Number(<%= (Number(total || 0) + Number(serviceFee || 0)).toFixed(2) %>);
   const walletBalance = Number(<%= Number(walletBalance || 0).toFixed(2) %>);
@@ -304,7 +307,36 @@
     }
   };
 
+  const ensurePaypalSdk = () => {
+    if (window.paypal || !paypalAvailable) {
+      return;
+    }
+    const existing = document.getElementById('paypal-sdk');
+    if (existing || paypalScriptLoading) {
+      return;
+    }
+    paypalScriptLoading = true;
+    const script = document.createElement('script');
+    script.id = 'paypal-sdk';
+    script.src = `https://www.paypal.com/sdk/js?client-id=<%= paypalClientId %>&currency=<%= paypalCurrency %>`;
+    script.onload = () => {
+      paypalScriptLoading = false;
+      renderPaypalButtons();
+    };
+    script.onerror = () => {
+      paypalScriptLoading = false;
+      if (paypalWarning) {
+        paypalWarning.style.display = "block";
+      }
+    };
+    document.head.appendChild(script);
+  };
+
   const renderPaypalButtons = () => {
+    const paypalContainer = document.getElementById('paypal-button-container');
+    if (paypalContainer && paypalContainer.childElementCount === 0) {
+      paypalButtonsRendered = false;
+    }
     if (paypalButtonsRendered || !paypalAvailable) {
       if (!paypalAvailable && paypalWarning) {
         paypalWarning.style.display = "block";
@@ -312,6 +344,7 @@
       return;
     }
     if (!window.paypal) {
+      ensurePaypalSdk();
       if (!paypalRenderQueued) {
         paypalRenderQueued = true;
         const warnTimeout = setTimeout(() => {
@@ -336,7 +369,6 @@
       return;
     }
 
-    const paypalContainer = document.getElementById('paypal-button-container');
     if (!paypalContainer) {
       return;
     }
@@ -378,6 +410,7 @@
           });
       },
       onClick: function (data, actions) {
+        sessionStorage.setItem(termsPersistKey, 'true');
         if (!cartHasItems) {
           alert('Your booking cart is empty. Please add items before paying.');
           return actions.reject();
@@ -426,6 +459,7 @@
 
   if (selectNetsBtn) {
     selectNetsBtn.addEventListener("click", () => {
+      sessionStorage.setItem(termsPersistKey, 'true');
       if (termsCheck && !termsCheck.checked) {
         alert('Please agree to the terms and conditions before paying.');
         return;
@@ -441,6 +475,7 @@
   }
   if (selectStripeBtn) {
     selectStripeBtn.addEventListener("click", () => {
+      sessionStorage.setItem(termsPersistKey, 'true');
       if (termsCheck && !termsCheck.checked) {
         alert('Please agree to the terms and conditions before paying.');
         return;
@@ -485,8 +520,36 @@
     });
   }
   if (termsCheck) {
+    const shouldPersist = sessionStorage.getItem(termsPersistKey) === 'true';
+    if (!shouldPersist) {
+      sessionStorage.removeItem(termsKey);
+    }
+    sessionStorage.setItem(termsPersistKey, 'false');
+    const savedTerms = sessionStorage.getItem(termsKey);
+    if (savedTerms === 'true') {
+      termsCheck.checked = true;
+    }
+    updateWalletDeduction(walletDeductionInput ? walletDeductionInput.value : 0);
     termsCheck.addEventListener("change", () => updateWalletDeduction(walletDeductionInput ? walletDeductionInput.value : 0));
+    termsCheck.addEventListener("change", () => {
+      sessionStorage.setItem(termsKey, termsCheck.checked ? 'true' : 'false');
+    });
   }
+
+  const clearTermsPersist = () => {
+    sessionStorage.removeItem(termsKey);
+    sessionStorage.removeItem(termsPersistKey);
+  };
+
+  document.addEventListener('click', (event) => {
+    const link = event.target.closest && event.target.closest('a[href]');
+    if (!link) return;
+    const href = link.getAttribute('href') || '';
+    if (!href || href.startsWith('#')) return;
+    if (/^https?:\/\//i.test(href)) return;
+    if (href.startsWith('/payment')) return;
+    clearTermsPersist();
+  });
   if (paymentForm) {
     paymentForm.addEventListener("submit", (event) => {
       const walletDeduction = walletDeductionInput ? Number(walletDeductionInput.value || 0) : 0;

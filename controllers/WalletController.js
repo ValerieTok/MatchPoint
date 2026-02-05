@@ -40,6 +40,14 @@ const WalletController = {
       ]);
 
       const profilePhoto = profile && profile.photo ? profile.photo : null;
+      const pendingTopup = req.session.pendingWalletTopup;
+      if (pendingTopup && pendingTopup.generatedAt) {
+        const elapsedMs = Date.now() - Number(pendingTopup.generatedAt);
+        if (Number.isFinite(elapsedMs) && elapsedMs > 5 * 60 * 1000) {
+          delete req.session.pendingWalletTopup;
+          req.flash('error', 'NETS QR expired after 5 minutes. Generate a new QR to try again.');
+        }
+      }
       return res.render('wallet', {
         user,
         wallet: wallet || { balance: 0 },
@@ -47,6 +55,7 @@ const WalletController = {
         profilePhoto,
         qrCodeUrl: req.session.pendingWalletTopup?.qrCodeUrl || '',
         txnRetrievalRef: req.session.pendingWalletTopup?.txnRetrievalRef || '',
+        qrGeneratedAt: req.session.pendingWalletTopup?.generatedAt || 0,
         paypalClientId: process.env.PAYPAL_CLIENT_ID || '',
         stripePublishableKey: process.env.STRIPE_PUBLISHABLE_KEY || '',
         paypalCurrency: 'SGD',
@@ -62,6 +71,7 @@ const WalletController = {
         profilePhoto: null,
         qrCodeUrl: '',
         txnRetrievalRef: '',
+        qrGeneratedAt: 0,
         paypalClientId: process.env.PAYPAL_CLIENT_ID || '',
         stripePublishableKey: process.env.STRIPE_PUBLISHABLE_KEY || '',
         paypalCurrency: 'SGD',
@@ -357,7 +367,7 @@ const WalletController = {
           method: 'nets',
           txnRetrievalRef,
           qrCodeUrl: `data:image/png;base64,${qrData.qr_code}`,
-          startedAt: Date.now()
+          generatedAt: Date.now()
         };
         req.flash('info', 'Scan the NETS QR code to complete your top up.');
         return res.redirect(walletBasePath);
@@ -427,7 +437,15 @@ const WalletController = {
       req.flash('error', 'Access denied');
       return res.redirect('/userdashboard');
     }
-    req.flash('error', 'NETS transaction failed or timed out. Please try again.');
+    const reason = req.query && req.query.reason ? String(req.query.reason) : '';
+    if (reason === 'cancel') {
+      req.flash('error', 'NETS top up cancelled. Generate a new QR to try again.');
+    } else if (reason === 'timeout') {
+      req.flash('error', 'NETS QR expired after 5 minutes. Generate a new QR to try again.');
+    } else {
+      req.flash('error', 'NETS transaction failed or timed out. Please try again.');
+    }
+    delete req.session.pendingWalletTopup;
     return res.redirect(walletBasePath);
   }
 };

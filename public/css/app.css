@@ -3964,7 +3964,7 @@ body.wallet-page .wallet-selected {
 
 body.wallet-page .wallet-methods {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
   margin-bottom: 18px;
 }
@@ -3973,11 +3973,12 @@ body.wallet-page .method-card {
   border: 1px solid #d1d5db;
   background: #fff;
   border-radius: 14px;
-  padding: 14px;
+  padding: 12px 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  min-height: 64px;
 }
 
 body.wallet-page .method-card.is-active {
@@ -3987,11 +3988,14 @@ body.wallet-page .method-card.is-active {
 
 body.wallet-page .method-card img {
   max-height: 32px;
+  max-width: 140px;
+  width: 100%;
+  object-fit: contain;
 }
 
 body.wallet-page .method-card .nets-logo {
-  max-height: 52px;
-  width: auto;
+  max-height: 32px;
+  max-width: 120px;
 }
 
 body.wallet-page .method-card[data-method="stripe"] {
@@ -4006,9 +4010,21 @@ body.wallet-page .method-card[data-method="stripe"].is-active {
 body.wallet-page .method-card[data-method="stripe"] .stripe-word {
   color: #ffffff;
   font-weight: 700;
-  font-size: 20px;
+  font-size: 18px;
   letter-spacing: 0.3px;
   text-transform: lowercase;
+}
+
+@media (max-width: 980px) {
+  body.wallet-page .wallet-methods {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  body.wallet-page .wallet-methods {
+    grid-template-columns: 1fr;
+  }
 }
 
 
@@ -4020,6 +4036,12 @@ body.wallet-page .wallet-cta {
   color: #fff;
   font-weight: 600;
   border-radius: 12px;
+}
+
+body.wallet-page .wallet-cta--ghost {
+  background: #ffffff;
+  color: #111827;
+  border: 1px solid #d1d5db;
 }
 
 body.wallet-page .wallet-transactions {
