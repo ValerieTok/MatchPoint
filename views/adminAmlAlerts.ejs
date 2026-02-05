@@ -1,0 +1,128 @@
+<%- include('partials/head', { title: 'AML Alerts', bodyClass: bodyClass || 'admin-page admin-aml' }) %>
+<%- include('partials/adminSidebar', { active: 'aml' }) %>
+
+<main class="admin-content">
+  <section class="hero">
+    <div class="hero__text">
+      <h1 class="hero__title">AML Alerts</h1>
+      <p class="hero__subtitle">Review high-risk transactions and document outcomes.</p>
+    </div>
+    <div class="hero__actions">
+      <a class="btn btn--ghost" href="/adminamlalerts/export?days=30">Export last 30 days</a>
+    </div>
+  </section>
+
+  <%- include('partials/flashMessages') %>
+
+  <section class="stats">
+    <div class="stat">
+      <div class="stat__label">Total (last <%= summary.days %> days)</div>
+      <div class="stat__value"><%= summary.total %></div>
+    </div>
+    <div class="stat">
+      <div class="stat__label">Open</div>
+      <div class="stat__value"><%= summary.open %></div>
+    </div>
+    <div class="stat">
+      <div class="stat__label">Reviewed</div>
+      <div class="stat__value"><%= summary.reviewed %></div>
+    </div>
+  </section>
+
+  <section class="content-card">
+    <div class="content-card__head">
+      <div>
+        <h2 class="content-card__title">Alerts</h2>
+        <div class="content-card__subtitle">Filter by status, type, or search by user.</div>
+      </div>
+    </div>
+
+    <form class="form-row" method="get" action="/adminamlalerts">
+      <div class="form-grid">
+        <div>
+          <label class="form-label">Status</label>
+          <select class="form-select" name="status">
+            <option value="open" <%= filters.status === 'open' ? 'selected' : '' %>>Open</option>
+            <option value="reviewed" <%= filters.status === 'reviewed' ? 'selected' : '' %>>Reviewed</option>
+            <option value="all" <%= filters.status === 'all' ? 'selected' : '' %>>All</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Type</label>
+          <select class="form-select" name="type">
+            <option value="all" <%= filters.alertType === 'all' ? 'selected' : '' %>>All</option>
+            <option value="booking" <%= filters.alertType === 'booking' ? 'selected' : '' %>>Booking</option>
+            <option value="topup" <%= filters.alertType === 'topup' ? 'selected' : '' %>>Top-up</option>
+            <option value="payout" <%= filters.alertType === 'payout' ? 'selected' : '' %>>Payout</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Search</label>
+          <input class="form-control" name="search" type="search" placeholder="Username or email" value="<%= filters.search || '' %>" />
+        </div>
+        <div class="form-actions">
+          <button class="btn btn--primary" type="submit">Apply</button>
+        </div>
+      </div>
+    </form>
+
+    <div class="table-wrapper">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>User</th>
+            <th>Type</th>
+            <th>Amount</th>
+            <th>Reason</th>
+            <th>Status</th>
+            <th>Created</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (!alerts || alerts.length === 0) { %>
+            <tr>
+              <td colspan="8">No AML alerts found.</td>
+            </tr>
+          <% } else { %>
+            <% alerts.forEach((row) => { %>
+              <tr>
+                <td><%= row.id %></td>
+                <td>
+                  <div><%= row.username %></div>
+                  <div class="text-muted"><%= row.email %></div>
+                </td>
+                <td><%= row.alert_type %></td>
+                <td>$<%= Number(row.amount || 0).toFixed(2) %> <%= row.currency || 'SGD' %></td>
+                <td><%= row.reason || '-' %></td>
+                <td><span class="pill pill--<%= row.status === 'reviewed' ? 'approved' : 'pending' %>"><%= row.status %></span></td>
+                <td><%= row.created_at ? new Date(row.created_at).toLocaleString() : '-' %></td>
+                <td>
+                  <% if (row.status !== 'reviewed') { %>
+                    <form method="post" action="/adminamlalerts/<%= row.id %>/review" class="inline-form">
+                      <input class="form-control" type="text" name="note" placeholder="Review note" />
+                      <button class="btn btn--sm" type="submit">Mark Reviewed</button>
+                    </form>
+                  <% } else { %>
+                    <span class="text-muted">Reviewed</span>
+                  <% } %>
+                </td>
+              </tr>
+            <% }) %>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+
+    <% if (pager && pager.totalPages > 1) { %>
+      <div class="pager">
+        <% for (let p = 1; p <= pager.totalPages; p++) { %>
+          <a class="pager__num <%= p === pager.page ? 'pager__num--active' : '' %>" href="/adminamlalerts?page=<%= p %>&status=<%= filters.status %>&type=<%= filters.alertType %>&search=<%= encodeURIComponent(filters.search || '') %>"><%= p %></a>
+        <% } %>
+      </div>
+    <% } %>
+  </section>
+</main>
+
+<%- include('partials/footer') %>

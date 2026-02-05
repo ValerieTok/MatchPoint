@@ -17,6 +17,14 @@ const getCoachBalance = (coachId) =>
     });
   });
 
+const ensureCoach2FA = async (user) => {
+  if (user && user.is_2fa_enabled) return true;
+  const dbUser = await new Promise((resolve, reject) => {
+    Account.getUserById(user.id, (err, row) => (err ? reject(err) : resolve(row)));
+  });
+  return !!(dbUser && dbUser.is_2fa_enabled);
+};
+
 module.exports = {
   async requestPayout(req, res) {
     const user = req.session && req.session.user;
@@ -25,6 +33,11 @@ module.exports = {
       return res.redirect('/trackRevenue');
     }
     const amount = Number(req.body && req.body.amount);
+    const has2FA = await ensureCoach2FA(user);
+    if (!has2FA) {
+      req.flash('error', 'Please enable 2FA before requesting a payout.');
+      return res.redirect('/2FASetup');
+    }
     if (!Number.isFinite(amount) || amount <= 0) {
       req.flash('error', 'Enter a valid payout amount.');
       return res.redirect('/trackRevenue');

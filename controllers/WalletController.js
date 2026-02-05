@@ -423,12 +423,14 @@ const WalletController = {
       const qrData = response.data?.result?.data;
       if (qrData?.response_code === '00' && qrData?.txn_status === 1 && qrData?.qr_code) {
         const txnRetrievalRef = qrData.txn_retrieval_ref;
+        const startedAt = Date.now();
         req.session.pendingWalletTopup = {
           amount,
           method: 'nets',
           txnRetrievalRef,
           qrCodeUrl: `data:image/png;base64,${qrData.qr_code}`,
-          generatedAt: Date.now()
+          generatedAt: startedAt,
+          startedAt
         };
         req.flash('info', 'Scan the NETS QR code to complete your top up.');
         return res.redirect(walletBasePath);
@@ -452,7 +454,7 @@ const WalletController = {
     try {
       const txnRetrievalRef = req.query.txn_retrieval_ref;
       const sessionTxn = req.session.pendingWalletTopup?.txnRetrievalRef;
-      const startedAt = Number(req.session.pendingWalletTopup?.startedAt || 0);
+      const startedAt = Number(req.session.pendingWalletTopup?.startedAt || req.session.pendingWalletTopup?.generatedAt || 0);
       const NETS_TIMEOUT_MS = 5 * 60 * 1000;
       if (!txnRetrievalRef || !sessionTxn || txnRetrievalRef !== sessionTxn) {
         req.flash('error', 'NETS transaction not found for this session.');
