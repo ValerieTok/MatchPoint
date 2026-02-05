@@ -7,7 +7,7 @@ const paypal = require('../services/paypal');
 const { clampWalletDeduction } = require('../services/walletLogic');
 const stripe = require('../services/stripe');
 
-const SERVICE_FEE = 0;
+const SERVICE_FEE = 2.5;
 
 const formatDateOnly = (value) => {
   if (!value) return null;
@@ -95,11 +95,17 @@ const finalizeBookingPaymentData = async (req, paymentMethod) => {
 
   req.flash('success', 'Payment successful! Your booking has been confirmed.');
 
+  const baseTotal = Number((Number(total || 0) + SERVICE_FEE).toFixed(2));
+  const amountDue = Number(Math.max(0, baseTotal - walletDeduction).toFixed(2));
+
   return {
     cart,
     user: req.session.user,
     deliveryAddress,
     total: total || 0,
+    serviceFee: SERVICE_FEE,
+    walletDeduction,
+    amountDue,
     orderId,
     mode: 'receipt',
     paymentMethod
@@ -224,6 +230,8 @@ module.exports = {
         user: req.session.user,
         deliveryAddress,
         total,
+        serviceFee: SERVICE_FEE,
+        amountDue: paypalAmount,
         orderId: orderId || 'pending',
         txnRetrievalRef: '',
         fullNetsResponse: {},
@@ -312,9 +320,15 @@ module.exports = {
     try {
       const txnRetrievalRef = req.query.txn_retrieval_ref;
       const sessionTxn = req.session.pendingPayment?.nets?.txnRetrievalRef;
+      const startedAt = Number(req.session.pendingPayment?.nets?.startedAt || 0);
+      const NETS_TIMEOUT_MS = 5 * 60 * 1000;
 
       if (!txnRetrievalRef || !sessionTxn || txnRetrievalRef !== sessionTxn) {
         req.flash('error', 'NETS transaction not found for this session.');
+        return res.redirect('/payment');
+      }
+      if (!Number.isFinite(startedAt) || startedAt <= 0 || (Date.now() - startedAt) > NETS_TIMEOUT_MS) {
+        req.flash('error', 'NETS transaction timed out. Please try again.');
         return res.redirect('/payment');
       }
 
@@ -497,5 +511,71 @@ module.exports = {
       ...receipt,
       messages: req.flash()
     });
+  },
+
+  async showReceiptByBooking(req, res) {
+    const user = req.session && req.session.user;
+    if (!user || (user.role !== 'admin' && user.role !== 'coach')) {
+      req.flash('error', 'Access denied');
+      return res.redirect('/login');
+    }
+    const orderId = parseInt(req.params.id, 10);
+    if (Number.isNaN(orderId)) {
+      req.flash('error', 'Invalid booking.');
+      return res.redirect(user.role === 'admin' ? '/adminRevenue' : '/trackRevenue');
+    }
+    try {
+      const order = await new Promise((resolve, reject) => {
+        Booking.getOrderById(orderId, (err, row) => (err ? reject(err) : resolve(row)));
+      });
+      if (!order) {
+        req.flash('error', 'Booking not found.');
+        return res.redirect(user.role === 'admin' ? '/adminRevenue' : '/trackRevenue');
+      }
+      if (!order.completed_at) {
+        req.flash('error', 'Payment receipt is available after session completion.');
+        return res.redirect(user.role === 'admin' ? '/adminRevenue' : '/trackRevenue');
+      }
+      const items = await new Promise((resolve, reject) => {
+        Booking.getOrderItems(orderId, user.role === 'coach' ? user.id : null, (err, rows) =>
+          err ? reject(err) : resolve(rows || [])
+        );
+      });
+      if (user.role === 'coach' && !items.length) {
+        req.flash('error', 'Access denied');
+        return res.redirect('/trackRevenue');
+      }
+      const itemsTotal = (items || []).reduce((sum, item) => {
+        const price = Number(item.price || 0);
+        const qty = Number(item.quantity || 0);
+        return sum + price * qty;
+      }, 0);
+      const isAdmin = user.role === 'admin';
+      const grossTotal = isAdmin ? Number(order.total || itemsTotal) : itemsTotal;
+      const walletDeduction = isAdmin
+        ? await new Promise((resolve, reject) => {
+          Wallet.getBookingWalletDeduction(orderId, (err, value) => (err ? reject(err) : resolve(value || 0)));
+        })
+        : 0;
+      const amountDue = isAdmin
+        ? Number(Math.max(0, grossTotal + SERVICE_FEE - walletDeduction).toFixed(2))
+        : null;
+
+      return res.render('paymentReceipt', {
+        user,
+        order,
+        items,
+        grossTotal,
+        serviceFee: SERVICE_FEE,
+        walletDeduction,
+        amountDue,
+        isAdmin,
+        messages: req.flash()
+      });
+    } catch (err) {
+      console.error('Failed to load payment receipt:', err);
+      req.flash('error', 'Unable to load payment receipt.');
+      return res.redirect(user.role === 'admin' ? '/adminRevenue' : '/trackRevenue');
+    }
   }
 };

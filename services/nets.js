@@ -4,9 +4,11 @@ const fs = require("fs");
 const path = require("path");
 const Wallet = require("../models/Wallet");
 
+const SERVICE_FEE = 2.5;
+
 exports.generateQrCode = async (req, res) => {
   const { cartTotal } = req.body;
-  const serviceFee = 0;
+  const serviceFee = SERVICE_FEE;
   const sessionTotal = Number.parseFloat(req.session.pendingPayment?.total);
   const baseTotal = Number.isFinite(sessionTotal) && sessionTotal > 0
     ? sessionTotal + serviceFee
@@ -107,7 +109,8 @@ exports.generateQrCode = async (req, res) => {
         walletDeduction,
         walletBalance,
         nets: {
-          txnRetrievalRef
+          txnRetrievalRef,
+          startedAt: Date.now()
         }
       };
 
@@ -116,6 +119,8 @@ exports.generateQrCode = async (req, res) => {
         user: req.session.user,
         deliveryAddress,
         total,
+        serviceFee,
+        amountDue: paypalAmount,
         orderId: req.body.orderId || 'pending',
         qrCodeUrl: `data:image/png;base64,${qrData.qr_code}`,
         txnRetrievalRef,
@@ -125,6 +130,7 @@ exports.generateQrCode = async (req, res) => {
         webhookUrl,
         fullNetsResponse: response.data,
         paypalClientId: process.env.PAYPAL_CLIENT_ID || '',
+        stripePublishableKey: process.env.STRIPE_PUBLISHABLE_KEY || '',
         paypalCurrency: 'SGD',
         paypalAmount,
         walletBalance,

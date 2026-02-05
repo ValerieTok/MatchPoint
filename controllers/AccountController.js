@@ -113,7 +113,7 @@ const AccountController = {
 
   async registerUser(req, res) {
     const { username, email, password, contact, role, cert_title: certTitle } = req.body || {};
-    const normalizedRole = role === 'coach' ? 'coach' : 'user';
+    const normalizedRole = role === 'admin' ? 'admin' : (role === 'coach' ? 'coach' : 'user');
     if (!email || !password) {
       req.flash('error', 'Email and password required');
       req.flash('formData', { username, email, contact, role, cert_title: certTitle });

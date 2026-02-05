@@ -201,13 +201,14 @@
 								<th>Source</th>
 								<th>Date &amp; Time</th>
 								<th>Student</th>
+								<th>Payment</th>
 							</tr>
 						</thead>
 						<tbody>
 							<% const earnings = Array.isArray(earningsHistory) ? earningsHistory : []; %>
 							<% if (!earnings.length) { %>
 								<tr>
-									<td colspan="4">No earnings yet.</td>
+									<td colspan="5">No earnings yet.</td>
 								</tr>
 							<% } else { %>
 								<% earnings.forEach(row => { %>
@@ -219,6 +220,9 @@
 										<td>$<%= Number(row.net_amount || 0).toFixed(2) %> from <%= title %> (Booking #<%= row.booking_id %>)</td>
 										<td><%= timeLabel ? `${dateLabel} ${timeLabel}` : dateLabel %></td>
 										<td><%= row.student_name || '-' %></td>
+										<td>
+											<a class="btn btn--ghost btn--sm" href="/payments/receipt/<%= row.booking_id %>">View Receipt</a>
+										</td>
 									</tr>
 								<% }) %>
 							<% } %>

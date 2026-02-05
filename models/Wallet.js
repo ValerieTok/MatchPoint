@@ -25,6 +25,20 @@ const Wallet = {
     `;
     db.query(sql, [userId, capped], (err, rows) => callback(err, rows || []));
   },
+  getBookingWalletDeduction(orderId, callback) {
+    const sql = `
+      SELECT COALESCE(ABS(SUM(amount)), 0) AS deduction
+      FROM wallet_transactions
+      WHERE order_id = ?
+        AND method = 'wallet'
+        AND type = 'DEBIT'
+    `;
+    db.query(sql, [orderId], (err, rows) => {
+      if (err) return callback(err);
+      const row = rows && rows[0] ? rows[0] : {};
+      return callback(null, Number(row.deduction || 0));
+    });
+  },
 
   addTopUp(userId, amount, method, callback) {
     const points = Math.max(0, Math.round(amount));

@@ -54,6 +54,31 @@ module.exports = {
     });
   },
 
+  async getAvailableSlotsByListingAll(listingId) {
+    return new Promise((resolve, reject) => {
+      const sql = `
+        SELECT id, coach_id, listing_id, slot_date, slot_time, duration_minutes, location, note, is_available
+        FROM coach_slots
+        WHERE listing_id = ?
+          AND is_available = 1
+        ORDER BY slot_date, slot_time
+      `;
+      db.query(sql, [listingId], (err, rows) => (err ? reject(err) : resolve(rows || [])));
+    });
+  },
+
+  async getSlotsByListing(listingId) {
+    return new Promise((resolve, reject) => {
+      const sql = `
+        SELECT id, coach_id, listing_id, slot_date, slot_time, duration_minutes, location, note, is_available
+        FROM coach_slots
+        WHERE listing_id = ?
+        ORDER BY slot_date, slot_time
+      `;
+      db.query(sql, [listingId], (err, rows) => (err ? reject(err) : resolve(rows || [])));
+    });
+  },
+
   async getSlotById(slotId) {
     return new Promise((resolve, reject) => {
       const sql = `
@@ -105,6 +130,19 @@ module.exports = {
         : 'DELETE FROM coach_slots WHERE id = ?';
       const params = coachId ? [id, coachId] : [id];
       db.query(sql, params, (err, result) => (err ? reject(err) : resolve(result)));
+    });
+  },
+
+  async getSlotsByCoachAndDate(coachId, slotDate) {
+    return new Promise((resolve, reject) => {
+      const sql = `
+        SELECT id, coach_id, listing_id, slot_date, slot_time, duration_minutes, is_available
+        FROM coach_slots
+        WHERE coach_id = ?
+          AND slot_date = ?
+        ORDER BY slot_time
+      `;
+      db.query(sql, [coachId, slotDate], (err, rows) => (err ? reject(err) : resolve(rows || [])));
     });
   }
 };

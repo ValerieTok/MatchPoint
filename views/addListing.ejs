@@ -49,10 +49,43 @@
           </select>
         </div>
 
-        <div class="form-row">
-          <label for="duration_minutes" class="form-label">Session Duration (minutes)</label>
-          <input type="number" class="form-control" id="duration_minutes" name="duration_minutes" min="15" step="5" placeholder="e.g. 60" required>
-        </div>
+        <section class="card" style="margin-top: 1rem;">
+          <div class="card__head">
+            <div class="card__title">Availability Slots</div>
+          </div>
+
+          <div class="form-grid" style="margin-bottom: 1rem;">
+            <div class="form-row">
+              <label class="form-label">Date</label>
+              <input type="date" class="form-control" id="slotDateInput">
+            </div>
+            <div class="form-row">
+              <label class="form-label">Start Time</label>
+              <input type="time" class="form-control" id="slotTimeInput" step="300">
+            </div>
+            <div class="form-row">
+              <label class="form-label">Actions</label>
+              <button type="button" class="btn btn--primary" id="addSlotRow">Add Slot</button>
+            </div>
+          </div>
+
+          <div id="slotList" class="tableWrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Time</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="slotListBody">
+                <tr>
+                  <td colspan="3">No slots added yet.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
 
         <div class="form-row">
           <label for="price" class="form-label">Price per Session</label>
@@ -92,5 +125,76 @@
     </section>
   </main>
 </div>
+
+<script>
+  (function () {
+    const dateInput = document.getElementById('slotDateInput');
+    const timeInput = document.getElementById('slotTimeInput');
+    const addBtn = document.getElementById('addSlotRow');
+    const listBody = document.getElementById('slotListBody');
+    if (!dateInput || !timeInput || !addBtn || !listBody) return;
+
+    const renderEmpty = () => {
+      if (listBody.children.length === 0) {
+        const row = document.createElement('tr');
+        row.innerHTML = '<td colspan="3">No slots added yet.</td>';
+        listBody.appendChild(row);
+      }
+    };
+
+    const clearEmpty = () => {
+      const first = listBody.querySelector('tr');
+      if (first && first.children.length === 1) {
+        listBody.innerHTML = '';
+      }
+    };
+
+    const formatTime = (timeValue) => {
+      if (!timeValue) return '';
+      const parts = String(timeValue).split(':');
+      const hours = Number(parts[0]);
+      const minutes = parts[1] ? parts[1].padStart(2, '0') : '00';
+      if (!Number.isFinite(hours)) return timeValue;
+      const suffix = hours >= 12 ? 'PM' : 'AM';
+      const displayHour = hours % 12 === 0 ? 12 : hours % 12;
+      return `${displayHour}:${minutes} ${suffix}`;
+    };
+
+    const addSlotRow = (dateValue, timeValue) => {
+      const displayTime = formatTime(timeValue);
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${dateValue}</td>
+        <td>${displayTime}</td>
+        <td>
+          <button type="button" class="btn btn--ghost btn--sm btn--danger" data-slot-remove>Remove</button>
+          <input type="hidden" name="slot_date[]" value="${dateValue}">
+          <input type="hidden" name="slot_time[]" value="${timeValue}">
+        </td>
+      `;
+      listBody.appendChild(row);
+    };
+
+    addBtn.addEventListener('click', () => {
+      const dateValue = dateInput.value;
+      const timeValue = timeInput.value;
+      if (!dateValue || !timeValue) {
+        return;
+      }
+      clearEmpty();
+      addSlotRow(dateValue, timeValue);
+      dateInput.value = '';
+      timeInput.value = '';
+    });
+
+    listBody.addEventListener('click', (event) => {
+      const target = event.target;
+      if (!target || !target.matches('[data-slot-remove]')) return;
+      const row = target.closest('tr');
+      if (row) row.remove();
+      renderEmpty();
+    });
+  })();
+</script>
 
 <%- include('partials/footer') %>

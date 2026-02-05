@@ -78,13 +78,14 @@
                 <th>Gross</th>
                 <th>Fee (10%)</th>
                 <th>Coach (90%)</th>
+                <th>Payment</th>
               </tr>
             </thead>
             <tbody>
               <% const rows = Array.isArray(reportRows) ? reportRows : []; %>
               <% if (!rows.length) { %>
                 <tr>
-                  <td colspan="7">No completed sessions for this month.</td>
+                  <td colspan="8">No completed sessions for this month.</td>
                 </tr>
               <% } else { %>
                 <% rows.forEach(row => { %>
@@ -99,6 +100,9 @@
                     <td>$<%= Number(row.gross_amount || 0).toFixed(2) %></td>
                     <td>$<%= Number(row.admin_amount || 0).toFixed(2) %></td>
                     <td>$<%= Number(row.coach_amount || 0).toFixed(2) %></td>
+                    <td>
+                      <a class="btn btn--ghost btn--sm" href="/payments/receipt/<%= row.booking_id %>">View Receipt</a>
+                    </td>
                   </tr>
                 <% }) %>
               <% } %>

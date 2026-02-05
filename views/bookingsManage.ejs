@@ -12,12 +12,12 @@
   const isAdmin = user && user.role === 'admin';
   const isCoach = user && user.role === 'coach';
   const resolveStatus = (order) => {
-    if (order && order.completed_at) return { label: 'COMPLETED', class: 'pill--review' };
-    if (isAdmin) return { label: 'INCOMPLETE', class: 'pill--pending' };
+    if (order && order.completed_at) return { label: 'CONFIRMED', class: 'pill--review' };
+    if (isAdmin) return { label: 'UNCONFIRMED', class: 'pill--pending' };
     const normalized = order ? String(order.status || '').toLowerCase() : '';
-    if (normalized === 'rejected') return { label: 'REJECTED', class: 'pill--inactive' };
-    if (normalized === 'accepted') return { label: 'CONFIRMED', class: 'pill--upcoming' };
-    return { label: 'INCOMPLETE', class: 'pill--pending' };
+    if (normalized === 'rejected') return { label: 'UNCONFIRMED', class: 'pill--inactive' };
+    if (normalized === 'accepted') return { label: 'CONFIRMED', class: 'pill--review' };
+    return { label: 'UNCONFIRMED', class: 'pill--pending' };
   };
 %>
 <div class="app">

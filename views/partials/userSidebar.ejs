@@ -40,11 +40,6 @@
       <span>History</span>
     </a>
 
-    <a class="nav__item <%= active === 'inbox' ? 'nav__item--active' : '' %>" href="/inbox">
-      <i class="fa-solid fa-inbox"></i>
-      <span>Inbox</span>
-    </a>
-
     <a class="nav__item <%= active === 'ratings' ? 'nav__item--active' : '' %>" href="/ratingsUser">
       <i class="fa-solid fa-star"></i>
       <span>Ratings</span>
@@ -58,8 +53,8 @@
 
   <div class="sidebar__inbox">
     <div class="sidebar__section-title">
-      <span>Inbox</span>
-      <i class="fa-solid fa-inbox"></i>
+      <span>Notifications</span>
+      <i class="fa-solid fa-bell"></i>
     </div>
     <% const inboxRows = Array.isArray(inboxItems) ? inboxItems : []; %>
     <% if (!inboxRows.length) { %>

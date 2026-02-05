@@ -122,6 +122,18 @@
                       </td>
                       <td class="actions">
                         <div class="action-group">
+                          <% if (!row.is_banned) { %>
+                            <% if (String(row.coach_status || 'pending') !== 'approved') { %>
+                              <form method="post" action="/admincoaches/<%= row.id %>/approve">
+                                <button class="btn" type="submit">Approve</button>
+                              </form>
+                            <% } %>
+                            <% if (String(row.coach_status || 'pending') !== 'rejected') { %>
+                              <form method="post" action="/admincoaches/<%= row.id %>/reject">
+                                <button class="btn danger" type="submit">Reject</button>
+                              </form>
+                            <% } %>
+                          <% } %>
                           <button class="btn warn js-warn" type="button" data-id="<%= row.id %>" data-name="<%= row.username %>">Issue Warning</button>
                           <% if (row.is_banned) { %>
                             <form method="post" action="/admincoaches/<%= row.id %>/unban">

@@ -63,14 +63,14 @@
           </div>
 
           <div class="wallet-methods">
-            <button type="button" class="method-card is-active" data-method="paypal" aria-label="PayPal">
+            <button type="button" class="method-card <%= qrCodeUrl ? '' : 'is-active' %>" data-method="paypal" aria-label="PayPal">
               <img src="https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg" alt="PayPal">
             </button>
-            <button type="button" class="method-card" data-method="nets" aria-label="NETS">
+            <button type="button" class="method-card <%= qrCodeUrl ? 'is-active' : '' %>" data-method="nets" aria-label="NETS">
               <img src="/images/NETS.webp" alt="NETS" class="nets-logo">
             </button>
             <button type="button" class="method-card" data-method="stripe" aria-label="Stripe">
-              <img src="/images/stripe-logo.svg" alt="Stripe">
+              <span class="stripe-word">stripe</span>
             </button>
           </div>
 
@@ -87,17 +87,19 @@
             </p>
           </div>
 
-          <% if (qrCodeUrl) { %>
-            <div class="wallet-qr" style="margin-top: 16px; text-align: center;">
-              <img src="<%= qrCodeUrl %>" alt="NETS QR Code" style="max-width: 260px; width: 100%;">
-              <p class="text-muted small mt-2">Scan to complete your NETS top up.</p>
-            </div>
-          <% } %>
+            <% if (qrCodeUrl) { %>
+              <div class="wallet-qr" style="margin-top: 16px; text-align: center;">
+                <img src="<%= qrCodeUrl %>" alt="NETS QR Code" style="max-width: 260px; width: 100%;">
+                <p class="text-muted small mt-2">Scan to complete your NETS top up.</p>
+                <p class="text-muted small mb-0" id="netsQrTimer"></p>
+              </div>
+            <% } %>
 
           <input type="hidden" name="amount" id="amountInput" value="10">
-          <input type="hidden" name="method" id="methodInput" value="paypal">
+          <input type="hidden" name="method" id="methodInput" value="<%= qrCodeUrl ? 'nets' : 'paypal' %>">
 
           <button type="submit" class="wallet-cta" id="walletTopupBtn">Generate NETS QR</button>
+          <button type="button" class="wallet-cta wallet-cta--ghost" id="walletCancelQrBtn" style="display: none;">Cancel NETS QR</button>
         </form>
       </div>
 
@@ -155,7 +157,11 @@
   const paypalAvailable = <%- JSON.stringify(paypalAvailable) %>;
   const stripeAvailable = <%- JSON.stringify(stripeAvailable) %>;
   const txnRetrievalRef = "<%= txnRetrievalRef || '' %>";
+  const qrGeneratedAt = <%- JSON.stringify(qrGeneratedAt || 0) %>;
+  const qrActive = Boolean("<%= qrCodeUrl || '' %>");
+  const netsQrTimer = document.getElementById('netsQrTimer');
   let paypalButtonsRendered = false;
+  let qrCountdownTimer = null;
 
   amountButtons.forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -177,16 +183,35 @@
   });
 
   const syncWalletMethodUi = () => {
-    const method = methodInput ? methodInput.value : 'paypal';
+    let method = methodInput ? methodInput.value : 'paypal';
+    if (qrActive) {
+      method = 'nets';
+      if (methodInput) methodInput.value = 'nets';
+      methodButtons.forEach((btn) => {
+        const isNets = btn.dataset.method === 'nets';
+        btn.classList.toggle('is-active', isNets);
+        if (!isNets) {
+          btn.setAttribute('disabled', 'disabled');
+        }
+      });
+    } else {
+      methodButtons.forEach((btn) => {
+        btn.removeAttribute('disabled');
+      });
+    }
     if (walletTopupBtn) {
-      walletTopupBtn.style.display = method === 'nets' ? 'block' : 'none';
+      walletTopupBtn.style.display = method === 'nets' && !qrActive ? 'block' : 'none';
+    }
+    const walletCancelQrBtn = document.getElementById('walletCancelQrBtn');
+    if (walletCancelQrBtn) {
+      walletCancelQrBtn.style.display = qrActive ? 'block' : 'none';
     }
     if (paypalButtonsWrap) {
-      paypalButtonsWrap.style.display = method === 'paypal' ? 'block' : 'none';
+      paypalButtonsWrap.style.display = method === 'paypal' && !qrActive ? 'block' : 'none';
     }
     const stripeButtonsWrap = document.getElementById('wallet-stripe-buttons');
     if (stripeButtonsWrap) {
-      stripeButtonsWrap.style.display = method === 'stripe' ? 'block' : 'none';
+      stripeButtonsWrap.style.display = method === 'stripe' && !qrActive ? 'block' : 'none';
     }
     if (method === 'paypal') {
       renderWalletPaypalButtons();
@@ -198,7 +223,16 @@
   };
 
   const renderWalletPaypalButtons = () => {
-    if (paypalButtonsRendered || !paypalAvailable) {
+    if (!paypalAvailable) {
+      if (paypalWarning) {
+        paypalWarning.style.display = 'block';
+      }
+      return;
+    }
+    if (paypalContainer && paypalContainer.childElementCount === 0) {
+      paypalButtonsRendered = false;
+    }
+    if (paypalButtonsRendered) {
       if (!paypalAvailable && paypalWarning) {
         paypalWarning.style.display = 'block';
       }
@@ -243,19 +277,82 @@
     }).render('#wallet-paypal-button-container');
   };
 
+  let netsCountdownInterval = null;
+  let netsCountdownTimeout = null;
+  const startNetsCountdown = (seconds, failUrl) => {
+    if (!netsQrTimer || !Number.isFinite(seconds) || seconds <= 0) return;
+    const deadline = Date.now() + seconds * 1000;
+    const format = (remaining) => {
+      const min = Math.floor(remaining / 60);
+      const sec = remaining % 60;
+      return `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+    };
+    const tick = () => {
+      const remaining = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+      netsQrTimer.textContent = `Time remaining: ${format(remaining)}`;
+      if (remaining <= 0) {
+        if (netsCountdownInterval) clearInterval(netsCountdownInterval);
+        netsCountdownInterval = null;
+      }
+    };
+    tick();
+    netsCountdownInterval = setInterval(tick, 1000);
+    netsCountdownTimeout = setTimeout(() => {
+      if (netsCountdownInterval) clearInterval(netsCountdownInterval);
+      netsCountdownInterval = null;
+      window.location.href = failUrl;
+    }, seconds * 1000);
+  };
+
   if (txnRetrievalRef) {
     const url = `/sse/payment-status/${txnRetrievalRef}`;
     const s2sNetsTxnStatus = new EventSourcePolyfill(url, { heartbeatTimeout: 150000 });
+    const netsFailUrl = `/ewallet/nets/fail?txn_retrieval_ref=${txnRetrievalRef}`;
+    if (netsQrTimer) {
+      startNetsCountdown(300, netsFailUrl);
+    }
     s2sNetsTxnStatus.addEventListener("message", (event) => {
       const data = JSON.parse(event.data);
       if (data.success) {
         s2sNetsTxnStatus.close();
+        if (netsCountdownInterval) clearInterval(netsCountdownInterval);
+        if (netsCountdownTimeout) clearTimeout(netsCountdownTimeout);
         window.location.href = `/ewallet/nets/success?txn_retrieval_ref=${txnRetrievalRef}`;
       } else if (data.fail) {
         s2sNetsTxnStatus.close();
-        window.location.href = `/ewallet/nets/fail?txn_retrieval_ref=${txnRetrievalRef}`;
+        if (netsCountdownInterval) clearInterval(netsCountdownInterval);
+        if (netsCountdownTimeout) clearTimeout(netsCountdownTimeout);
+        window.location.href = netsFailUrl;
       }
     });
+  }
+
+  const walletCancelQrBtn = document.getElementById('walletCancelQrBtn');
+  if (walletCancelQrBtn) {
+    walletCancelQrBtn.addEventListener('click', () => {
+      window.location.href = '/ewallet/nets/fail?reason=cancel';
+    });
+  }
+
+  if (qrActive) {
+    const timerEl = document.getElementById('netsQrTimer');
+    const startAt = Number(qrGeneratedAt || 0) || Date.now();
+    const expiresAt = startAt + 5 * 60 * 1000;
+    const tick = () => {
+      const remainingMs = expiresAt - Date.now();
+      if (remainingMs <= 0) {
+        if (timerEl) timerEl.textContent = 'QR expired.';
+        if (qrCountdownTimer) clearInterval(qrCountdownTimer);
+        window.location.href = '/ewallet/nets/fail?reason=timeout';
+        return;
+      }
+      const totalSeconds = Math.ceil(remainingMs / 1000);
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = String(totalSeconds % 60).padStart(2, '0');
+      if (timerEl) timerEl.textContent = `Expires in ${minutes}:${seconds}`;
+    };
+    tick();
+    qrCountdownTimer = setInterval(tick, 1000);
   }
 
   const walletStripeBtn = document.getElementById('walletStripeBtn');
