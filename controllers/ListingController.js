@@ -150,7 +150,7 @@ const ListingController = {
               return hay.includes(searchTerm);
             })
             : sessionList.slice();
-          if (sort === 'upcoming' || sort === 'pending' || sort === 'rejected') {
+          if (sort === 'upcoming' || sort === 'completed') {
             const target = sort.toUpperCase();
             filtered = filtered.filter((session) => session.status === target);
           } else if (sort === 'status') {
@@ -674,10 +674,9 @@ const ListingController = {
         req.flash('error', 'Access denied');
         return res.redirect('/listingsManage');
       }
-      const duration = parseInt(product.duration_minutes, 10);
+      let duration = parseInt(product.duration_minutes, 10);
       if (!Number.isFinite(duration) || duration <= 0) {
-        req.flash('error', 'Listing duration must be set before adding slots.');
-        return res.redirect(`/updateListing/${listingId}`);
+        duration = 60;
       }
       const timeMatch = slotTime.match(/^(\d{2}):(\d{2})/);
       if (!timeMatch) {
@@ -685,8 +684,8 @@ const ListingController = {
         return res.redirect(`/updateListing/${listingId}`);
       }
       const totalMinutes = parseInt(timeMatch[1], 10) * 60 + parseInt(timeMatch[2], 10);
-      if (Number.isNaN(totalMinutes) || totalMinutes % duration !== 0) {
-        req.flash('error', `Slots must align to ${duration}-minute intervals.`);
+      if (Number.isNaN(totalMinutes)) {
+        req.flash('error', 'Invalid slot time.');
         return res.redirect(`/updateListing/${listingId}`);
       }
       const newStart = toMinutes(slotTime);

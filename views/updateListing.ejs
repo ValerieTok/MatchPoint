@@ -28,6 +28,93 @@
 
         <%- include('partials/flashMessages', { messages }) %>
 
+        <section class="card" style="margin-top: 1rem;">
+          <div class="card__head">
+            <div class="card__title">Availability Slots</div>
+          </div>
+
+          <form action="/updateListing/<%= product.id %>/slots" method="POST" class="form-grid" style="margin-bottom: 1.5rem;">
+            <div class="form-row">
+              <label for="slot_date" class="form-label">Date</label>
+              <input type="date" class="form-control" id="slot_date" name="slot_date" required>
+            </div>
+            <div class="form-row">
+              <label for="slot_time" class="form-label">Start Time</label>
+              <input type="time" class="form-control" id="slot_time" name="slot_time" step="300" required>
+              <small class="text-muted">Start times must align to your session duration (<%= product.duration_minutes %> mins).</small>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn--primary">Add Slot</button>
+            </div>
+          </form>
+
+          <div class="tableWrap">
+            <%
+              const formatSlotDate = (value) => {
+                if (!value) return '-';
+                if (value instanceof Date && !Number.isNaN(value.getTime())) {
+                  return value.toISOString().slice(0, 10);
+                }
+                const text = String(value);
+                const match = text.match(/^(\d{4}-\d{2}-\d{2})/);
+                return match ? match[1] : text;
+              };
+              const formatSlotTime = (value) => {
+                if (!value) return '-';
+                const text = value instanceof Date && !Number.isNaN(value.getTime())
+                  ? value.toISOString().slice(11, 16)
+                  : String(value).slice(0, 5);
+                const parts = text.split(':');
+                const hours = Number(parts[0]);
+                const minutes = parts[1] ? parts[1].padStart(2, '0') : '00';
+                if (!Number.isFinite(hours)) return text;
+                const suffix = hours >= 12 ? 'PM' : 'AM';
+                const displayHour = hours % 12 === 0 ? 12 : hours % 12;
+                return `${displayHour}:${minutes} ${suffix}`;
+              };
+            %>
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Time</th>
+                  <th>Duration</th>
+                  <th>Status</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <% const rows = Array.isArray(slots) ? slots : []; %>
+                <% if (!rows.length) { %>
+                  <tr>
+                    <td colspan="5">No slots yet.</td>
+                  </tr>
+                <% } else { %>
+                  <% rows.forEach(slot => { %>
+                    <tr>
+                      <td><%= formatSlotDate(slot.slot_date) %></td>
+                      <td><%= formatSlotTime(slot.slot_time) %></td>
+                      <td><%= slot.duration_minutes ? `${slot.duration_minutes} mins` : '-' %></td>
+                      <td>
+                        <% if (Number(slot.is_available) === 1) { %>
+                          <span class="pill pill--upcoming">AVAILABLE</span>
+                        <% } else { %>
+                          <span class="pill pill--inactive">BOOKED</span>
+                        <% } %>
+                      </td>
+                      <td class="table__actions">
+                        <form action="/updateListing/<%= product.id %>/slots/<%= slot.id %>/delete" method="POST" onsubmit="return confirm('Delete this slot?');">
+                          <button type="submit" class="btn btn--ghost btn--sm btn--danger"><i class="fa-solid fa-trash"></i> Delete</button>
+                        </form>
+                      </td>
+                    </tr>
+                  <% }) %>
+                <% } %>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
         <form action="/updateListing/<%= product.id %>" method="POST" enctype="multipart/form-data" class="form-grid">
           <div class="form-row">
             <label for="listing_title" class="form-label">Sport Type</label>
@@ -48,69 +135,6 @@
               <option value="expert" <%= (product.skill_level || 'beginner') === 'expert' ? 'selected' : '' %>>Expert</option>
             </select>
           </div>
-
-          <section class="card" style="margin-top: 1rem;">
-            <div class="card__head">
-              <div class="card__title">Availability Slots</div>
-            </div>
-
-            <div class="form-grid" style="margin-bottom: 1.5rem;">
-              <div class="form-row">
-                <label for="slot_date" class="form-label">Date</label>
-                <input type="date" class="form-control" id="slot_date" name="slot_date">
-              </div>
-              <div class="form-row">
-                <label for="slot_time" class="form-label">Start Time</label>
-                <input type="time" class="form-control" id="slot_time" name="slot_time" step="300">
-                <small class="text-muted">Start times must align to your session duration (<%= product.duration_minutes %> mins).</small>
-              </div>
-              <div class="form-actions">
-                <button type="submit" class="btn btn--primary" formaction="/updateListing/<%= product.id %>/slots" formmethod="POST">Add Slot</button>
-              </div>
-            </div>
-
-            <div class="tableWrap">
-              <table class="table">
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Time</th>
-                    <th>Duration</th>
-                    <th>Status</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <% const rows = Array.isArray(slots) ? slots : []; %>
-                  <% if (!rows.length) { %>
-                    <tr>
-                      <td colspan="5">No slots yet.</td>
-                    </tr>
-                  <% } else { %>
-                    <% rows.forEach(slot => { %>
-                      <tr>
-                        <td><%= slot.slot_date %></td>
-                        <td><%= slot.slot_time %></td>
-                        <td><%= slot.duration_minutes ? `${slot.duration_minutes} mins` : '-' %></td>
-                        <td>
-                          <% if (Number(slot.is_available) === 1) { %>
-                            <span class="pill pill--upcoming">AVAILABLE</span>
-                          <% } else { %>
-                            <span class="pill pill--inactive">BOOKED</span>
-                          <% } %>
-                        </td>
-                        <td class="table__actions">
-                          <form action="/updateListing/<%= product.id %>/slots/<%= slot.id %>/delete" method="POST" onsubmit="return confirm('Delete this slot?');">
-                            <button type="submit" class="btn btn--ghost btn--sm btn--danger"><i class="fa-solid fa-trash"></i> Delete</button>
-                          </form>
-                        </td>
-                      </tr>
-                    <% }) %>
-                  <% } %>
-                </tbody>
-              </table>
-            </div>
-          </section>
 
           <div class="form-row">
             <label for="price" class="form-label">Price per Session</label>

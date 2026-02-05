@@ -111,10 +111,10 @@ module.exports = {
       const refreshed = await getOrderByIdAsync(orderId);
       if (refreshed && refreshed.completed_at) {
         req.session.pendingFeedbackBookingId = orderId;
-        return req.session.save(() => res.redirect('/feedback'));
+        return req.session.save(() => res.redirect('/ratingsUser'));
       }
       req.flash('info', 'Your completion is recorded. Waiting for the coach to confirm.');
-      return res.redirect('/userdashboard');
+      return res.redirect('/ratingsUser');
     } catch (err) {
       console.error(err);
       req.flash('error', 'Unable to confirm delivery');

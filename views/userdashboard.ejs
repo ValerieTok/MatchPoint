@@ -56,8 +56,7 @@
             <select class="sort__btn" name="sort">
               <option value="" <%= !filters?.sort ? 'selected' : '' %>>All</option>
               <option value="upcoming" <%= filters?.sort === 'upcoming' ? 'selected' : '' %>>Upcoming</option>
-              <option value="pending" <%= filters?.sort === 'pending' ? 'selected' : '' %>>Pending</option>
-              <option value="rejected" <%= filters?.sort === 'rejected' ? 'selected' : '' %>>Rejected</option>
+              <option value="completed" <%= filters?.sort === 'completed' ? 'selected' : '' %>>Completed</option>
             </select>
           </div>
         </form>
