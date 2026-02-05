@@ -86,6 +86,13 @@
             const priceLabel = typeof p.price !== 'undefined' && p.price !== null
               ? '$' + Number(p.price).toFixed(2)
               : null;
+            const slotSummary = p.slot_summary || null;
+            const slotLabel = slotSummary
+              ? `${slotSummary.available} available${typeof slotSummary.total === 'number' ? ` / ${slotSummary.total} total` : ''}`
+              : 'Manage in Update Listing';
+            const nextSlotLabel = slotSummary && slotSummary.next
+              ? `Next: ${slotSummary.next.slot_date} ${slotSummary.next.slot_time}`
+              : null;
           %>
             <div class="listing-card">
               <div class="listing-card__media">
@@ -117,12 +124,16 @@
                   <% if (p.session_location) { %>
                     <span class="tag tag--neutral"><%= p.session_location %></span>
                   <% } %>
+                  <span class="tag tag--neutral">Slots: <%= slotLabel %></span>
+                  <% if (nextSlotLabel) { %>
+                    <span class="tag tag--neutral"><%= nextSlotLabel %></span>
+                  <% } %>
                   <span class="tag <%= isActive ? 'tag--active' : 'tag--inactive' %>">
-                    <%= isActive ? 'Active' : 'Hidden' %>
+                    <%= isActive ? 'Active' : 'Inactive' %>
                   </span>
                 </div>
                 <div class="listing-card__actions">
-                  <a class="action action--primary" href="/updateListing/<%= p.id %>">Edit</a>
+                  <a class="action action--primary" href="/updateListing/<%= p.id %>">Update Listing</a>
                   <form method="post" action="/listingsManage/delete/<%= p.id %>" onsubmit="return confirm('Delete this listing?')">
                     <button class="action action--danger" type="submit">Delete</button>
                   </form>

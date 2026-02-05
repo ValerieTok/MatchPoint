@@ -31,7 +31,7 @@ const ListingController = {
     }
 
     try {
-      const products = await new Promise((resolve, reject) => {
+      let products = await new Promise((resolve, reject) => {
         let fetcher;
         if (view === 'viewcourses') {
           fetcher = (cb) => {
@@ -60,6 +60,9 @@ const ListingController = {
       let sessions = [];
       let profilePhoto = null;
       let favoritesMap = new Map();
+      if (view === 'viewcourses') {
+        products = (products || []).filter((row) => Number(row.is_active) === 1);
+      }
       const sortFavoritesFirst = (items) =>
         (items || []).sort((a, b) => {
           const aFav = a && a.isFavorited ? 1 : 0;
@@ -199,9 +202,59 @@ const ListingController = {
         profilePhoto = profile && profile.photo ? profile.photo : null;
       }
 
+      const formatDate = (value) => {
+        if (!value) return null;
+        if (value instanceof Date && !Number.isNaN(value.getTime())) {
+          return value.toISOString().slice(0, 10);
+        }
+        const text = String(value);
+        const dateMatch = text.match(/^(\d{4}-\d{2}-\d{2})/);
+        return dateMatch ? dateMatch[1] : text;
+      };
+      const formatTime = (value) => {
+        if (!value) return null;
+        if (value instanceof Date && !Number.isNaN(value.getTime())) {
+          return value.toISOString().slice(11, 16);
+        }
+        const text = String(value);
+        const timeMatch = text.match(/^(\d{2}:\d{2})/);
+        return timeMatch ? timeMatch[1] : text;
+      };
+      let slotSummaryByListing = new Map();
+      if (view === 'listingsManage') {
+        try {
+          const slotRows = await Slot.getSlotsByCoach(isCoach ? user.id : undefined);
+          slotRows.forEach((slot) => {
+            const listingId = Number(slot.listing_id);
+            if (!Number.isFinite(listingId)) return;
+            const current = slotSummaryByListing.get(listingId) || { available: 0, total: 0, next: null };
+            current.total += 1;
+            if (Number(slot.is_available) === 1) {
+              current.available += 1;
+              const formattedDate = formatDate(slot.slot_date);
+              const formattedTime = formatTime(slot.slot_time);
+              const slotDateTime = formattedDate && formattedTime
+                ? new Date(`${formattedDate}T${formattedTime}`)
+                : null;
+              if (slotDateTime && (!current.next || slotDateTime < current.next.date)) {
+                current.next = {
+                  date: slotDateTime,
+                  slot_date: formattedDate || slot.slot_date,
+                  slot_time: formattedTime || slot.slot_time
+                };
+              }
+            }
+            slotSummaryByListing.set(listingId, current);
+          });
+        } catch (slotErr) {
+          console.error('Failed to load slots for listings manage:', slotErr);
+        }
+      }
+
       let productsWithFav = (products || []).map((row) => ({
         ...row,
-        isFavorited: favoritesMap.has(Number(row.id || row.listing_id))
+        isFavorited: favoritesMap.has(Number(row.id || row.listing_id)),
+        slot_summary: slotSummaryByListing.get(Number(row.id || row.listing_id)) || null
       }));
       productsWithFav = sortFavoritesFirst(productsWithFav);
       return res.render(view, { products: productsWithFav, user, search, upcomingCount, completedCount, sessions, profilePhoto });
@@ -251,7 +304,7 @@ const ListingController = {
       let availableSlots = [];
       if (product && product.id) {
         try {
-          availableSlots = await Slot.getAvailableSlotsByListing(product.id);
+          availableSlots = await Slot.getAvailableSlotsByListingAll(product.id);
         } catch (slotErr) {
           console.error('Failed to load slots:', slotErr);
         }
@@ -281,7 +334,13 @@ const ListingController = {
     }
     const listingTitle = req.body.listing_title ? String(req.body.listing_title).trim() : '';
     const description = req.body.description ? String(req.body.description).trim() : '';
-    const durationMinutes = req.body.duration_minutes ? Number(req.body.duration_minutes) : null;
+    let durationMinutes = req.body.duration_minutes ? Number(req.body.duration_minutes) : null;
+    if (!Number.isFinite(durationMinutes)) {
+      durationMinutes = null;
+    }
+    if (durationMinutes === null) {
+      durationMinutes = 60;
+    }
     const price = req.body.price !== undefined && req.body.price !== ''
       ? Number(req.body.price)
       : null;
@@ -291,10 +350,6 @@ const ListingController = {
     const isActive = isActiveRaw === '0' ? 0 : isActiveRaw === '1' ? 1 : null;
     if (!description) {
       req.flash('error', 'Description is required');
-      return res.redirect('/addListing');
-    }
-    if (!durationMinutes) {
-      req.flash('error', 'Session duration is required');
       return res.redirect('/addListing');
     }
     if (!Number.isFinite(durationMinutes) || durationMinutes <= 0) {
@@ -338,10 +393,98 @@ const ListingController = {
       req.flash('error', 'Coach id required for listing');
       return res.redirect('/addListing');
     }
+    const toMinutes = (timeValue) => {
+      if (!timeValue) return null;
+      const match = String(timeValue).match(/^(\d{1,2}):(\d{2})/);
+      if (!match) return null;
+      const hours = Number(match[1]);
+      const minutes = Number(match[2]);
+      if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return null;
+      return hours * 60 + minutes;
+    };
+    const overlaps = (startA, endA, startB, endB) => startA < endB && endA > startB;
+
     try {
-      await new Promise((resolve, reject) => {
-        Listing.addProduct(product, (err) => (err ? reject(err) : resolve()));
+      const result = await new Promise((resolve, reject) => {
+        Listing.addProduct(product, (err, dbResult) => (err ? reject(err) : resolve(dbResult)));
       });
+      const listingId = result && result.insertId ? Number(result.insertId) : null;
+      const slotDates = req.body && req.body.slot_date ? req.body.slot_date : [];
+      const slotTimes = req.body && req.body.slot_time ? req.body.slot_time : [];
+      const normalizedDates = Array.isArray(slotDates) ? slotDates : [slotDates];
+      const normalizedTimes = Array.isArray(slotTimes) ? slotTimes : [slotTimes];
+
+      if (listingId && normalizedDates.length && normalizedTimes.length) {
+        const total = Math.max(normalizedDates.length, normalizedTimes.length);
+        const groupedNewSlots = new Map();
+        for (let i = 0; i < total; i += 1) {
+          const slotDate = normalizedDates[i] ? String(normalizedDates[i]).trim() : '';
+          const slotTime = normalizedTimes[i] ? String(normalizedTimes[i]).trim() : '';
+          if (!slotDate || !slotTime) continue;
+          const list = groupedNewSlots.get(slotDate) || [];
+          list.push({ slotDate, slotTime });
+          groupedNewSlots.set(slotDate, list);
+        }
+
+        const existingByDate = new Map();
+        for (const [slotDate] of groupedNewSlots.entries()) {
+          try {
+            const rows = await Slot.getSlotsByCoachAndDate(product.coach_id, slotDate);
+            existingByDate.set(slotDate, rows || []);
+          } catch (slotErr) {
+            console.error('Failed to load existing slots for overlap check:', slotErr);
+            existingByDate.set(slotDate, []);
+          }
+        }
+
+        let hadOverlap = false;
+        const pendingCreated = [];
+        for (let i = 0; i < total; i += 1) {
+          const slotDate = normalizedDates[i] ? String(normalizedDates[i]).trim() : '';
+          const slotTime = normalizedTimes[i] ? String(normalizedTimes[i]).trim() : '';
+          if (!slotDate || !slotTime) {
+            continue;
+          }
+          const startMinutes = toMinutes(slotTime);
+          if (startMinutes === null) {
+            continue;
+          }
+          const endMinutes = startMinutes + durationMinutes;
+          const existing = existingByDate.get(slotDate) || [];
+          const existingOverlap = existing.some((row) => {
+            const existingStart = toMinutes(row.slot_time);
+            if (existingStart === null) return false;
+            const existingEnd = existingStart + Number(row.duration_minutes || durationMinutes || 0);
+            return overlaps(startMinutes, endMinutes, existingStart, existingEnd);
+          });
+          const newOverlap = pendingCreated.some((row) => {
+            if (row.slot_date !== slotDate) return false;
+            return overlaps(startMinutes, endMinutes, row.startMinutes, row.endMinutes);
+          });
+          if (existingOverlap || newOverlap) {
+            hadOverlap = true;
+            continue;
+          }
+          try {
+            await Slot.createSlot({
+              coach_id: product.coach_id,
+              listing_id: listingId,
+              slot_date: slotDate,
+              slot_time: slotTime,
+              duration_minutes: durationMinutes,
+              location: product.session_location || null,
+              note: null
+            });
+            pendingCreated.push({ slot_date: slotDate, startMinutes, endMinutes });
+          } catch (slotErr) {
+            console.error('Failed to create slot during listing add:', slotErr);
+          }
+        }
+        if (hadOverlap) {
+          req.flash('error', 'Some slots were skipped because they overlap with existing slots.');
+        }
+      }
+
       req.flash('success', 'Listing added');
     } catch (err) {
       console.error(err);
@@ -367,7 +510,7 @@ const ListingController = {
       }
       let slots = [];
       try {
-        slots = await Slot.getAvailableSlotsByListing(product.id);
+        slots = await Slot.getSlotsByListing(product.id);
       } catch (slotErr) {
         console.error('Failed to load listing slots:', slotErr);
       }
@@ -405,7 +548,13 @@ const ListingController = {
     }
     const listingTitle = req.body.listing_title ? String(req.body.listing_title).trim() : '';
     const description = req.body.description ? String(req.body.description).trim() : '';
-    const durationMinutes = req.body.duration_minutes ? Number(req.body.duration_minutes) : null;
+    let durationMinutes = req.body.duration_minutes ? Number(req.body.duration_minutes) : null;
+    if (!Number.isFinite(durationMinutes)) {
+      durationMinutes = null;
+    }
+    if (durationMinutes === null) {
+      durationMinutes = current.duration_minutes;
+    }
     const price = req.body.price !== undefined && req.body.price !== ''
       ? Number(req.body.price)
       : null;
@@ -415,10 +564,6 @@ const ListingController = {
     const isActive = isActiveRaw === '0' ? 0 : isActiveRaw === '1' ? 1 : null;
     if (!description) {
       req.flash('error', 'Description is required');
-      return res.redirect(`/updateListing/${id}`);
-    }
-    if (!durationMinutes) {
-      req.flash('error', 'Session duration is required');
       return res.redirect(`/updateListing/${id}`);
     }
     if (!Number.isFinite(durationMinutes) || durationMinutes <= 0) {
@@ -503,12 +648,24 @@ const ListingController = {
   async createListingSlot(req, res) {
     const listingId = parseInt(req.params.id, 10);
     const user = req.session && req.session.user;
-    const slotDate = req.body.slot_date ? String(req.body.slot_date).trim() : '';
-    const slotTime = req.body.slot_time ? String(req.body.slot_time).trim() : '';
+    const body = req.body || {};
+    const slotDate = body.slot_date ? String(body.slot_date).trim() : '';
+    const slotTime = body.slot_time ? String(body.slot_time).trim() : '';
     if (!Number.isFinite(listingId) || !slotDate || !slotTime) {
       req.flash('error', 'Please choose date and time.');
       return res.redirect(`/updateListing/${listingId}`);
     }
+    const toMinutes = (timeValue) => {
+      if (!timeValue) return null;
+      const match = String(timeValue).match(/^(\d{1,2}):(\d{2})/);
+      if (!match) return null;
+      const hours = Number(match[1]);
+      const minutes = Number(match[2]);
+      if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return null;
+      return hours * 60 + minutes;
+    };
+    const overlaps = (startA, endA, startB, endB) => startA < endB && endA > startB;
+
     try {
       const product = await new Promise((resolve, reject) => {
         Listing.getProductById(listingId, (err, row) => (err ? reject(err) : resolve(row)));
@@ -530,6 +687,23 @@ const ListingController = {
       const totalMinutes = parseInt(timeMatch[1], 10) * 60 + parseInt(timeMatch[2], 10);
       if (Number.isNaN(totalMinutes) || totalMinutes % duration !== 0) {
         req.flash('error', `Slots must align to ${duration}-minute intervals.`);
+        return res.redirect(`/updateListing/${listingId}`);
+      }
+      const newStart = toMinutes(slotTime);
+      const newEnd = newStart !== null ? newStart + duration : null;
+      if (newStart === null || newEnd === null) {
+        req.flash('error', 'Invalid slot time.');
+        return res.redirect(`/updateListing/${listingId}`);
+      }
+      const existingSlots = await Slot.getSlotsByCoachAndDate(product.coach_id, slotDate);
+      const hasOverlap = (existingSlots || []).some((row) => {
+        const existingStart = toMinutes(row.slot_time);
+        if (existingStart === null) return false;
+        const existingEnd = existingStart + Number(row.duration_minutes || duration);
+        return overlaps(newStart, newEnd, existingStart, existingEnd);
+      });
+      if (hasOverlap) {
+        req.flash('error', 'Slot overlaps with an existing slot.');
         return res.redirect(`/updateListing/${listingId}`);
       }
       await Slot.createSlot({

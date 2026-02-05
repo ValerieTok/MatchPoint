@@ -299,7 +299,7 @@ app.get('/updateListing/:id', checkAuthenticated, checkCoachApproved, checkAdmin
 app.post('/addListing', checkAuthenticated, checkCoachApproved, checkAdminOrCoach, upload.single('image'), (req, res) => ListingController.addProduct(req, res, req.file));
 app.post('/updateListing/:id', checkAuthenticated, checkCoachApproved, checkAdminOrCoach, upload.single('image'), (req, res) => ListingController.updateProduct(req, res, req.file));
 app.post('/listingsManage/delete/:id', checkAuthenticated, checkCoachApproved, checkAdminOrCoach, ListingController.deleteProduct);
-app.post('/updateListing/:id/slots', checkAuthenticated, checkCoachApproved, checkAdminOrCoach, ListingController.createListingSlot);
+app.post('/updateListing/:id/slots', checkAuthenticated, checkCoachApproved, checkAdminOrCoach, upload.none(), ListingController.createListingSlot);
 app.post('/updateListing/:id/slots/:slotId/delete', checkAuthenticated, checkCoachApproved, checkAdminOrCoach, ListingController.deleteListingSlot);
 
 // Booking cart
