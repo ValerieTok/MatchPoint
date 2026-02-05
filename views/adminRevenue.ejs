@@ -29,22 +29,46 @@
       <div class="stat">
         <div class="stat__icon"><i class="fa-solid fa-sack-dollar"></i></div>
         <div>
-          <div class="stat__label">Gross Revenue</div>
+          <div class="stat__label">All-Time Gross Revenue</div>
           <div class="stat__value">$<%= Number(totals?.grossRevenue || 0).toFixed(2) %></div>
         </div>
       </div>
       <div class="stat stat--active">
         <div class="stat__icon"><i class="fa-solid fa-percent"></i></div>
         <div>
-          <div class="stat__label">Platform Fee (10%)</div>
+          <div class="stat__label">All-Time Platform Fee (10%)</div>
           <div class="stat__value">$<%= Number(totals?.adminRevenue || 0).toFixed(2) %></div>
         </div>
       </div>
       <div class="stat">
         <div class="stat__icon"><i class="fa-solid fa-hand-holding-dollar"></i></div>
         <div>
-          <div class="stat__label">Coach Earnings (90%)</div>
+          <div class="stat__label">All-Time Coach Earnings (90%)</div>
           <div class="stat__value">$<%= Number(totals?.coachRevenue || 0).toFixed(2) %></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="stats">
+      <div class="stat">
+        <div class="stat__icon"><i class="fa-solid fa-sack-dollar"></i></div>
+        <div>
+          <div class="stat__label">Month <%= reportMonth %> Gross Revenue</div>
+          <div class="stat__value">$<%= Number(monthTotals?.grossRevenue || 0).toFixed(2) %></div>
+        </div>
+      </div>
+      <div class="stat stat--active">
+        <div class="stat__icon"><i class="fa-solid fa-percent"></i></div>
+        <div>
+          <div class="stat__label">Month <%= reportMonth %> Platform Fee (10%)</div>
+          <div class="stat__value">$<%= Number(monthTotals?.adminRevenue || 0).toFixed(2) %></div>
+        </div>
+      </div>
+      <div class="stat">
+        <div class="stat__icon"><i class="fa-solid fa-hand-holding-dollar"></i></div>
+        <div>
+          <div class="stat__label">Month <%= reportMonth %> Coach Earnings (90%)</div>
+          <div class="stat__value">$<%= Number(monthTotals?.coachRevenue || 0).toFixed(2) %></div>
         </div>
       </div>
     </section>
@@ -53,8 +77,8 @@
       <div class="section__head">
         <div class="section__title">Monthly Sales Report</div>
         <div class="section__actions">
-          <form method="get" action="/adminRevenue" style="display: inline-flex; gap: 0.5rem; align-items: center;">
-            <input type="month" name="month" value="<%= reportMonth %>" class="form-control" style="max-width: 180px;">
+          <form id="revenueFilterForm" method="get" action="/adminRevenue" style="display: inline-flex; gap: 0.5rem; align-items: center;">
+            <input id="revenueMonth" type="month" name="month" value="<%= reportMonth %>" class="form-control" style="max-width: 180px;">
             <button class="btn btn--ghost" type="submit">Filter</button>
           </form>
           <a class="btn btn--primary" href="/adminRevenue/report?month=<%= encodeURIComponent(reportMonth) %>">
@@ -119,12 +143,16 @@
       <div class="section__body">
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem;">
           <div class="card" style="padding: 1rem;">
-            <h4 style="margin: 0 0 1rem 0;">Revenue Over Time</h4>
+            <h4 style="margin: 0 0 1rem 0;">Revenue by Month (Last 6 Months)</h4>
             <canvas id="revenueOverTime" height="160"></canvas>
           </div>
           <div class="card" style="padding: 1rem;">
             <h4 style="margin: 0 0 1rem 0;">Revenue by Sport</h4>
             <canvas id="revenueBySport" height="160"></canvas>
+          </div>
+          <div class="card" style="padding: 1rem;">
+            <h4 style="margin: 0 0 1rem 0;">Revenue by Coach</h4>
+            <canvas id="revenueByCoach" height="160"></canvas>
           </div>
         </div>
       </div>
@@ -136,8 +164,17 @@
   extraScripts: `
     <script>
       const chartData = ${JSON.stringify(charts || {})};
-      const hasTimeSeries = Array.isArray(chartData.labels) && chartData.labels.length;
+      const hasTimeSeries = Array.isArray(chartData.monthLabels) && chartData.monthLabels.length;
       const hasSport = Array.isArray(chartData.sportLabels) && chartData.sportLabels.length;
+      const hasCoach = Array.isArray(chartData.coachLabels) && chartData.coachLabels.length;
+      const monthInput = document.getElementById('revenueMonth');
+      const monthForm = document.getElementById('revenueFilterForm');
+
+      if (monthInput && monthForm) {
+        monthInput.addEventListener('change', () => {
+          monthForm.submit();
+        });
+      }
 
       if (hasTimeSeries) {
         const ctx = document.getElementById('revenueOverTime');
@@ -145,32 +182,16 @@
           new Chart(ctx, {
             type: 'line',
             data: {
-              labels: chartData.labels,
-              datasets: [
-                {
-                  label: 'Gross',
-                  data: chartData.gross || [],
-                  borderColor: '#0f172a',
-                  backgroundColor: 'rgba(15, 23, 42, 0.12)',
-                  tension: 0.3,
-                  fill: false
-                },
-                {
-                  label: 'Admin Fee (10%)',
-                  data: chartData.adminFee || [],
-                  borderColor: '#f97316',
-                  backgroundColor: 'rgba(249, 115, 22, 0.15)',
-                  tension: 0.3,
-                  fill: false
-                },
-                {
-                  label: 'Coach Net (90%)',
-                  data: chartData.coachNet || [],
-                  borderColor: '#16a34a',
-                  backgroundColor: 'rgba(22, 163, 74, 0.15)',
-                  tension: 0.3,
-                  fill: false
-                }
+                labels: chartData.monthLabels,
+                datasets: [
+                  {
+                    label: 'Gross',
+                    data: chartData.monthGross || [],
+                    borderColor: '#0f172a',
+                    backgroundColor: 'rgba(15, 23, 42, 0.12)',
+                    tension: 0.3,
+                    fill: false
+                  }
               ]
             },
             options: {
@@ -194,14 +215,38 @@
         const ctx = document.getElementById('revenueBySport');
         if (ctx) {
           new Chart(ctx, {
-            type: 'bar',
+            type: 'pie',
             data: {
               labels: chartData.sportLabels,
               datasets: [
                 {
                   label: 'Gross',
                   data: chartData.sportGross || [],
-                  backgroundColor: '#2563eb'
+                  backgroundColor: ['#2563eb', '#f97316', '#16a34a', '#dc2626', '#0f172a', '#14b8a6', '#eab308', '#9333ea', '#3b82f6', '#6b7280']
+                }
+              ]
+            },
+            options: {
+              plugins: {
+                legend: { position: 'bottom' }
+              }
+            }
+          });
+        }
+      }
+
+      if (hasCoach) {
+        const ctx = document.getElementById('revenueByCoach');
+        if (ctx) {
+          new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: chartData.coachLabels,
+              datasets: [
+                {
+                  label: 'Gross',
+                  data: chartData.coachGross || [],
+                  backgroundColor: '#0f172a'
                 }
               ]
             },

@@ -62,6 +62,18 @@ const ListingController = {
       let favoritesMap = new Map();
       if (view === 'viewcourses') {
         products = (products || []).filter((row) => Number(row.is_active) === 1);
+        try {
+          const listingIds = (products || []).map((row) => Number(row.id || row.listing_id)).filter(Number.isFinite);
+          if (listingIds.length) {
+            const availableRows = await Slot.getAvailableListingIds(listingIds);
+            const availableSet = new Set((availableRows || []).map((row) => Number(row.listing_id)));
+            products = (products || []).filter((row) => availableSet.has(Number(row.id || row.listing_id)));
+          } else {
+            products = [];
+          }
+        } catch (slotErr) {
+          console.error('Failed to filter courses by available slots:', slotErr);
+        }
       }
       const sortFavoritesFirst = (items) =>
         (items || []).sort((a, b) => {

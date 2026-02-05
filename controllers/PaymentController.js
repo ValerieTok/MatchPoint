@@ -6,6 +6,7 @@ const Slot = require('../models/Slot');
 const paypal = require('../services/paypal');
 const { clampWalletDeduction } = require('../services/walletLogic');
 const stripe = require('../services/stripe');
+const aml = require('../services/aml');
 
 const SERVICE_FEE = 2.5;
 
@@ -97,6 +98,16 @@ const finalizeBookingPaymentData = async (req, paymentMethod) => {
 
   const baseTotal = Number((Number(total || 0) + SERVICE_FEE).toFixed(2));
   const amountDue = Number(Math.max(0, baseTotal - walletDeduction).toFixed(2));
+
+  await aml.maybeFlagHighValue({
+    user_id: userId,
+    alert_type: 'booking',
+    reference_type: 'booking',
+    reference_id: orderId,
+    amount: amountDue,
+    currency: 'SGD',
+    reason: `Booking payment ${paymentMethod || 'unknown'}`
+  });
 
   return {
     cart,

@@ -2,6 +2,7 @@ const Payout = require('../models/Payout');
 const Revenue = require('../models/Revenue');
 const paypalPayouts = require('../services/paypalPayouts');
 const Account = require('../models/Account');
+const aml = require('../services/aml');
 
 const getCoachBalance = (coachId) =>
   new Promise((resolve, reject) => {
@@ -29,6 +30,11 @@ module.exports = {
       return res.redirect('/trackRevenue');
     }
     try {
+      const capCheck = await aml.enforceNewAccountCap(user.id, 'payout', amount);
+      if (!capCheck.ok) {
+        req.flash('error', `New accounts are limited to $${Number(capCheck.cap).toFixed(2)} payouts.`);
+        return res.redirect('/trackRevenue');
+      }
       const coach = await new Promise((resolve, reject) => {
         Account.getUserById(user.id, (err, row) => (err ? reject(err) : resolve(row)));
       });
@@ -42,13 +48,22 @@ module.exports = {
         req.flash('error', 'Payout amount exceeds available balance.');
         return res.redirect('/trackRevenue');
       }
-      await new Promise((resolve, reject) => {
+      const requestResult = await new Promise((resolve, reject) => {
         Payout.createRequest({
           coach_id: user.id,
           amount,
           currency: 'SGD',
           paypal_email: paypalEmail
-        }, (err) => (err ? reject(err) : resolve()));
+        }, (err, result) => (err ? reject(err) : resolve(result)));
+      });
+      await aml.maybeFlagHighValue({
+        user_id: user.id,
+        alert_type: 'payout',
+        reference_type: 'payout_request',
+        reference_id: requestResult && requestResult.insertId ? requestResult.insertId : null,
+        amount,
+        currency: 'SGD',
+        reason: 'Payout request'
       });
       req.flash('success', 'Payout request submitted.');
       return res.redirect('/trackRevenue');

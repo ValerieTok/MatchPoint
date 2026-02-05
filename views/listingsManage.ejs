@@ -7,7 +7,11 @@
 }) %>
 
 <% const totalListings = products ? products.length : 0; %>
-<% const activeListings = (products || []).filter(p => typeof p.is_active === 'undefined' || p.is_active).length; %>
+<% const activeListings = (products || []).filter(p => { %>
+<%   const isActive = typeof p.is_active === 'undefined' || p.is_active; %>
+<%   const hasSlots = typeof p.slot_summary !== 'undefined' ? Number(p.slot_summary?.available || 0) > 0 : true; %>
+<%   return isActive && hasSlots; %>
+<% }).length; %>
 <% const hiddenListings = totalListings - activeListings; %>
 
 <div class="app">
@@ -82,7 +86,9 @@
             const durationLabel = p.duration_minutes ? p.duration_minutes + ' mins' : null;
             const levelLabel = p.skill_level ? p.skill_level.toUpperCase() : null;
             const imageSrc = p.image || 'placeholder.png';
-            const isActive = typeof p.is_active !== 'undefined' ? p.is_active : true;
+              const isActive = typeof p.is_active !== 'undefined' ? p.is_active : true;
+              const hasSlots = typeof p.slot_summary !== 'undefined' ? Number(p.slot_summary?.available || 0) > 0 : true;
+              const effectiveActive = isActive && hasSlots;
             const priceLabel = typeof p.price !== 'undefined' && p.price !== null
               ? '$' + Number(p.price).toFixed(2)
               : null;
@@ -128,9 +134,9 @@
                   <% if (nextSlotLabel) { %>
                     <span class="tag tag--neutral"><%= nextSlotLabel %></span>
                   <% } %>
-                  <span class="tag <%= isActive ? 'tag--active' : 'tag--inactive' %>">
-                    <%= isActive ? 'Active' : 'Inactive' %>
-                  </span>
+                    <span class="tag <%= effectiveActive ? 'tag--active' : 'tag--inactive' %>">
+                      <%= effectiveActive ? 'Active' : 'Inactive' %>
+                    </span>
                 </div>
                 <div class="listing-card__actions">
                   <a class="action action--primary" href="/updateListing/<%= p.id %>">Update Listing</a>

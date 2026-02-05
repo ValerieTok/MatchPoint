@@ -25,6 +25,22 @@ const Wallet = {
     `;
     db.query(sql, [userId, capped], (err, rows) => callback(err, rows || []));
   },
+  getTopUpTotalSince(userId, days, callback) {
+    const span = Number.isFinite(Number(days)) ? Number(days) : 7;
+    const sql = `
+      SELECT COALESCE(SUM(amount), 0) AS total
+      FROM wallet_transactions
+      WHERE user_id = ?
+        AND type = 'TOPUP'
+        AND status = 'completed'
+        AND created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+    `;
+    db.query(sql, [userId, span], (err, rows) => {
+      if (err) return callback(err);
+      const row = rows && rows[0] ? rows[0] : {};
+      return callback(null, Number(row.total || 0));
+    });
+  },
   getBookingWalletDeduction(orderId, callback) {
     const sql = `
       SELECT COALESCE(ABS(SUM(amount)), 0) AS deduction

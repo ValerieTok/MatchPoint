@@ -102,23 +102,24 @@
                   <th>User</th>
                   <th>Action</th>
                   <th>Time</th>
-                  <th>Status</th>
                 </tr>
-              </thead>
+                </thead>
               <tbody>
                 <% if (!rows.length) { %>
                   <tr>
-                    <td colspan="4">No recent activity yet.</td>
+                    <td colspan="3">No recent activity yet.</td>
                   </tr>
                 <% } else { %>
                   <% rows.forEach(row => { %>
-                    <tr>
+                    <tr class="<%= row.isImportant ? 'is-important' : '' %>">
                       <td><%= row.user %></td>
-                      <td><%= row.action %></td>
-                      <td><%= row.time %></td>
                       <td>
-                        <span class="pill pill--<%= row.status %>"><%= row.status.toUpperCase() %></span>
+                        <div><%= row.action %></div>
+                        <% if (row.detail) { %>
+                          <div class="cell-sub"><%= row.detail %></div>
+                        <% } %>
                       </td>
+                      <td><%= row.time %></td>
                     </tr>
                   <% }) %>
                 <% } %>

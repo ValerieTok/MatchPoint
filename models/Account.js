@@ -21,6 +21,13 @@ module.exports = {
     });
   },
 
+  getUserCreatedAt: function (id, callback) {
+    const sql = 'SELECT id, created_at FROM users WHERE id = ? LIMIT 1';
+    db.query(sql, [id], function (err, results) {
+      return callback(err, results && results[0] ? results[0] : null);
+    });
+  },
+
   getUserByEmail: function (email, callback) {
     const sql = 'SELECT id, username, full_name, email, password, contact, role, coach_status, payout_email, is_2fa_enabled, twofactor_secret, coach_cert_title, coach_cert_file FROM users WHERE email = ? LIMIT 1';
     db.query(sql, [email], function (err, results) {

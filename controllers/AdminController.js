@@ -49,13 +49,14 @@ const AdminController = {
         })
       ]);
 
-      const activityWithTime = (activityResult.rows || []).map((row) => ({
-        user: row.user,
-        action: row.action,
-        status: row.status,
-        time: formatTimeAgo(row.event_time),
-        eventTime: row.event_time
-      }));
+        const activityWithTime = (activityResult.rows || []).map((row) => ({
+          user: row.user,
+          action: row.action,
+          time: formatTimeAgo(row.event_time),
+          eventTime: row.event_time,
+          isImportant: Boolean(row.is_important),
+          detail: row.detail
+        }));
       const totalActivities = Number(activityResult.total || 0);
       const totalPages = Math.max(1, Math.ceil(totalActivities / perPage));
 

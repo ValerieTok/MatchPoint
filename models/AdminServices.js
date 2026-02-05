@@ -37,16 +37,22 @@ const AdminServices = {
 
     const dataSql = `
       SELECT
-        id,
-        listing_title,
-        sport,
-        duration_minutes,
-        price,
-        is_active,
-        created_at
-      FROM coach_listings
+        l.id,
+        l.listing_title,
+        l.sport,
+        l.duration_minutes,
+        l.price,
+        l.is_active,
+        l.created_at,
+        COALESCE(SUM(CASE WHEN cs.id IS NOT NULL THEN 1 ELSE 0 END), 0) AS available_slots
+      FROM coach_listings l
+      LEFT JOIN coach_slots cs
+        ON cs.listing_id = l.id
+        AND cs.is_available = 1
+        AND cs.slot_date >= CURDATE()
       ${where}
-      ORDER BY created_at ${sortOrder}, id ${sortOrder}
+      GROUP BY l.id, l.listing_title, l.sport, l.duration_minutes, l.price, l.is_active, l.created_at
+      ORDER BY l.created_at ${sortOrder}, l.id ${sortOrder}
       LIMIT ? OFFSET ?
     `;
 

@@ -42,43 +42,56 @@ module.exports = {
         console.error('Failed to load admin revenue totals', err);
         totals = { grossRevenue: 0, adminRevenue: 0, coachRevenue: 0 };
       }
-      return AdminRevenue.getMonthlyReport(monthKey, (repErr, rows) => {
-        if (repErr) {
-          console.error('Failed to load monthly report', repErr);
-          rows = [];
+      return AdminRevenue.getMonthlyTotals(monthKey, (monthErr, monthTotals) => {
+        if (monthErr) {
+          console.error('Failed to load monthly totals', monthErr);
+          monthTotals = { grossRevenue: 0, adminRevenue: 0, coachRevenue: 0 };
         }
-        return AdminRevenue.getMonthlyRevenueSeries(monthKey, (seriesErr, seriesRows) => {
-          if (seriesErr) {
-            console.error('Failed to load revenue series', seriesErr);
-            seriesRows = [];
+        return AdminRevenue.getMonthlyReport(monthKey, (repErr, rows) => {
+          if (repErr) {
+            console.error('Failed to load monthly report', repErr);
+            rows = [];
           }
-          return AdminRevenue.getRevenueBySport(monthKey, (sportErr, sportRows) => {
-            if (sportErr) {
-              console.error('Failed to load revenue by sport', sportErr);
-              sportRows = [];
+          return AdminRevenue.getRecentMonthlyRevenueSeries(monthKey, (seriesErr, seriesRows) => {
+            if (seriesErr) {
+              console.error('Failed to load revenue series', seriesErr);
+              seriesRows = [];
             }
-            const labels = (seriesRows || []).map((row) => row.period);
-            const gross = (seriesRows || []).map((row) => Number(row.gross_amount || 0));
-            const adminFee = gross.map((val) => Number((val * 0.1).toFixed(2)));
-            const coachNet = gross.map((val) => Number((val * 0.9).toFixed(2)));
-            const sportLabels = (sportRows || []).map((row) => row.sport_label);
-            const sportGross = (sportRows || []).map((row) => Number(row.gross_amount || 0));
+            return AdminRevenue.getRevenueBySport(monthKey, (sportErr, sportRows) => {
+              if (sportErr) {
+                console.error('Failed to load revenue by sport', sportErr);
+                sportRows = [];
+              }
+              return AdminRevenue.getRevenueByCoach(monthKey, (coachErr, coachRows) => {
+                if (coachErr) {
+                  console.error('Failed to load revenue by coach', coachErr);
+                  coachRows = [];
+                }
+                const monthLabels = (seriesRows || []).map((row) => row.period);
+                const monthGross = (seriesRows || []).map((row) => Number(row.gross_amount || 0));
+                const sportLabels = (sportRows || []).map((row) => row.sport_label);
+                const sportGross = (sportRows || []).map((row) => Number(row.gross_amount || 0));
+                const coachLabels = (coachRows || []).map((row) => row.coach_label);
+                const coachGross = (coachRows || []).map((row) => Number(row.gross_amount || 0));
 
-            return res.render('adminRevenue', {
-              user: req.session.user,
-              totals,
-              reportMonth: monthKey,
-              reportRows: rows || [],
-              charts: {
-                labels,
-                gross,
-                adminFee,
-                coachNet,
-                sportLabels,
-                sportGross
-              },
-              messages: res.locals.messages,
-              active: 'revenue'
+                return res.render('adminRevenue', {
+                  user: req.session.user,
+                  totals,
+                  monthTotals,
+                  reportMonth: monthKey,
+                  reportRows: rows || [],
+                  charts: {
+                    monthLabels,
+                    monthGross,
+                    sportLabels,
+                    sportGross,
+                    coachLabels,
+                    coachGross
+                  },
+                  messages: res.locals.messages,
+                  active: 'revenue'
+                });
+              });
             });
           });
         });
@@ -93,10 +106,62 @@ module.exports = {
         req.flash('error', 'Unable to generate report.');
         return res.redirect(`/adminRevenue?month=${encodeURIComponent(monthKey)}`);
       }
-      const csv = buildCsv(rows || []);
-      res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Content-Disposition', `attachment; filename="sales-report-${monthKey}.csv"`);
-      return res.send(csv);
+      return AdminRevenue.getTotals((totalsErr, totals) => {
+        if (totalsErr) {
+          console.error('Failed to load admin revenue totals', totalsErr);
+          totals = { grossRevenue: 0, adminRevenue: 0, coachRevenue: 0 };
+        }
+        return AdminRevenue.getMonthlyTotals(monthKey, (monthErr, monthTotals) => {
+          if (monthErr) {
+            console.error('Failed to load monthly totals', monthErr);
+            monthTotals = { grossRevenue: 0, adminRevenue: 0, coachRevenue: 0 };
+          }
+          return AdminRevenue.getRevenueBySport(monthKey, (sportErr, sportRows) => {
+            if (sportErr) {
+              console.error('Failed to load revenue by sport', sportErr);
+              sportRows = [];
+            }
+            return AdminRevenue.getRevenueByCoach(monthKey, (coachErr, coachRows) => {
+              if (coachErr) {
+                console.error('Failed to load revenue by coach', coachErr);
+                coachRows = [];
+              }
+              const lines = [];
+              lines.push(`Report Month,${monthKey}`);
+              lines.push('');
+              lines.push('All-Time Totals');
+              lines.push(`Gross,${Number(totals.grossRevenue || 0).toFixed(2)}`);
+              lines.push(`Platform Fee (10%),${Number(totals.adminRevenue || 0).toFixed(2)}`);
+              lines.push(`Coach Earnings (90%),${Number(totals.coachRevenue || 0).toFixed(2)}`);
+              lines.push('');
+              lines.push(`Month ${monthKey} Totals`);
+              lines.push(`Gross,${Number(monthTotals.grossRevenue || 0).toFixed(2)}`);
+              lines.push(`Platform Fee (10%),${Number(monthTotals.adminRevenue || 0).toFixed(2)}`);
+              lines.push(`Coach Earnings (90%),${Number(monthTotals.coachRevenue || 0).toFixed(2)}`);
+              lines.push('');
+              lines.push('Revenue by Sport');
+              lines.push('sport,gross_amount');
+              (sportRows || []).forEach((row) => {
+                lines.push(`${row.sport_label || 'Unknown'},${Number(row.gross_amount || 0).toFixed(2)}`);
+              });
+              lines.push('');
+              lines.push('Revenue by Coach');
+              lines.push('coach,gross_amount');
+              (coachRows || []).forEach((row) => {
+                lines.push(`${row.coach_label || 'Unknown'},${Number(row.gross_amount || 0).toFixed(2)}`);
+              });
+              lines.push('');
+              lines.push('Monthly Sales Report');
+              lines.push(buildCsv(rows || []));
+
+              const csv = lines.join('\n');
+              res.setHeader('Content-Type', 'text/csv');
+              res.setHeader('Content-Disposition', `attachment; filename="sales-report-${monthKey}.csv"`);
+              return res.send(csv);
+            });
+          });
+        });
+      });
     });
   },
 
@@ -112,7 +177,7 @@ module.exports = {
 
       const loadCharts = () =>
         new Promise((resolve) => {
-          AdminRevenue.getMonthlyRevenueSeries(monthKey, (seriesErr, seriesRows) => {
+          AdminRevenue.getRecentMonthlyRevenueSeries(monthKey, (seriesErr, seriesRows) => {
             if (seriesErr) {
               console.error('Failed to load revenue series for PDF', seriesErr);
               seriesRows = [];
@@ -124,11 +189,35 @@ module.exports = {
               }
               const labels = (seriesRows || []).map((row) => row.period);
               const gross = (seriesRows || []).map((row) => Number(row.gross_amount || 0));
-              const adminFee = gross.map((val) => Number((val * 0.1).toFixed(2)));
-              const coachNet = gross.map((val) => Number((val * 0.9).toFixed(2)));
               const sportLabels = (sportRows || []).map((row) => row.sport_label);
               const sportGross = (sportRows || []).map((row) => Number(row.gross_amount || 0));
-              return resolve({ labels, gross, adminFee, coachNet, sportLabels, sportGross });
+              return resolve({ labels, gross, sportLabels, sportGross });
+            });
+          });
+        });
+      const loadCoachBreakdown = () =>
+        new Promise((resolve) => {
+          AdminRevenue.getRevenueByCoach(monthKey, (coachErr, coachRows) => {
+            if (coachErr) {
+              console.error('Failed to load coach series for PDF', coachErr);
+              coachRows = [];
+            }
+            return resolve(coachRows || []);
+          });
+        });
+      const loadTotals = () =>
+        new Promise((resolve) => {
+          AdminRevenue.getTotals((totalsErr, totals) => {
+            if (totalsErr) {
+              console.error('Failed to load totals for PDF', totalsErr);
+              totals = { grossRevenue: 0, adminRevenue: 0, coachRevenue: 0 };
+            }
+            AdminRevenue.getMonthlyTotals(monthKey, (monthErr, monthTotals) => {
+              if (monthErr) {
+                console.error('Failed to load monthly totals for PDF', monthErr);
+                monthTotals = { grossRevenue: 0, adminRevenue: 0, coachRevenue: 0 };
+              }
+              resolve({ totals, monthTotals });
             });
           });
         });
@@ -140,9 +229,7 @@ module.exports = {
           data: {
             labels: chartData.labels,
             datasets: [
-              { label: 'Gross', data: chartData.gross, borderColor: '#0f172a', tension: 0.3, fill: false },
-              { label: 'Admin Fee', data: chartData.adminFee, borderColor: '#f97316', tension: 0.3, fill: false },
-              { label: 'Coach Net', data: chartData.coachNet, borderColor: '#16a34a', tension: 0.3, fill: false }
+              { label: 'Gross', data: chartData.gross, borderColor: '#0f172a', tension: 0.3, fill: false }
             ]
           },
           options: {
@@ -151,10 +238,26 @@ module.exports = {
           }
         };
         const sportConfig = {
-          type: 'bar',
+          type: 'pie',
           data: {
             labels: chartData.sportLabels,
-            datasets: [{ label: 'Gross', data: chartData.sportGross, backgroundColor: '#2563eb' }]
+            datasets: [
+              {
+                label: 'Gross',
+                data: chartData.sportGross,
+                backgroundColor: ['#2563eb', '#f97316', '#16a34a', '#dc2626', '#0f172a', '#14b8a6', '#eab308', '#9333ea', '#3b82f6', '#6b7280']
+              }
+            ]
+          },
+          options: {
+            plugins: { legend: { position: 'bottom' } }
+          }
+        };
+        const coachConfig = {
+          type: 'bar',
+          data: {
+            labels: chartData.coachLabels,
+            datasets: [{ label: 'Gross', data: chartData.coachGross, backgroundColor: '#0f172a' }]
           },
           options: {
             indexAxis: 'y',
@@ -164,11 +267,17 @@ module.exports = {
         };
         const timeUrl = `https://quickchart.io/chart?width=720&height=320&format=png&c=${encodeURIComponent(JSON.stringify(timeConfig))}`;
         const sportUrl = `https://quickchart.io/chart?width=720&height=320&format=png&c=${encodeURIComponent(JSON.stringify(sportConfig))}`;
-        const [timeRes, sportRes] = await Promise.all([
+        const coachUrl = `https://quickchart.io/chart?width=720&height=320&format=png&c=${encodeURIComponent(JSON.stringify(coachConfig))}`;
+        const [timeRes, sportRes, coachRes] = await Promise.all([
           axios.get(timeUrl, { responseType: 'arraybuffer' }),
-          axios.get(sportUrl, { responseType: 'arraybuffer' })
+          axios.get(sportUrl, { responseType: 'arraybuffer' }),
+          axios.get(coachUrl, { responseType: 'arraybuffer' })
         ]);
-        return { timeSeries: Buffer.from(timeRes.data), bySport: Buffer.from(sportRes.data) };
+        return {
+          timeSeries: Buffer.from(timeRes.data),
+          bySport: Buffer.from(sportRes.data),
+          byCoach: Buffer.from(coachRes.data)
+        };
       };
 
       res.setHeader('Content-Type', 'application/pdf');
@@ -182,13 +291,56 @@ module.exports = {
       doc.fontSize(10).fillColor('#555').text(`Generated: ${new Date().toLocaleString('en-SG')}`);
       doc.moveDown();
 
-      renderCharts()
-        .then(({ timeSeries, bySport }) => {
-          doc.fontSize(12).fillColor('#111').text('Revenue Over Time');
-          doc.image(timeSeries, { width: 520 });
-          doc.moveDown();
+      const chartWidth = 520;
+      const chartHeight = Math.round(chartWidth * (320 / 720));
+      const placeChart = (buffer) => {
+        let x = doc.x;
+        let y = doc.y;
+        const bottomLimit = doc.page.height - doc.page.margins.bottom;
+        if (y + chartHeight > bottomLimit) {
+          doc.addPage();
+          x = doc.x;
+          y = doc.y;
+        }
+        doc.image(buffer, x, y, { width: chartWidth });
+        doc.y = y + chartHeight + 16;
+      };
+
+      Promise.all([renderCharts(), loadCoachBreakdown(), loadTotals()])
+        .then((results) => {
+          const [{ timeSeries, bySport, byCoach }, coachRows, totalsBundle] = results;
+          const totals = totalsBundle.totals || { grossRevenue: 0, adminRevenue: 0, coachRevenue: 0 };
+          const monthTotals = totalsBundle.monthTotals || { grossRevenue: 0, adminRevenue: 0, coachRevenue: 0 };
+          doc.fontSize(12).fillColor('#111').text('Revenue by Month (Last 6 Months)');
+          doc.moveDown(0.5);
+          placeChart(timeSeries);
           doc.fontSize(12).fillColor('#111').text('Revenue by Sport');
-          doc.image(bySport, { width: 520 });
+          doc.moveDown(0.5);
+          placeChart(bySport);
+          doc.fontSize(12).fillColor('#111').text('Revenue by Coach');
+          doc.moveDown(0.5);
+          placeChart(byCoach);
+          doc.moveDown(0.5);
+
+          doc.fontSize(12).fillColor('#111').text('All-Time Totals');
+          doc.fontSize(10).fillColor('#111');
+          doc.text(`Gross: $${Number(totals.grossRevenue || 0).toFixed(2)}`);
+          doc.text(`Platform Fee (10%): $${Number(totals.adminRevenue || 0).toFixed(2)}`);
+          doc.text(`Coach Earnings (90%): $${Number(totals.coachRevenue || 0).toFixed(2)}`);
+          doc.moveDown(0.5);
+          doc.fontSize(12).fillColor('#111').text(`Month ${monthKey} Totals`);
+          doc.fontSize(10).fillColor('#111');
+          doc.text(`Gross: $${Number(monthTotals.grossRevenue || 0).toFixed(2)}`);
+          doc.text(`Platform Fee (10%): $${Number(monthTotals.adminRevenue || 0).toFixed(2)}`);
+          doc.text(`Coach Earnings (90%): $${Number(monthTotals.coachRevenue || 0).toFixed(2)}`);
+          doc.moveDown();
+
+          doc.fontSize(12).fillColor('#111').text('Top Coaches by Gross');
+          doc.moveDown(0.5);
+          const coachRowsSafe = coachRows || [];
+          coachRowsSafe.forEach((row) => {
+            doc.fontSize(10).fillColor('#111').text(`${row.coach_label || 'Unknown'}: $${Number(row.gross_amount || 0).toFixed(2)}`);
+          });
           doc.addPage();
 
           const headers = ['Booking', 'Session', 'Coach', 'Student', 'Gross', 'Fee', 'Coach'];

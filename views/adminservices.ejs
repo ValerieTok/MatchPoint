@@ -85,9 +85,11 @@
                       <td><%= row.sport || row.listing_title || 'Service' %></td>
                       <td><%= row.duration_minutes ? `${row.duration_minutes} minutes` : '-' %></td>
                       <td><%= Number(row.price || 0).toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }) %></td>
+                      <% const hasSlots = Number(row.available_slots || 0) > 0; %>
+                      <% const effectiveActive = row.is_active && hasSlots; %>
                       <td>
-                        <span class="pill pill--<%= row.is_active ? 'active' : 'inactive' %>">
-                          <%= row.is_active ? 'ACTIVE' : 'INACTIVE' %>
+                        <span class="pill pill--<%= effectiveActive ? 'active' : 'inactive' %>">
+                          <%= effectiveActive ? 'ACTIVE' : 'INACTIVE' %>
                         </span>
                       </td>
                       <td class="actions">

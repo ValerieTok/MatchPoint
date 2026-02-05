@@ -1,28 +1,38 @@
 const db = require('../db');
 
 const baseActivitySql = `
-  SELECT u.username AS user, 'Booked session' AS action, b.created_at AS event_time, 'pending' AS status
+  SELECT u.username AS user, 'Booked session' AS action, b.created_at AS event_time, 0 AS is_important, NULL AS detail
   FROM bookings b
   JOIN users u ON u.id = b.user_id
 
   UNION ALL
 
-  SELECT u.username AS user, 'Session completed' AS action, b.completed_at AS event_time, 'completed' AS status
+  SELECT u.username AS user, 'Session completed' AS action, b.completed_at AS event_time, 0 AS is_important, NULL AS detail
   FROM bookings b
   JOIN users u ON u.id = b.user_id
   WHERE b.completed_at IS NOT NULL
 
   UNION ALL
 
-  SELECT u.username AS user, 'Left a coach review' AS action, r.created_at AS event_time, 'review' AS status
+  SELECT u.username AS user, 'Left a coach review' AS action, r.created_at AS event_time, 0 AS is_important, NULL AS detail
   FROM coach_reviews r
   JOIN users u ON u.id = r.user_id
 
   UNION ALL
 
-  SELECT u.username AS user, 'New listing posted' AS action, l.created_at AS event_time, 'info' AS status
+  SELECT u.username AS user, 'New listing posted' AS action, l.created_at AS event_time, 0 AS is_important, NULL AS detail
   FROM coach_listings l
   JOIN users u ON u.id = l.coach_id
+
+  UNION ALL
+
+  SELECT u.username AS user,
+         CONCAT('AML Alert - ', a.alert_type) AS action,
+         a.created_at AS event_time,
+         1 AS is_important,
+         CONCAT('$', a.amount, ' ', a.currency) AS detail
+  FROM aml_alerts a
+  JOIN users u ON u.id = a.user_id
 `;
 
 const buildActivityWhere = (filters) => {
@@ -76,7 +86,7 @@ const AdminDashboard = {
     `;
 
     const dataSql = `
-      SELECT user, action, event_time, status
+      SELECT user, action, event_time, is_important, detail
       FROM (${baseActivitySql}) activity
       ${where}
       ORDER BY event_time ${sortOrder}

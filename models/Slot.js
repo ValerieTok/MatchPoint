@@ -54,6 +54,29 @@ module.exports = {
     });
   },
 
+  async getAvailableListingIds(listingIds) {
+    return new Promise((resolve, reject) => {
+      const hasFilter = Array.isArray(listingIds) && listingIds.length;
+      const placeholders = hasFilter ? listingIds.map(() => '?').join(',') : '';
+      const sql = hasFilter
+        ? `
+          SELECT DISTINCT listing_id
+          FROM coach_slots
+          WHERE is_available = 1
+            AND slot_date >= CURDATE()
+            AND listing_id IN (${placeholders})
+        `
+        : `
+          SELECT DISTINCT listing_id
+          FROM coach_slots
+          WHERE is_available = 1
+            AND slot_date >= CURDATE()
+        `;
+      const params = hasFilter ? listingIds : [];
+      db.query(sql, params, (err, rows) => (err ? reject(err) : resolve(rows || [])));
+    });
+  },
+
   async getAvailableSlotsByListingAll(listingId) {
     return new Promise((resolve, reject) => {
       const sql = `

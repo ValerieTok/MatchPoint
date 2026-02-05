@@ -1329,6 +1329,14 @@ body.admin-dashboard {
   color: #374151;
 }
 
+.admin-dashboard .table tbody tr.is-important {
+  background: #fff4e6;
+}
+
+.admin-dashboard .table tbody tr.is-important td {
+  border-bottom-color: #f1c78a;
+}
+
 /* admin-coaches.css */
 body.admin-coaches {
   --bg: #f5f5f5;
