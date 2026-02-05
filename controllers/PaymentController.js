@@ -320,9 +320,15 @@ module.exports = {
     try {
       const txnRetrievalRef = req.query.txn_retrieval_ref;
       const sessionTxn = req.session.pendingPayment?.nets?.txnRetrievalRef;
+      const startedAt = Number(req.session.pendingPayment?.nets?.startedAt || 0);
+      const NETS_TIMEOUT_MS = 5 * 60 * 1000;
 
       if (!txnRetrievalRef || !sessionTxn || txnRetrievalRef !== sessionTxn) {
         req.flash('error', 'NETS transaction not found for this session.');
+        return res.redirect('/payment');
+      }
+      if (!Number.isFinite(startedAt) || startedAt <= 0 || (Date.now() - startedAt) > NETS_TIMEOUT_MS) {
+        req.flash('error', 'NETS transaction timed out. Please try again.');
         return res.redirect('/payment');
       }
 

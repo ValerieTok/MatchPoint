@@ -109,7 +109,8 @@ exports.generateQrCode = async (req, res) => {
         walletDeduction,
         walletBalance,
         nets: {
-          txnRetrievalRef
+          txnRetrievalRef,
+          startedAt: Date.now()
         }
       };
 

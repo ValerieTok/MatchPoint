@@ -91,6 +91,7 @@
             <div class="wallet-qr" style="margin-top: 16px; text-align: center;">
               <img src="<%= qrCodeUrl %>" alt="NETS QR Code" style="max-width: 260px; width: 100%;">
               <p class="text-muted small mt-2">Scan to complete your NETS top up.</p>
+              <p class="text-muted small mb-0" id="netsQrTimer">Time remaining: 05:00</p>
             </div>
           <% } %>
 
@@ -155,6 +156,7 @@
   const paypalAvailable = <%- JSON.stringify(paypalAvailable) %>;
   const stripeAvailable = <%- JSON.stringify(stripeAvailable) %>;
   const txnRetrievalRef = "<%= txnRetrievalRef || '' %>";
+  const netsQrTimer = document.getElementById('netsQrTimer');
   let paypalButtonsRendered = false;
 
   amountButtons.forEach((btn) => {
@@ -243,17 +245,52 @@
     }).render('#wallet-paypal-button-container');
   };
 
+  let netsCountdownInterval = null;
+  let netsCountdownTimeout = null;
+  const startNetsCountdown = (seconds, failUrl) => {
+    if (!netsQrTimer || !Number.isFinite(seconds) || seconds <= 0) return;
+    const deadline = Date.now() + seconds * 1000;
+    const format = (remaining) => {
+      const min = Math.floor(remaining / 60);
+      const sec = remaining % 60;
+      return `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+    };
+    const tick = () => {
+      const remaining = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+      netsQrTimer.textContent = `Time remaining: ${format(remaining)}`;
+      if (remaining <= 0) {
+        if (netsCountdownInterval) clearInterval(netsCountdownInterval);
+        netsCountdownInterval = null;
+      }
+    };
+    tick();
+    netsCountdownInterval = setInterval(tick, 1000);
+    netsCountdownTimeout = setTimeout(() => {
+      if (netsCountdownInterval) clearInterval(netsCountdownInterval);
+      netsCountdownInterval = null;
+      window.location.href = failUrl;
+    }, seconds * 1000);
+  };
+
   if (txnRetrievalRef) {
     const url = `/sse/payment-status/${txnRetrievalRef}`;
     const s2sNetsTxnStatus = new EventSourcePolyfill(url, { heartbeatTimeout: 150000 });
+    const netsFailUrl = `/ewallet/nets/fail?txn_retrieval_ref=${txnRetrievalRef}`;
+    if (netsQrTimer) {
+      startNetsCountdown(300, netsFailUrl);
+    }
     s2sNetsTxnStatus.addEventListener("message", (event) => {
       const data = JSON.parse(event.data);
       if (data.success) {
         s2sNetsTxnStatus.close();
+        if (netsCountdownInterval) clearInterval(netsCountdownInterval);
+        if (netsCountdownTimeout) clearTimeout(netsCountdownTimeout);
         window.location.href = `/ewallet/nets/success?txn_retrieval_ref=${txnRetrievalRef}`;
       } else if (data.fail) {
         s2sNetsTxnStatus.close();
-        window.location.href = `/ewallet/nets/fail?txn_retrieval_ref=${txnRetrievalRef}`;
+        if (netsCountdownInterval) clearInterval(netsCountdownInterval);
+        if (netsCountdownTimeout) clearTimeout(netsCountdownTimeout);
+        window.location.href = netsFailUrl;
       }
     });
   }

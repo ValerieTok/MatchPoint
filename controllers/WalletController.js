@@ -356,7 +356,8 @@ const WalletController = {
           amount,
           method: 'nets',
           txnRetrievalRef,
-          qrCodeUrl: `data:image/png;base64,${qrData.qr_code}`
+          qrCodeUrl: `data:image/png;base64,${qrData.qr_code}`,
+          startedAt: Date.now()
         };
         req.flash('info', 'Scan the NETS QR code to complete your top up.');
         return res.redirect(walletBasePath);
@@ -380,8 +381,14 @@ const WalletController = {
     try {
       const txnRetrievalRef = req.query.txn_retrieval_ref;
       const sessionTxn = req.session.pendingWalletTopup?.txnRetrievalRef;
+      const startedAt = Number(req.session.pendingWalletTopup?.startedAt || 0);
+      const NETS_TIMEOUT_MS = 5 * 60 * 1000;
       if (!txnRetrievalRef || !sessionTxn || txnRetrievalRef !== sessionTxn) {
         req.flash('error', 'NETS transaction not found for this session.');
+        return res.redirect(walletBasePath);
+      }
+      if (!Number.isFinite(startedAt) || startedAt <= 0 || (Date.now() - startedAt) > NETS_TIMEOUT_MS) {
+        req.flash('error', 'NETS transaction timed out. Please try again.');
         return res.redirect(walletBasePath);
       }
       const response = await axios.post(

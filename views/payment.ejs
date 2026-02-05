@@ -110,6 +110,7 @@
                           <img src="<%= qrCodeUrl %>" alt="NETS QR Code" style="max-width: 260px; width: 100%;">
                         </div>
                         <p class="text-muted mt-2 small text-center">Scan this code with your mobile banking app to complete the payment</p>
+                        <p class="text-muted small text-center mb-0" id="netsQrTimer">Time remaining: 05:00</p>
                       <% } else { %>
                         <p class="text-muted mt-3 small text-center">Generating NETS QR code...</p>
                       <% } %>
@@ -244,6 +245,7 @@
   const amountDueDisplay = document.getElementById("amountDueDisplay");
   const paypalAmountDisplay = document.getElementById("paypalAmountDisplay");
   const termsCheck = document.getElementById("termsCheck");
+  const netsQrTimer = document.getElementById("netsQrTimer");
   let paypalButtonsRendered = false;
   let paypalRenderQueued = false;
 
@@ -500,18 +502,53 @@
     });
   }
 
+  let netsCountdownInterval = null;
+  let netsCountdownTimeout = null;
+  const startNetsCountdown = (seconds, failUrl) => {
+    if (!netsQrTimer || !Number.isFinite(seconds) || seconds <= 0) return;
+    const deadline = Date.now() + seconds * 1000;
+    const format = (remaining) => {
+      const min = Math.floor(remaining / 60);
+      const sec = remaining % 60;
+      return `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+    };
+    const tick = () => {
+      const remaining = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+      netsQrTimer.textContent = `Time remaining: ${format(remaining)}`;
+      if (remaining <= 0) {
+        if (netsCountdownInterval) clearInterval(netsCountdownInterval);
+        netsCountdownInterval = null;
+      }
+    };
+    tick();
+    netsCountdownInterval = setInterval(tick, 1000);
+    netsCountdownTimeout = setTimeout(() => {
+      if (netsCountdownInterval) clearInterval(netsCountdownInterval);
+      netsCountdownInterval = null;
+      window.location.href = failUrl;
+    }, seconds * 1000);
+  };
+
   if (txnRetrievalRef) {
     const url = `/sse/payment-status/${txnRetrievalRef}`;
     const s2sNetsTxnStatus = new EventSourcePolyfill(url, { heartbeatTimeout: 150000 });
+    const netsFailUrl = `/nets-qr/fail?txn_retrieval_ref=${txnRetrievalRef}`;
+    if (qrCodeUrl && netsQrTimer) {
+      startNetsCountdown(300, netsFailUrl);
+    }
 
     s2sNetsTxnStatus.addEventListener("message", (event) => {
       const data = JSON.parse(event.data);
       if (data.success) {
         s2sNetsTxnStatus.close();
+        if (netsCountdownInterval) clearInterval(netsCountdownInterval);
+        if (netsCountdownTimeout) clearTimeout(netsCountdownTimeout);
         window.location.href = `/nets-qr/success?txn_retrieval_ref=${txnRetrievalRef}`;
       } else if (data.fail) {
         s2sNetsTxnStatus.close();
-        window.location.href = `/nets-qr/fail?txn_retrieval_ref=${txnRetrievalRef}`;
+        if (netsCountdownInterval) clearInterval(netsCountdownInterval);
+        if (netsCountdownTimeout) clearTimeout(netsCountdownTimeout);
+        window.location.href = netsFailUrl;
       }
     });
 
