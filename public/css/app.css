@@ -3989,6 +3989,29 @@ body.wallet-page .method-card img {
   max-height: 32px;
 }
 
+body.wallet-page .method-card .nets-logo {
+  max-height: 52px;
+  width: auto;
+}
+
+body.wallet-page .method-card[data-method="stripe"] {
+  background: #2563eb;
+  border-color: #2563eb;
+}
+
+body.wallet-page .method-card[data-method="stripe"].is-active {
+  box-shadow: inset 0 0 0 1px #1d4ed8;
+}
+
+body.wallet-page .method-card[data-method="stripe"] .stripe-word {
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 20px;
+  letter-spacing: 0.3px;
+  text-transform: lowercase;
+}
+
+
 body.wallet-page .wallet-cta {
   width: 100%;
   border: none;
@@ -4277,47 +4300,48 @@ body.payment-page .payment-method:hover {
   transform: translateY(-1px);
 }
 
+body.payment-page .payment-method .nets-logo {
+  height: 56px;
+  width: 140px;
+  object-fit: contain;
+}
+
+body.payment-page #selectNets {
+  background: #ffffff;
+  height: 78px;
+}
+
+body.payment-page #selectNets.active {
+  background: #ffffff;
+  border-color: #e5e7eb;
+  box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.2);
+}
+
+body.payment-page #selectStripe {
+  background: #2563eb;
+  border-color: #2563eb;
+}
+
+body.payment-page #selectStripe:hover {
+  border-color: #1d4ed8;
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.24);
+}
+
+body.payment-page #selectStripe .stripe-word {
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 20px;
+  letter-spacing: 0.3px;
+  text-transform: lowercase;
+}
+
+
 body.payment-page .payment-method.active {
   background: #fff1f2;
   border-color: #fda4af;
   box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
 }
 
-body.payment-page #selectStripe.payment-method {
-  background: #fde9ee;
-  border-color: #f6a7b6;
-  box-shadow: inset 0 0 0 1px rgba(246, 167, 182, 0.55);
-  height: 68px;
-}
-
-body.payment-page #selectStripe.payment-method:hover {
-  border-color: #ef8fa4;
-  box-shadow: inset 0 0 0 1px rgba(239, 143, 164, 0.6),
-    0 10px 24px rgba(15, 23, 42, 0.08);
-}
-
-body.payment-page #selectStripe.payment-method.active {
-  background: #fde1e8;
-  border-color: #ef8fa4;
-  box-shadow: inset 0 0 0 1px rgba(239, 143, 164, 0.6),
-    0 0 0 3px rgba(246, 167, 182, 0.2);
-}
-
-body.payment-page #selectStripe .card-logos {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 8px 16px;
-  border-radius: 12px;
-  width: auto;
-}
-
-body.payment-page #selectStripe .card-logos img {
-  width: 140px;
-  max-width: 60%;
-  height: auto;
-  display: block;
-}
 
 body.payment-page .payment-wallet {
   background: linear-gradient(180deg, #ffffff 0%, #fff9f9 100%);
@@ -4443,6 +4467,7 @@ body.payment-page #paypal-button-container iframe {
   min-width: 100% !important;
   max-width: 100% !important;
 }
+
 
 body.payment-page .payment-card .form-control,
 body.payment-page .payment-card .form-select {
