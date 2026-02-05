@@ -1,2 +1,0 @@
--- Deprecated: coach_slots is now created with listing_id in 20260203_create_coach_slots.sql.
--- This file is intentionally left as a no-op to avoid duplicate column errors.
