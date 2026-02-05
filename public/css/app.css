@@ -4283,6 +4283,42 @@ body.payment-page .payment-method.active {
   box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
 }
 
+body.payment-page #selectStripe.payment-method {
+  background: #fde9ee;
+  border-color: #f6a7b6;
+  box-shadow: inset 0 0 0 1px rgba(246, 167, 182, 0.55);
+  height: 68px;
+}
+
+body.payment-page #selectStripe.payment-method:hover {
+  border-color: #ef8fa4;
+  box-shadow: inset 0 0 0 1px rgba(239, 143, 164, 0.6),
+    0 10px 24px rgba(15, 23, 42, 0.08);
+}
+
+body.payment-page #selectStripe.payment-method.active {
+  background: #fde1e8;
+  border-color: #ef8fa4;
+  box-shadow: inset 0 0 0 1px rgba(239, 143, 164, 0.6),
+    0 0 0 3px rgba(246, 167, 182, 0.2);
+}
+
+body.payment-page #selectStripe .card-logos {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  border-radius: 12px;
+  width: auto;
+}
+
+body.payment-page #selectStripe .card-logos img {
+  width: 140px;
+  max-width: 60%;
+  height: auto;
+  display: block;
+}
+
 body.payment-page .payment-wallet {
   background: linear-gradient(180deg, #ffffff 0%, #fff9f9 100%);
   border: 1px solid #f3dede;

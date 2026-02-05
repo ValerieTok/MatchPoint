@@ -125,6 +125,7 @@ exports.generateQrCode = async (req, res) => {
         webhookUrl,
         fullNetsResponse: response.data,
         paypalClientId: process.env.PAYPAL_CLIENT_ID || '',
+        stripePublishableKey: process.env.STRIPE_PUBLISHABLE_KEY || '',
         paypalCurrency: 'SGD',
         paypalAmount,
         walletBalance,
