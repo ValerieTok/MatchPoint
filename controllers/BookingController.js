@@ -329,7 +329,7 @@ module.exports = {
             const userConfirmed = Boolean(userCompletedAtRaw);
 
             items.forEach((item) => {
-              if (!userConfirmed) return;
+              if (!completedAtRaw) return;
 
               const refund = refundMap.get(Number(item.booking_item_id)) || null;
               completedSessions.push({

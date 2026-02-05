@@ -112,11 +112,13 @@ const ListingController = {
         const refundMap = new Map((refundRows || []).map((r) => [Number(r.booking_item_id), r]));
         const sessionList = (sessionRows || []).map((row) => {
           const bookingStatus = row.booking_status ? String(row.booking_status).toLowerCase() : 'pending';
-          const status = row.session_completed
-            ? 'COMPLETED'
-            : (bookingStatus === 'rejected'
-              ? 'REJECTED'
-              : (bookingStatus === 'accepted' ? 'UPCOMING' : 'PENDING'));
+          const hasSessionDate = Boolean(row.session_date);
+          const isUpcomingByDate = hasSessionDate && Number(row.session_completed) === 0;
+          const status = bookingStatus === 'rejected'
+            ? 'REJECTED'
+            : (row.session_completed
+              ? 'COMPLETED'
+              : (isUpcomingByDate ? 'UPCOMING' : (bookingStatus === 'accepted' ? 'UPCOMING' : 'PENDING')));
           const refund = refundMap.get(Number(row.booking_item_id)) || null;
           return {
             bookingId: row.id,
@@ -130,6 +132,7 @@ const ListingController = {
             sport: row.sport || row.listing_title || '',
             location: row.session_location || row.booking_location || '',
             status,
+            isUpcomingByDate,
             sessionCompleted: Boolean(row.session_completed),
             userCompletedAt: row.user_completed_at || null,
             coachCompletedAt: row.coach_completed_at || null,

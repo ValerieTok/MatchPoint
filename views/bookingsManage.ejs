@@ -16,7 +16,7 @@
     if (isAdmin) return { label: 'UNCONFIRMED', class: 'pill--pending' };
     const normalized = order ? String(order.status || '').toLowerCase() : '';
     if (normalized === 'rejected') return { label: 'UNCONFIRMED', class: 'pill--inactive' };
-    if (normalized === 'accepted') return { label: 'CONFIRMED', class: 'pill--upcoming' };
+    if (normalized === 'accepted') return { label: 'CONFIRMED', class: 'pill--review' };
     return { label: 'UNCONFIRMED', class: 'pill--pending' };
   };
 %>

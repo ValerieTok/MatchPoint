@@ -107,12 +107,17 @@
                   <td>
                     <% const bookingStatus = String(r.bookingStatus || '').toLowerCase(); %>
                     <% if (r.completedAt) { %>
-                      <span class="pill pill--review">CONFIRMED</span>
+                      <span class="pill pill--review">COMPLETED</span>
                       <% if ((r.refundStatus || '').toLowerCase() === 'approved') { %>
                         <span class="pill pill--refunded">REFUNDED</span>
                       <% } %>
+                    <% } else if (r.isUpcomingByDate) { %>
+                      <span class="pill pill--upcoming">UPCOMING</span>
                     <% } else if (bookingStatus === 'accepted') { %>
-                      <span class="pill pill--upcoming">CONFIRMED</span>
+                      <span class="pill pill--review">COMPLETED</span>
+                      <% if ((r.refundStatus || '').toLowerCase() === 'approved') { %>
+                        <span class="pill pill--refunded">REFUNDED</span>
+                      <% } %>
                     <% } else if (bookingStatus === 'rejected') { %>
                       <span class="pill pill--inactive">UNCONFIRMED</span>
                     <% } else { %>

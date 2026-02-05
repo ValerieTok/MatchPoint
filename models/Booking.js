@@ -152,7 +152,6 @@ const Booking = {
       JOIN booking_items bi ON bi.booking_id = b.id
       JOIN users u ON u.id = bi.coach_id
       WHERE b.user_id = ?
-        AND b.completed_at IS NULL
       ORDER BY
         CASE
           WHEN bi.session_date IS NOT NULL
@@ -375,7 +374,7 @@ const Booking = {
       JOIN booking_items bi ON bi.booking_id = b.id
       JOIN users u ON u.id = bi.coach_id
       WHERE b.user_id = ?
-        AND (b.status = 'accepted' OR b.status = 'rejected')
+        AND b.completed_at IS NOT NULL
       GROUP BY b.id, b.status, b.completed_at, b.created_at
       ORDER BY b.created_at DESC
       LIMIT ?

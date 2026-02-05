@@ -979,8 +979,8 @@ body{
 }
 
 .admin-page .pill--review {
-  background: #ffedd5;
-  color: #9a3412;
+  background: #dcfce7;
+  color: #15803d;
 }
 
 .admin-page .pill--refund,
@@ -1189,12 +1189,12 @@ body{
   border-radius: 999px;
 }
 .pill--upcoming{
-  background: #dcfce7;
-  color: #15803d;
-}
-.pill--review{
   background: #ffedd5;
   color: #9a3412;
+}
+.pill--review{
+  background: #dcfce7;
+  color: #15803d;
 }
 .pill--pending{
   background: #fff4cc;
@@ -1207,6 +1207,10 @@ body{
 .pill--rejected{
   background: #fee2e2;
   color: #b91c1c;
+}
+.pill--refunded{
+  background: #ede9fe;
+  color: #6d28d9;
 }
 
 /* Footer */
@@ -1305,8 +1309,8 @@ body.admin-dashboard {
 }
 
 .admin-dashboard .pill--review {
-  background: #ffedd5;
-  color: #9a3412;
+  background: #dcfce7;
+  color: #15803d;
 }
 
 .admin-dashboard .pill--refund,
