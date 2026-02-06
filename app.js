@@ -454,6 +454,8 @@ app.get('/terms', (req, res) => {
 app.get('/trackRevenue', checkAuthenticated, checkAdminOrCoach, RevenueController.showDashboard);
 app.get('/adminamlalerts', checkAuthenticated, checkAdmin, AdminAmlController.list);
 app.post('/adminamlalerts/:id/review', checkAuthenticated, checkAdmin, AdminAmlController.review);
+app.post('/adminamlalerts/ban', checkAuthenticated, checkAdmin, AdminAmlController.banUser);
+app.post('/adminamlalerts/unban', checkAuthenticated, checkAdmin, AdminAmlController.unbanUser);
 app.get('/adminamlalerts/export', checkAuthenticated, checkAdmin, AdminAmlController.exportCsv);
 
 app.get('/adminRevenue', checkAuthenticated, checkAdmin, AdminRevenueController.showDashboard);

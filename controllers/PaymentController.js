@@ -8,7 +8,7 @@ const { clampWalletDeduction } = require('../services/walletLogic');
 const stripe = require('../services/stripe');
 const aml = require('../services/aml');
 
-const SERVICE_FEE = 2.5;
+const SERVICE_FEE = 0;
 
 const formatDateOnly = (value) => {
   if (!value) return null;
@@ -51,11 +51,6 @@ const getPayableTotal = (req) => {
   const baseTotal = Number((sessionTotal + SERVICE_FEE).toFixed(2));
   const walletDeduction = Number(req.session.pendingPayment?.walletDeduction || 0);
   return Number(Math.max(0, baseTotal - walletDeduction).toFixed(2));
-};
-
-const checkAmlBlock = (req, amount) => {
-  const userId = req.session.user.id;
-  return aml.blockPaymentIfHighValue(userId, amount);
 };
 
 
@@ -289,13 +284,6 @@ module.exports = {
       };
       const dueAfterCredits = Number(Math.max(0, baseTotal - safeWalletDeduction).toFixed(2));
 
-      const amlBlock = checkAmlBlock(req, dueAfterCredits);
-      if (amlBlock && amlBlock.blocked) {
-        const seconds = Math.max(1, Math.ceil(amlBlock.remainingMs / 1000));
-        req.flash('error', `Payment blocked for AML review. Please wait ${seconds} seconds and try again.`);
-        return res.redirect('/payment');
-      }
-
       // Validate payment details
       if (!paymentMethod) {
         req.flash('error', 'Please select a payment method');
@@ -399,12 +387,6 @@ module.exports = {
         return res.status(400).json({ error: 'Wallet covers full amount' });
       }
 
-      const amlBlock = checkAmlBlock(req, amount);
-      if (amlBlock && amlBlock.blocked) {
-        const seconds = Math.max(1, Math.ceil(amlBlock.remainingMs / 1000));
-        return res.status(429).json({ error: `Payment blocked for AML review. Please wait ${seconds} seconds and try again.` });
-      }
-
       const order = await paypal.createOrder(amount, 'SGD');
       if (order && order.id) {
         return res.json({ id: order.id });
@@ -468,12 +450,6 @@ module.exports = {
       }
       if (amount <= 0) {
         return res.status(400).json({ error: 'Wallet covers full amount' });
-      }
-
-      const amlBlock = checkAmlBlock(req, amount);
-      if (amlBlock && amlBlock.blocked) {
-        const seconds = Math.max(1, Math.ceil(amlBlock.remainingMs / 1000));
-        return res.status(429).json({ error: `Payment blocked for AML review. Please wait ${seconds} seconds and try again.` });
       }
 
       const successUrl = `${req.protocol}://${req.get('host')}/payment/stripe/success?session_id={CHECKOUT_SESSION_ID}`;

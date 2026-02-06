@@ -1,4 +1,5 @@
 const AmlAlerts = require('../models/AmlAlerts');
+const UserBan = require('../models/UserBan');
 
 const parsePage = (value) => {
   const num = parseInt(value, 10);
@@ -32,10 +33,28 @@ module.exports = {
       ]);
 
       const totalPages = Math.max(1, Math.ceil((listResult.total || 0) / limit));
+      const userIds = (listResult.rows || []).map((row) => Number(row.user_id)).filter(Number.isFinite);
+      const banMap = await new Promise((resolve) => {
+        UserBan.getActiveBans(userIds, (err, map) => {
+          if (err) {
+            console.error('Failed to load ban status for AML alerts', err);
+            return resolve(new Map());
+          }
+          return resolve(map || new Map());
+        });
+      });
+      const rowsWithBan = (listResult.rows || []).map((row) => {
+        const banInfo = banMap.get(Number(row.user_id));
+        return {
+          ...row,
+          is_banned: Boolean(banInfo),
+          ban_comment: banInfo ? banInfo.comment : ''
+        };
+      });
 
       return res.render('adminAmlAlerts', {
         user,
-        alerts: listResult.rows,
+        alerts: rowsWithBan,
         summary,
         pager: {
           page,
@@ -50,6 +69,59 @@ module.exports = {
       console.error('Failed to load AML alerts:', err);
       req.flash('error', 'Unable to load AML alerts.');
       return res.redirect('/admindashboard');
+    }
+  },
+
+  async banUser(req, res) {
+    const user = req.session && req.session.user;
+    if (!user || user.role !== 'admin') {
+      req.flash('error', 'Access denied');
+      return res.redirect('/admindashboard');
+    }
+    const targetId = Number(req.body && req.body.user_id);
+    const comment = req.body && req.body.comment ? String(req.body.comment).trim() : '';
+    if (!Number.isFinite(targetId)) {
+      req.flash('error', 'Invalid user.');
+      return res.redirect('/adminamlalerts');
+    }
+    if (!comment) {
+      req.flash('error', 'Ban reason is required.');
+      return res.redirect('/adminamlalerts');
+    }
+    try {
+      await new Promise((resolve, reject) => {
+        UserBan.banUser(targetId, comment, user.id, (err) => (err ? reject(err) : resolve()));
+      });
+      req.flash('success', 'User banned.');
+      return res.redirect('/adminamlalerts');
+    } catch (err) {
+      console.error('Failed to ban user from AML alerts', err);
+      req.flash('error', 'Unable to ban user.');
+      return res.redirect('/adminamlalerts');
+    }
+  },
+
+  async unbanUser(req, res) {
+    const user = req.session && req.session.user;
+    if (!user || user.role !== 'admin') {
+      req.flash('error', 'Access denied');
+      return res.redirect('/admindashboard');
+    }
+    const targetId = Number(req.body && req.body.user_id);
+    if (!Number.isFinite(targetId)) {
+      req.flash('error', 'Invalid user.');
+      return res.redirect('/adminamlalerts');
+    }
+    try {
+      await new Promise((resolve, reject) => {
+        UserBan.unbanUser(targetId, (err) => (err ? reject(err) : resolve()));
+      });
+      req.flash('success', 'User unbanned.');
+      return res.redirect('/adminamlalerts');
+    } catch (err) {
+      console.error('Failed to unban user from AML alerts', err);
+      req.flash('error', 'Unable to unban user.');
+      return res.redirect('/adminamlalerts');
     }
   },
 

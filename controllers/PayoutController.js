@@ -43,11 +43,6 @@ module.exports = {
       return res.redirect('/trackRevenue');
     }
     try {
-      const capCheck = await aml.enforceNewAccountCap(user.id, 'payout', amount);
-      if (!capCheck.ok) {
-        req.flash('error', `New accounts are limited to $${Number(capCheck.cap).toFixed(2)} payouts.`);
-        return res.redirect('/trackRevenue');
-      }
       const coach = await new Promise((resolve, reject) => {
         Account.getUserById(user.id, (err, row) => (err ? reject(err) : resolve(row)));
       });

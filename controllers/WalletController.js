@@ -9,14 +9,6 @@ const aml = require('../services/aml');
 const allowedMethods = new Set(['paypal', 'nets', 'stripe']);
 const walletBasePath = '/ewallet';
 
-const enforceTopUpCap = async (userId, amount, respond) => {
-  const capCheck = await aml.enforceNewAccountCap(userId, 'topup', amount);
-  if (!capCheck.ok) {
-    return respond(capCheck.cap, capCheck.reason);
-  }
-  return true;
-};
-
 const WalletController = {
   async showWallet(req, res) {
     const user = req.session && req.session.user;
@@ -109,13 +101,6 @@ const WalletController = {
       return res.redirect(walletBasePath);
     }
 
-    const allowed = await enforceTopUpCap(user.id, amountRaw, (cap, reason) => {
-      const scope = reason === 'monthly' ? 'monthly' : (reason === 'weekly' ? 'weekly' : 'per-transaction');
-      req.flash('error', `New accounts are limited to $${Number(cap).toFixed(2)} ${scope} top ups.`);
-      return res.redirect(walletBasePath);
-    });
-    if (allowed !== true) return allowed;
-
     if (methodRaw === 'nets') {
       req.session.pendingWalletTopup = {
         amount: amountRaw,
@@ -189,12 +174,6 @@ const WalletController = {
       return res.status(400).json({ error: 'Invalid payment method' });
     }
 
-    const allowed = await enforceTopUpCap(user.id, amountRaw, (cap, reason) => {
-      const scope = reason === 'monthly' ? 'monthly' : (reason === 'weekly' ? 'weekly' : 'per-transaction');
-      return res.status(400).json({ error: `New accounts are limited to $${Number(cap).toFixed(2)} ${scope} top ups.` });
-    });
-    if (allowed !== true) return allowed;
-
     req.session.pendingWalletTopup = {
       amount: amountRaw,
       method: methodRaw
@@ -220,12 +199,6 @@ const WalletController = {
       if (!isValidTopUpAmount(amountRaw)) {
         return res.status(400).json({ error: 'Invalid top up amount' });
       }
-
-      const allowed = await enforceTopUpCap(user.id, amountRaw, (cap, reason) => {
-        const scope = reason === 'monthly' ? 'monthly' : (reason === 'weekly' ? 'weekly' : 'per-transaction');
-        return res.status(400).json({ error: `New accounts are limited to $${Number(cap).toFixed(2)} ${scope} top ups.` });
-      });
-      if (allowed !== true) return allowed;
 
       req.session.pendingWalletTopup = {
         amount: amountRaw,
@@ -273,6 +246,7 @@ const WalletController = {
           currency: 'SGD',
           reason: 'Wallet top up (PayPal)'
         });
+        await aml.maybeFlagTopUpThreshold(user.id, amount);
         delete req.session.pendingWalletTopup;
         return res.json({ success: true, redirectUrl: walletBasePath });
       }
@@ -296,12 +270,6 @@ const WalletController = {
       if (!isValidTopUpAmount(amountRaw)) {
         return res.status(400).json({ error: 'Invalid top up amount' });
       }
-
-      const allowed = await enforceTopUpCap(user.id, amountRaw, (cap, reason) => {
-        const scope = reason === 'monthly' ? 'monthly' : (reason === 'weekly' ? 'weekly' : 'per-transaction');
-        return res.status(400).json({ error: `New accounts are limited to $${Number(cap).toFixed(2)} ${scope} top ups.` });
-      });
-      if (allowed !== true) return allowed;
 
       req.session.pendingWalletTopup = {
         amount: amountRaw,
@@ -361,6 +329,7 @@ const WalletController = {
         currency: 'SGD',
         reason: 'Wallet top up (Stripe)'
       });
+      await aml.maybeFlagTopUpThreshold(user.id, amount);
       delete req.session.pendingWalletTopup;
       req.flash('success', `Wallet topped up by $${amount.toFixed(2)}.`);
       return res.redirect(walletBasePath);
@@ -392,13 +361,6 @@ const WalletController = {
       req.flash('error', 'Invalid top up amount.');
       return res.redirect(walletBasePath);
     }
-
-    const allowed = await enforceTopUpCap(user.id, amount, (cap, reason) => {
-      const scope = reason === 'monthly' ? 'monthly' : (reason === 'weekly' ? 'weekly' : 'per-transaction');
-      req.flash('error', `New accounts are limited to $${Number(cap).toFixed(2)} ${scope} top ups.`);
-      return res.redirect(walletBasePath);
-    });
-    if (allowed !== true) return allowed;
 
     try {
       const txnId = process.env.NETS_TXN_ID
@@ -455,7 +417,6 @@ const WalletController = {
       const txnRetrievalRef = req.query.txn_retrieval_ref;
       const sessionTxn = req.session.pendingWalletTopup?.txnRetrievalRef;
       const startedAt = Number(req.session.pendingWalletTopup?.startedAt || req.session.pendingWalletTopup?.generatedAt || 0);
-      const startedAt = Number(req.session.pendingWalletTopup?.startedAt || req.session.pendingWalletTopup?.generatedAt || 0);
       const NETS_TIMEOUT_MS = 5 * 60 * 1000;
       if (!txnRetrievalRef || !sessionTxn || txnRetrievalRef !== sessionTxn) {
         req.flash('error', 'NETS transaction not found for this session.');
@@ -491,6 +452,7 @@ const WalletController = {
           currency: 'SGD',
           reason: 'Wallet top up (NETS)'
         });
+        await aml.maybeFlagTopUpThreshold(user.id, amount);
         delete req.session.pendingWalletTopup;
         req.flash('success', `Wallet topped up by $${amount.toFixed(2)}.`);
         return res.redirect(walletBasePath);

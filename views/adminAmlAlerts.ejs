@@ -1,16 +1,29 @@
-<%- include('partials/head', { title: 'AML Alerts', bodyClass: bodyClass || 'admin-page admin-aml' }) %>
-<%- include('partials/adminSidebar', { active: 'aml' }) %>
+<%- include('partials/head', {
+  title: 'AML Alerts',
+  bodyClass: bodyClass || 'admin-page admin-aml',
+  extraHead: `
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  `
+}) %>
 
-<main class="admin-content">
-  <section class="hero">
-    <div class="hero__text">
-      <h1 class="hero__title">AML Alerts</h1>
-      <p class="hero__subtitle">Review high-risk transactions and document outcomes.</p>
-    </div>
-    <div class="hero__actions">
-      <a class="btn btn--ghost" href="/adminamlalerts/export?days=30">Export last 30 days</a>
-    </div>
-  </section>
+<div class="app">
+  <%- include('partials/adminSidebar', { active: 'aml' }) %>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="crumb">AML ALERTS</div>
+      <div class="topbar__pill"><i class="fa-solid fa-triangle-exclamation"></i></div>
+    </header>
+
+    <section class="hero">
+      <div class="hero__text">
+        <h1 class="hero__title">AML Alerts</h1>
+        <p class="hero__subtitle">Review high-risk transactions and document outcomes.</p>
+      </div>
+      <div class="hero__actions">
+        <a class="btn btn--ghost" href="/adminamlalerts/export?days=30">Export last 30 days</a>
+      </div>
+    </section>
 
   <%- include('partials/flashMessages') %>
 
@@ -29,7 +42,7 @@
     </div>
   </section>
 
-  <section class="content-card">
+    <section class="content-card">
     <div class="content-card__head">
       <div>
         <h2 class="content-card__title">Alerts</h2>
@@ -92,6 +105,9 @@
                 <td>
                   <div><%= row.username %></div>
                   <div class="text-muted"><%= row.email %></div>
+                  <% if (row.is_banned) { %>
+                    <div><span class="pill pill--banned">BANNED</span></div>
+                  <% } %>
                 </td>
                 <td><%= row.alert_type %></td>
                 <td>$<%= Number(row.amount || 0).toFixed(2) %> <%= row.currency || 'SGD' %></td>
@@ -107,6 +123,20 @@
                   <% } else { %>
                     <span class="text-muted">Reviewed</span>
                   <% } %>
+                  <div class="mt-2">
+                    <% if (row.is_banned) { %>
+                      <form method="post" action="/adminamlalerts/unban" class="inline-form">
+                        <input type="hidden" name="user_id" value="<%= row.user_id %>" />
+                        <button class="btn btn--sm neutral" type="submit">Unban</button>
+                      </form>
+                    <% } else { %>
+                      <form method="post" action="/adminamlalerts/ban" class="inline-form">
+                        <input type="hidden" name="user_id" value="<%= row.user_id %>" />
+                        <input class="form-control" type="text" name="comment" placeholder="Ban reason" />
+                        <button class="btn btn--sm danger" type="submit">Ban</button>
+                      </form>
+                    <% } %>
+                  </div>
                 </td>
               </tr>
             <% }) %>
@@ -122,7 +152,8 @@
         <% } %>
       </div>
     <% } %>
-  </section>
-</main>
+    </section>
+  </main>
+</div>
 
 <%- include('partials/footer') %>
