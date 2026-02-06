@@ -21,6 +21,7 @@ const FeedbackController = require('./controllers/FeedbackController');
 const RefundController = require('./controllers/RefundController');
 const RevenueController = require('./controllers/RevenueController');
 const AdminRevenueController = require('./controllers/AdminRevenueController');
+const AdminAmlController = require('./controllers/AdminAmlController');
 const FavoriteController = require('./controllers/FavoriteController');
 const SlotController = require('./controllers/SlotController');
 const PayoutController = require('./controllers/PayoutController');
@@ -451,6 +452,10 @@ app.get('/terms', (req, res) => {
 
 // Track Revenue (blank page placeholder)
 app.get('/trackRevenue', checkAuthenticated, checkAdminOrCoach, RevenueController.showDashboard);
+app.get('/adminamlalerts', checkAuthenticated, checkAdmin, AdminAmlController.list);
+app.post('/adminamlalerts/:id/review', checkAuthenticated, checkAdmin, AdminAmlController.review);
+app.get('/adminamlalerts/export', checkAuthenticated, checkAdmin, AdminAmlController.exportCsv);
+
 app.get('/adminRevenue', checkAuthenticated, checkAdmin, AdminRevenueController.showDashboard);
 app.get('/adminRevenue/report', checkAuthenticated, checkAdmin, AdminRevenueController.downloadMonthlyReport);
 app.get('/adminRevenue/report.pdf', checkAuthenticated, checkAdmin, AdminRevenueController.downloadMonthlyReportPdf);

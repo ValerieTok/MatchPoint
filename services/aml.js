@@ -16,6 +16,8 @@ const AML_NEW_ACCOUNT_TOPUP_MONTHLY_CAP = readNumber(process.env.AML_NEW_ACCOUNT
 const AML_NEW_ACCOUNT_TOPUP_MONTHLY_DAYS = readNumber(process.env.AML_NEW_ACCOUNT_TOPUP_MONTHLY_DAYS, 30);
 const AML_EXISTING_ACCOUNT_TOPUP_WEEKLY_CAP = readNumber(process.env.AML_EXISTING_ACCOUNT_TOPUP_WEEKLY_CAP, 999);
 const AML_EXISTING_ACCOUNT_TOPUP_WEEKLY_DAYS = readNumber(process.env.AML_EXISTING_ACCOUNT_TOPUP_WEEKLY_DAYS, 7);
+const AML_BLOCK_SECONDS = readNumber(process.env.AML_BLOCK_SECONDS, 30);
+const amlBlockUntilByUser = new Map();
 
 const isNewAccountByDate = (createdAt) => {
   if (!createdAt) return false;
@@ -106,6 +108,26 @@ const enforceNewAccountCap = async (userId, capType, amount) => {
   return { ok: true };
 };
 
+const blockPaymentIfHighValue = (userId, amount) => {
+  if (!AML_ENABLED) return { blocked: false, remainingMs: 0 };
+  if (!Number.isFinite(AML_BLOCK_SECONDS) || AML_BLOCK_SECONDS <= 0) {
+    return { blocked: false, remainingMs: 0 };
+  }
+  const numericAmount = Number(amount || 0);
+  if (!Number.isFinite(numericAmount) || numericAmount < AML_HIGH_VALUE_THRESHOLD) {
+    return { blocked: false, remainingMs: 0 };
+  }
+  const now = Date.now();
+  const existing = amlBlockUntilByUser.get(userId);
+  if (existing && existing > now) {
+    return { blocked: true, remainingMs: existing - now };
+  }
+  const seconds = AML_BLOCK_SECONDS;
+  const until = now + seconds * 1000;
+  amlBlockUntilByUser.set(userId, until);
+  return { blocked: true, remainingMs: until - now };
+};
+
 module.exports = {
   AML_ENABLED,
   AML_NEW_ACCOUNT_DAYS,
@@ -116,7 +138,9 @@ module.exports = {
   AML_NEW_ACCOUNT_TOPUP_MONTHLY_DAYS,
   AML_EXISTING_ACCOUNT_TOPUP_WEEKLY_CAP,
   AML_EXISTING_ACCOUNT_TOPUP_WEEKLY_DAYS,
+  AML_BLOCK_SECONDS,
   isNewAccount,
   enforceNewAccountCap,
-  maybeFlagHighValue
+  maybeFlagHighValue,
+  blockPaymentIfHighValue
 };
